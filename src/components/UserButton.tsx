@@ -9,7 +9,7 @@ export function UserButton() {
 
   if (isPending) {
     return (
-      <div className="flex items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-gray-100">
+      <div className="flex items-center space-x-3 rounded-lg p-2 transition-colors">
         <Skeleton className="h-8 w-8 rounded-full" />
         <Skeleton className="h-4 w-24" />
       </div>
@@ -19,10 +19,10 @@ export function UserButton() {
   if (!session?.user) {
     return (
       <Link
-        className="flex w-full items-center rounded-lg p-3 transition-colors hover:bg-gray-100"
+        className="hover:bg-muted flex w-full items-center rounded-lg p-2 transition-colors"
         to="/login"
       >
-        <LogIn className="mr-3 h-4 w-4" />
+        <LogIn className="mr-3 size-4" />
         Login
       </Link>
     );
@@ -32,7 +32,7 @@ export function UserButton() {
 
   return (
     <Link
-      className="flex w-full items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-gray-100"
+      className="hover:bg-muted flex w-full items-center space-x-3 rounded-lg p-2 transition-colors"
       to="/settings"
     >
       <div className="flex-shrink-0">
@@ -47,9 +47,7 @@ export function UserButton() {
         </Avatar>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-900">
-          {user.name}
-        </p>
+        <p className="truncate text-sm font-semibold">{user.name}</p>
       </div>
     </Link>
   );
