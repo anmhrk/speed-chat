@@ -11,7 +11,7 @@ export function ThreadSearchInput({
   setSearch,
 }: ThreadSearchInputProps) {
   return (
-    <div className="relative">
+    <div className="relative mt-4">
       <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
       <Input
         placeholder="Search your threads..."

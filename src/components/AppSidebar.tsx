@@ -32,10 +32,12 @@ export function AppSidebar() {
           </Link>
         </div>
 
-        <div className="mt-4 space-y-4">
-          <Button size="lg" className="w-full font-semibold">
-            New Chat
-          </Button>
+        <div className="mt-4">
+          <Link to="/">
+            <Button size="lg" className="w-full font-semibold">
+              New Chat
+            </Button>
+          </Link>
           <ThreadSearchInput search={search} setSearch={setSearch} />
         </div>
       </SidebarHeader>
@@ -49,12 +51,14 @@ export function AppSidebar() {
                 thread.toLowerCase().includes(search.toLowerCase()),
               )
               .map((thread, index) => (
-                <div
+                <Link
                   key={index}
                   className="hover:bg-muted flex cursor-pointer items-center rounded-lg p-2 text-sm"
+                  to="/chat/$chatId"
+                  params={{ chatId: crypto.randomUUID() }}
                 >
                   <span className="truncate">{thread}</span>
-                </div>
+                </Link>
               ))}
           </div>
         </ScrollArea>

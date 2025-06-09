@@ -28,8 +28,8 @@ function App() {
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <div className="p-3">
-        {/* TODO: Add search, new chat button here once db fetching is implemented. Make bg transparent */}
+      <div className="absolute top-0 left-0 z-10 p-3">
+        {/* TODO: Add search, new chat button here once db fetching is implemented */}
         <SidebarTrigger />
       </div>
       <AppSidebar />
