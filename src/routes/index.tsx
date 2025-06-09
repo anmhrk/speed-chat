@@ -1,3 +1,5 @@
+import { signIn, signOut, useSession } from "@/backend/auth/auth-client";
+import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -5,5 +7,20 @@ export const Route = createFileRoute("/")({
 });
 
 function App() {
-	return <div>Hello World</div>;
+	const { data: session } = useSession();
+
+	return (
+		<>
+			{session ? (
+				<>
+					<p>Signed in as {session.user.name}</p>
+					<Button onClick={() => signOut()}>Sign out</Button>
+				</>
+			) : (
+				<Button onClick={() => signIn.social({ provider: "google" })}>
+					Sign in
+				</Button>
+			)}
+		</>
+	);
 }
