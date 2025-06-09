@@ -2,7 +2,7 @@ import { useSession } from "@/backend/auth/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import { Button } from "./ui/button";
+import { LogIn } from "lucide-react";
 
 export function UserButton() {
   const { data: session, isPending } = useSession();
@@ -18,16 +18,23 @@ export function UserButton() {
 
   if (!session?.user) {
     return (
-      <div className="bg-background text-b flex w-full items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-gray-100">
-        <Link to="/login">Login</Link>
-      </div>
+      <Link
+        className="flex w-full items-center rounded-lg p-3 transition-colors hover:bg-gray-100"
+        to="/login"
+      >
+        <LogIn className="mr-3 h-4 w-4" />
+        Login
+      </Link>
     );
   }
 
   const { user } = session;
 
   return (
-    <Button className="bg-background flex w-full items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-gray-100">
+    <Link
+      className="flex w-full items-center space-x-3 rounded-lg p-3 transition-colors hover:bg-gray-100"
+      to="/settings"
+    >
       <div className="flex-shrink-0">
         <Avatar>
           <AvatarImage
@@ -44,6 +51,6 @@ export function UserButton() {
           {user.name}
         </p>
       </div>
-    </Button>
+    </Link>
   );
 }

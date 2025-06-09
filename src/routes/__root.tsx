@@ -3,10 +3,11 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  Navigate,
 } from "@tanstack/react-router";
-// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-// import TanStackQueryLayout from "../integrations/tanstack-query/layout.tsx";
+import TanStackQueryLayout from "../integrations/tanstack-query/layout.tsx";
 
 import appCss from "../styles.css?url";
 
@@ -17,7 +18,6 @@ import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
 interface MyRouterContext {
   queryClient: QueryClient;
-
   trpc: TRPCOptionsProxy<TRPCRouter>;
 }
 
@@ -32,7 +32,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Speed Chat",
+        description: "Speed Chat is a fast and snappy AI chat app",
       },
     ],
     links: [
@@ -46,17 +47,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
     <RootDocument>
       <Outlet />
-      {/* <TanStackRouterDevtools />
-      <TanStackQueryLayout /> */}
+      <TanStackRouterDevtools />
+      <TanStackQueryLayout />
     </RootDocument>
   ),
 
-  notFoundComponent: () => (
-    <div>
-      <h1>404 - Page Not Found</h1>
-      <p>The page you're looking for doesn't exist.</p>
-    </div>
-  ),
+  notFoundComponent: () => <NotFound />,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -65,10 +61,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="overscroll-none">
         {children}
         <Scripts />
       </body>
     </html>
   );
+}
+
+function NotFound() {
+  return <Navigate to="/" />;
 }
