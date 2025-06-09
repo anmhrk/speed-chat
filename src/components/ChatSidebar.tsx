@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import { UserButton } from "./UserButton";
 
 interface Chat {
   id: string;
@@ -48,15 +49,16 @@ export function ChatSidebar({
   onNewChat,
 }: ChatSidebarProps) {
   return (
-    <div className="flex h-full w-80 flex-col border-r border-gray-200 bg-white">
-      <div className="border-b border-gray-100 p-6">
-        <h1 className="mb-4 text-xl font-semibold text-gray-900">T3.chat</h1>
+    <div className="flex h-full w-64 flex-col border-r border-gray-200">
+      <div className="p-4">
+        <h1 className="mb-4 text-center text-xl font-semibold text-gray-900">
+          AI Chat App
+        </h1>
         <Button
           onClick={onNewChat}
           className="w-full bg-purple-600 py-2.5 font-medium text-white hover:bg-purple-700"
           size="default"
         >
-          <Plus className="mr-2 h-4 w-4" />
           New Chat
         </Button>
       </div>
@@ -138,6 +140,10 @@ export function ChatSidebar({
           </div>
         </div>
       </ScrollArea>
+
+      <div className="p-3">
+        <UserButton />
+      </div>
     </div>
   );
 }

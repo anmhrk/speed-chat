@@ -4,9 +4,9 @@ import {
   Scripts,
   createRootRouteWithContext,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+// import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import TanStackQueryLayout from "../integrations/tanstack-query/layout.tsx";
+// import TanStackQueryLayout from "../integrations/tanstack-query/layout.tsx";
 
 import appCss from "../styles.css?url";
 
@@ -46,8 +46,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
     <RootDocument>
       <Outlet />
-      <TanStackRouterDevtools />
-      <TanStackQueryLayout />
+      {/* <TanStackRouterDevtools />
+      <TanStackQueryLayout /> */}
     </RootDocument>
   ),
 
