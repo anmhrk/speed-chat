@@ -1,5 +1,6 @@
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "./ui/button";
 
 interface ThreadSearchInputProps {
   search: string;
@@ -17,8 +18,18 @@ export function ThreadSearchInput({
         placeholder="Search your threads..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="rounded-none border-0 border-b pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="rounded-none border-0 border-b pr-10 pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
       />
+      {search && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground absolute top-1/2 right-1 h-auto w-auto -translate-y-1/2 p-1"
+          onClick={() => setSearch("")}
+        >
+          <X className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }

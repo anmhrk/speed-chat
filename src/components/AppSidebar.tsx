@@ -17,6 +17,10 @@ const dummyThreads = [
   "Best phone to buy in 2025",
   "Best AI model for coding",
   "Best AI model for coding",
+  "Best phone to buy in 2025",
+  "Best phone to buy in 2025",
+  "Best AI model for coding",
+  "Best AI model for coding",
 ];
 
 export function AppSidebar() {
@@ -24,10 +28,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-3">
-        <div className="flex items-center">
+      <SidebarHeader className="p-4">
+        <div className="relative flex items-center">
           <SidebarTrigger />
-          <Link to="/" className="flex-1 text-center text-lg font-semibold">
+          <Link
+            to="/"
+            className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold"
+          >
             Speed Chat
           </Link>
         </div>
@@ -42,8 +49,8 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-3">
-        <ScrollArea className="h-[calc(100vh-10rem)]">
+      <SidebarContent className="mt-1 px-4">
+        <ScrollArea className="h-full">
           {/* TODO: Sort threads by relative date later once db fetching is implemented */}
           <div className="space-y-2">
             {dummyThreads
@@ -53,7 +60,7 @@ export function AppSidebar() {
               .map((thread, index) => (
                 <Link
                   key={index}
-                  className="hover:bg-muted flex cursor-pointer items-center rounded-lg p-2 text-sm"
+                  className="hover:bg-muted flex items-center rounded-lg p-2 text-sm"
                   to="/chat/$chatId"
                   params={{ chatId: crypto.randomUUID() }}
                 >
@@ -64,7 +71,7 @@ export function AppSidebar() {
         </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-4">
         <UserButton />
       </SidebarFooter>
     </Sidebar>
