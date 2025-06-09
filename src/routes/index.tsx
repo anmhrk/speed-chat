@@ -28,6 +28,10 @@ function App() {
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
+      <div className="p-3">
+        {/* TODO: Add search, new chat button here once db fetching is implemented. Make bg transparent */}
+        <SidebarTrigger />
+      </div>
       <AppSidebar />
       <main className="relative flex-1">
         <ChatArea />

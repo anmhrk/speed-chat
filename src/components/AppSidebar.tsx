@@ -40,7 +40,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-4">
+      <SidebarContent className="p-3">
         <ScrollArea className="h-[calc(100vh-10rem)]">
           {/* TODO: Sort threads by relative date later once db fetching is implemented */}
           <div className="space-y-2">
@@ -60,7 +60,7 @@ export function AppSidebar() {
         </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-3">
         <UserButton />
       </SidebarFooter>
     </Sidebar>
