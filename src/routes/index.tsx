@@ -12,7 +12,7 @@ const getSidebarState = createServerFn({ method: "GET" }).handler(async () => {
   const match = cookies.match(/sidebar_state=([^;]*)/);
   const sidebarState = match ? match[1] : null;
 
-  return sidebarState === "true";
+  return sidebarState !== "false";
 });
 
 export const Route = createFileRoute("/")({
