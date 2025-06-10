@@ -24,6 +24,15 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.fetchQuery({
+      queryKey: ["user"],
+      queryFn: () => getUser(),
+      staleTime: 1000 * 60 * 5, // cached for 5 minutes
+    });
+    return { user };
+  },
+
   head: () => ({
     meta: [
       {
@@ -71,6 +80,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Just navigate to home. Maybe implement a 404 page later.
 function NotFound() {
   return <Navigate to="/" />;
 }

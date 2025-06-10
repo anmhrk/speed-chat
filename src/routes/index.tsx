@@ -4,7 +4,6 @@ import { getWebRequest } from "@tanstack/react-start/server";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { getUser } from "@/backend/auth/get-user";
 
 const getSidebarState = createServerFn({ method: "GET" }).handler(async () => {
   const request = getWebRequest();
@@ -20,13 +19,13 @@ export const Route = createFileRoute("/")({
   component: App,
   loader: async () => {
     const defaultOpen = await getSidebarState();
-    const user = await getUser();
-    return { defaultOpen, user };
+    return { defaultOpen };
   },
 });
 
 function App() {
-  const { defaultOpen, user } = Route.useLoaderData();
+  const { defaultOpen } = Route.useLoaderData();
+  const { user } = Route.useRouteContext();
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>

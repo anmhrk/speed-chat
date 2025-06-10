@@ -1,15 +1,12 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/backend/auth/auth-client";
-import { getUser } from "@/backend/auth/get-user";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: async () => {
-    const user = await getUser();
-
-    if (user) {
+  beforeLoad: async ({ context }) => {
+    if (context.user) {
       throw redirect({
         to: "/",
       });
