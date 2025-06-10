@@ -172,7 +172,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="relative">
-        <div className="bg-background border-border relative rounded-lg border">
+        <div className="bg-background relative rounded-t-2xl border border-b-0">
           <Textarea
             ref={promptRef}
             value={prompt}

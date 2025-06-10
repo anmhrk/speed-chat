@@ -48,7 +48,7 @@ export function ChatArea({ user }: ChatAreaProps) {
         )}
       </div>
 
-      <div className="p-6">
+      <div className="px-6">
         <ChatInput prompt={prompt} setPrompt={setPrompt} />
       </div>
     </div>
