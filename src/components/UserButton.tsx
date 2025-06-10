@@ -3,9 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
+import { useState } from "react";
 
 export function UserButton() {
   const { data: session, isPending } = useSession();
+  const [imageError, setImageError] = useState(false);
 
   if (isPending) {
     return (
@@ -37,12 +39,15 @@ export function UserButton() {
     >
       <div className="flex-shrink-0">
         <Avatar>
-          <AvatarImage
-            src={user.image ?? ""}
-            alt={user.name}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-
+          {!imageError && user.image && (
+            <AvatarImage
+              src={user.image}
+              alt={user.name}
+              className="h-8 w-8 rounded-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => setImageError(true)}
+            />
+          )}
           <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
       </div>
