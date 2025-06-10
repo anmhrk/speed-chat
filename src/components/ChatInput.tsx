@@ -1,13 +1,59 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { ModelPicker } from "./ModelPicker";
+import { ArrowUp } from "lucide-react";
+
+export type Model = {
+  id: string;
+  name: string;
+  logo: React.ReactNode;
+  default?: boolean;
+  provider: "openai" | "anthropic" | "openrouter";
+  reasoning?: boolean;
+};
+
+const AVAILABLE_MODELS: Model[] = [
+  {
+    id: "gpt-4.1",
+    name: "GPT 4.1",
+    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
+    provider: "openai",
+  },
+  {
+    id: "claude-4-sonnet",
+    name: "Claude 4 Sonnet",
+    logo: (
+      <img
+        src="/logos/Anthropic-dark.svg"
+        alt="Anthropic"
+        className="h-4 w-4"
+      />
+    ),
+    provider: "anthropic",
+  },
+  {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
+    provider: "openrouter",
+    default: true,
+  },
+  {
+    id: "gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
+    logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
+    provider: "openrouter",
+    reasoning: true,
+  },
+  {
+    id: "o4-mini",
+    name: "o4 Mini",
+    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
+    provider: "openai",
+    reasoning: true,
+  },
+];
 
 interface ChatInputProps {
   prompt: string;
@@ -15,7 +61,25 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
-  const [model, setModel] = useState("o4-mini");
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+  const [model, setModel] = useState(() => {
+    const savedModel = localStorage.getItem("selectedModel");
+    return (
+      (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)?.id) ||
+      AVAILABLE_MODELS.find((m) => m.default)?.id
+    );
+  });
+
+  const handleModelChange = (newModel: string) => {
+    setModel(newModel);
+    localStorage.setItem("selectedModel", newModel);
+  };
+
+  useEffect(() => {
+    if (promptRef.current) {
+      promptRef.current.focus();
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +95,10 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
       e.preventDefault();
       handleSubmit(e);
     }
+
+    if (e.key === "Escape") {
+      promptRef.current?.blur();
+    }
   };
 
   return (
@@ -38,6 +106,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
       <form onSubmit={handleSubmit} className="relative">
         <div className="bg-background border-border relative rounded-lg border">
           <Textarea
+            ref={promptRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -46,38 +115,19 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
             rows={4}
           />
 
-          {/* Bottom controls */}
-          <div className="border-border flex items-center justify-between border-t px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="h-8 w-auto min-w-[100px] text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="o4-mini">o4-mini</SelectItem>
-                  <SelectItem value="o4">o4</SelectItem>
-                  <SelectItem value="claude-3-5-sonnet">
-                    Claude 3.5 Sonnet
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="ghost" size="sm" className="h-8 px-2">
-                🔗 High
-              </Button>
-
-              <Button variant="ghost" size="sm" className="h-8 px-2">
-                📎 Attach
-              </Button>
-            </div>
-
+          <div className="flex items-center justify-between px-4 py-3">
+            <ModelPicker
+              models={AVAILABLE_MODELS}
+              selectedModel={model!}
+              onModelChange={handleModelChange}
+            />
             <Button
-              type="submit"
-              size="sm"
+              type="button"
+              size="icon"
+              onClick={handleSubmit}
               disabled={!prompt.trim()}
-              className="h-8"
             >
-              ↑
+              <ArrowUp className="size-6" />
             </Button>
           </div>
         </div>
