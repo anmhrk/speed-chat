@@ -24,12 +24,8 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.fetchQuery({
-      queryKey: ["user"],
-      queryFn: () => getUser(),
-      staleTime: 1000 * 60 * 5, // cached for 5 minutes
-    });
+  beforeLoad: async () => {
+    const user = await getUser();
     return { user };
   },
 
