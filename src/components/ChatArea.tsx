@@ -44,7 +44,7 @@ export function ChatArea({ user }: ChatAreaProps) {
             </div>
           </>
         ) : (
-          <div />
+          <div className="flex-1" />
         )}
       </div>
 

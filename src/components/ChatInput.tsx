@@ -113,21 +113,25 @@ interface ChatInputProps {
 
 export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const [model, setModel] = useState(() => {
+  const [model, setModel] = useState<string | null>(null);
+  const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
+
+  useEffect(() => {
     const savedModel = getLocalStorage("selectedModel");
-    return (
-      (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)?.id) ||
-      AVAILABLE_MODELS.find((m) => m.default)?.id
-    );
-  });
-  const [reasoningEffort, setReasoningEffort] = useState(() => {
     const savedReasoningEffort = getLocalStorage("reasoningEffort");
-    return (
+
+    setModel(
+      (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)?.id) ||
+        AVAILABLE_MODELS.find((m) => m.default)?.id ||
+        AVAILABLE_MODELS[0].id,
+    );
+
+    setReasoningEffort(
       (savedReasoningEffort &&
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
-      REASONING_EFFORTS[0].id
+        REASONING_EFFORTS[0].id,
     );
-  });
+  }, []);
 
   const handleModelChange = (newModel: string) => {
     setModel(newModel);
@@ -179,12 +183,16 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
           />
 
           <div className="flex items-center justify-between px-4 py-3">
-            <ModelPicker
-              selectedModel={model!}
-              onModelChange={handleModelChange}
-              reasoningEffort={reasoningEffort}
-              onReasoningEffortChange={handleReasoningEffortChange}
-            />
+            {model && reasoningEffort ? (
+              <ModelPicker
+                selectedModel={model}
+                onModelChange={handleModelChange}
+                reasoningEffort={reasoningEffort}
+                onReasoningEffortChange={handleReasoningEffortChange}
+              />
+            ) : (
+              <div className="flex-1" />
+            )}
             <Button
               type="button"
               size="icon"

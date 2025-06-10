@@ -46,9 +46,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
         <div className="mt-4">
           <Link to="/">
-            <Button size="lg" className="w-full font-semibold">
-              New Chat
-            </Button>
+            <Button className="w-full font-semibold">New Chat</Button>
           </Link>
           <ThreadSearchInput search={search} setSearch={setSearch} />
         </div>
