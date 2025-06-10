@@ -2,18 +2,46 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ModelPicker } from "./ModelPicker";
-import { ArrowUp } from "lucide-react";
+import {
+  ArrowUp,
+  Sparkle,
+  Sparkles,
+  WandSparkles,
+  type LucideIcon,
+} from "lucide-react";
 
-export type Model = {
+type ReasoningEffort = {
+  id: string;
+  icon: LucideIcon;
+};
+
+export const REASONING_EFFORTS: ReasoningEffort[] = [
+  {
+    id: "low",
+    icon: Sparkle,
+  },
+  {
+    id: "medium",
+    icon: Sparkles,
+  },
+  {
+    id: "high",
+    icon: WandSparkles,
+  },
+];
+
+type Model = {
   id: string;
   name: string;
   logo: React.ReactNode;
   default?: boolean;
   provider: "openai" | "anthropic" | "openrouter";
   reasoning?: boolean;
+  images?: boolean;
+  attachments?: boolean;
 };
 
-const AVAILABLE_MODELS: Model[] = [
+export const AVAILABLE_MODELS: Model[] = [
   {
     id: "gpt-4.1",
     name: "GPT 4.1",
@@ -69,10 +97,23 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
       AVAILABLE_MODELS.find((m) => m.default)?.id
     );
   });
+  const [reasoningEffort, setReasoningEffort] = useState(() => {
+    const savedReasoningEffort = localStorage.getItem("reasoningEffort");
+    return (
+      (savedReasoningEffort &&
+        REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
+      REASONING_EFFORTS[0].id
+    );
+  });
 
   const handleModelChange = (newModel: string) => {
     setModel(newModel);
     localStorage.setItem("selectedModel", newModel);
+  };
+
+  const handleReasoningEffortChange = (newReasoningEffort: string) => {
+    setReasoningEffort(newReasoningEffort);
+    localStorage.setItem("reasoningEffort", newReasoningEffort);
   };
 
   useEffect(() => {
@@ -117,9 +158,10 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
           <div className="flex items-center justify-between px-4 py-3">
             <ModelPicker
-              models={AVAILABLE_MODELS}
               selectedModel={model!}
               onModelChange={handleModelChange}
+              reasoningEffort={reasoningEffort}
+              onReasoningEffortChange={handleReasoningEffortChange}
             />
             <Button
               type="button"
