@@ -1,15 +1,15 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/backend/auth/auth-client";
-import { getSessionServer } from "@/backend/auth/get-session-server";
+import { getUser } from "@/backend/auth/get-user";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
-    const session = await getSessionServer();
+    const user = await getUser();
 
-    if (session) {
+    if (user) {
       throw redirect({
         to: "/",
       });
@@ -37,7 +37,7 @@ function RouteComponent() {
           <div className="space-y-4">
             <h1 className="text-3xl font-bold">Hello! 👋</h1>
             <p className="text-muted-foreground text-lg">
-              Sign in below to increase your message limits ✨
+              Sign in below to sync your chat history across devices ✨
             </p>
           </div>
 

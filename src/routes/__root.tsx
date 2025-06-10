@@ -15,10 +15,12 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { getUser } from "@/backend/auth/get-user";
 
 interface MyRouterContext {
   queryClient: QueryClient;
   trpc: TRPCOptionsProxy<TRPCRouter>;
+  user?: Awaited<ReturnType<typeof getUser>>;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({

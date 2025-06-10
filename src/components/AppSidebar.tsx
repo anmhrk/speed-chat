@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import type { User } from "better-auth";
 
 const dummyThreads = [
   "Best phone to buy in 2025",
@@ -23,7 +24,11 @@ const dummyThreads = [
   "Best AI model for coding",
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  user: User | null | undefined;
+}
+
+export function AppSidebar({ user }: AppSidebarProps) {
   const [search, setSearch] = useState("");
 
   return (
@@ -72,7 +77,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <UserButton />
+        <UserButton user={user} />
       </SidebarFooter>
     </Sidebar>
   );

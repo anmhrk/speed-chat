@@ -1,27 +1,20 @@
-import { useSession } from "@/backend/auth/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
 import { useState } from "react";
+import type { User } from "better-auth";
 
-export function UserButton() {
-  const { data: session, isPending } = useSession();
+interface UserButtonProps {
+  user: User | null | undefined;
+}
+
+export function UserButton({ user }: UserButtonProps) {
   const [imageError, setImageError] = useState(false);
 
-  if (isPending) {
-    return (
-      <div className="flex items-center space-x-3 rounded-lg p-2 transition-colors">
-        <Skeleton className="h-8 w-8 rounded-full" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-    );
-  }
-
-  if (!session?.user) {
+  if (!user) {
     return (
       <Link
-        className="hover:bg-muted flex w-full items-center rounded-lg p-2 transition-colors"
+        className="hover:bg-muted flex h-12 w-full items-center rounded-lg p-2 transition-colors"
         to="/login"
       >
         <LogIn className="mr-3 size-4" />
@@ -30,11 +23,9 @@ export function UserButton() {
     );
   }
 
-  const { user } = session;
-
   return (
     <Link
-      className="hover:bg-muted flex w-full items-center space-x-3 rounded-lg p-2 transition-colors"
+      className="hover:bg-muted flex h-12 w-full items-center space-x-3 rounded-lg p-2 transition-colors"
       to="/settings"
     >
       <div className="flex-shrink-0">

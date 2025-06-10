@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChatInput } from "./ChatInput";
+import type { User } from "better-auth";
 
 const PROMPT_SUGGESTIONS = [
   "How many corgis are in the world?",
@@ -8,7 +9,11 @@ const PROMPT_SUGGESTIONS = [
   "What is the meaning of life?",
 ];
 
-export function ChatArea() {
+interface ChatAreaProps {
+  user: User | null | undefined;
+}
+
+export function ChatArea({ user }: ChatAreaProps) {
   const [prompt, setPrompt] = useState("");
 
   return (
@@ -16,7 +21,9 @@ export function ChatArea() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
         <div className="mb-8 text-center">
           <h1 className="text-foreground mb-4 text-4xl font-medium">
-            How can I help you, Anmol?
+            {user
+              ? `How can I help you, ${user.name.split(" ")[0]}?`
+              : "How can I help you?"}
           </h1>
         </div>
 
