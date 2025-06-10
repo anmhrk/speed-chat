@@ -40,6 +40,7 @@ type Model = {
   reasoning?: boolean;
   images?: boolean;
   attachments?: boolean;
+  search?: boolean;
 };
 
 export const AVAILABLE_MODELS: Model[] = [
@@ -48,6 +49,7 @@ export const AVAILABLE_MODELS: Model[] = [
     name: "GPT 4.1",
     logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
     provider: "openai",
+    attachments: true,
   },
   {
     id: "claude-4-sonnet",
@@ -60,6 +62,8 @@ export const AVAILABLE_MODELS: Model[] = [
       />
     ),
     provider: "anthropic",
+    attachments: true,
+    search: true,
   },
   {
     id: "gemini-2.5-flash",
@@ -67,6 +71,7 @@ export const AVAILABLE_MODELS: Model[] = [
     logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
     provider: "openrouter",
     default: true,
+    attachments: true,
   },
   {
     id: "gemini-2.5-pro",
@@ -74,12 +79,14 @@ export const AVAILABLE_MODELS: Model[] = [
     logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
     provider: "openrouter",
     reasoning: true,
+    attachments: true,
   },
   {
     id: "o4-mini",
     name: "o4 Mini",
     logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
     provider: "openai",
+    attachments: true,
     reasoning: true,
   },
   {
@@ -88,6 +95,14 @@ export const AVAILABLE_MODELS: Model[] = [
     logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
     provider: "openai",
     images: true,
+  },
+  {
+    id: "o3",
+    name: "o3",
+    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
+    provider: "openai",
+    attachments: true,
+    reasoning: true,
   },
 ];
 
@@ -160,8 +175,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
-            className="placeholder:text-muted-foreground max-h-[400px] min-h-[120px] w-full resize-none border-0 bg-transparent p-4 text-sm focus-visible:ring-0"
-            rows={4}
+            className="placeholder:text-muted-foreground max-h-[350px] min-h-[100px] w-full resize-none border-0 bg-transparent p-4 text-sm focus-visible:ring-0"
           />
 
           <div className="flex items-center justify-between px-4 py-3">

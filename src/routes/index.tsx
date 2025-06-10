@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getWebRequest } from "@tanstack/react-start/server";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Header } from "@/components/Header";
 
 const getSidebarState = createServerFn({ method: "GET" }).handler(async () => {
   const request = getWebRequest();
@@ -29,10 +30,7 @@ function App() {
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <div className="absolute top-0 left-0 z-10 p-4">
-        {/* TODO: Add search, new chat button here once db fetching is implemented */}
-        <SidebarTrigger />
-      </div>
+      <Header />
       <AppSidebar user={user} />
       <main className="relative flex-1">
         <ChatArea user={user} />
