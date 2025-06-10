@@ -9,6 +9,7 @@ import {
   WandSparkles,
   type LucideIcon,
 } from "lucide-react";
+import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 
 type ReasoningEffort = {
   id: string;
@@ -81,6 +82,13 @@ export const AVAILABLE_MODELS: Model[] = [
     provider: "openai",
     reasoning: true,
   },
+  {
+    id: "gpt-imagegen",
+    name: "GPT ImageGen",
+    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
+    provider: "openai",
+    images: true,
+  },
 ];
 
 interface ChatInputProps {
@@ -91,14 +99,14 @@ interface ChatInputProps {
 export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [model, setModel] = useState(() => {
-    const savedModel = localStorage.getItem("selectedModel");
+    const savedModel = getLocalStorage("selectedModel");
     return (
       (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)?.id) ||
       AVAILABLE_MODELS.find((m) => m.default)?.id
     );
   });
   const [reasoningEffort, setReasoningEffort] = useState(() => {
-    const savedReasoningEffort = localStorage.getItem("reasoningEffort");
+    const savedReasoningEffort = getLocalStorage("reasoningEffort");
     return (
       (savedReasoningEffort &&
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
@@ -108,12 +116,12 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
   const handleModelChange = (newModel: string) => {
     setModel(newModel);
-    localStorage.setItem("selectedModel", newModel);
+    setLocalStorage("selectedModel", newModel);
   };
 
   const handleReasoningEffortChange = (newReasoningEffort: string) => {
     setReasoningEffort(newReasoningEffort);
-    localStorage.setItem("reasoningEffort", newReasoningEffort);
+    setLocalStorage("reasoningEffort", newReasoningEffort);
   };
 
   useEffect(() => {
