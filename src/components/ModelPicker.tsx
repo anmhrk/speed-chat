@@ -53,7 +53,9 @@ export function ModelPicker({
             // If both or neither are default, sort by name
             return a.name.localeCompare(b.name);
           }).map((model) => {
-            const isDisabled = !hasApiKey(model.provider);
+            // Always allow Gemini 2.5 Flash (free usage), disable others without API keys
+            const isDisabled =
+              model.id !== "gemini-2.5-flash" && !hasApiKey(model.provider);
             const selectItem = (
               <SelectItem key={model.id} value={model.id} disabled={isDisabled}>
                 <div className="flex w-75 items-center justify-between gap-2">
@@ -117,7 +119,9 @@ export function ModelPicker({
                     <div className="w-full">{selectItem}</div>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs">
-                    API key not set for provider
+                    {model.id === "gemini-2.5-flash"
+                      ? "Available for free usage (rate limited)"
+                      : "API key not set for provider"}
                   </TooltipContent>
                 </Tooltip>
               );

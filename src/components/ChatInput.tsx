@@ -13,6 +13,7 @@ import {
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "./ui/card";
+import { getRateLimitStatus } from "../backend/ratelimit/status";
 
 type ReasoningEffort = {
   id: string;
@@ -133,6 +134,11 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
   const [hasApiKeys, setHasApiKeys] = useState<boolean>(true);
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    remaining: number;
+    reset: number;
+    limit: number;
+  } | null>(null);
 
   useEffect(() => {
     const savedModel = getLocalStorage("selectedModel");
@@ -157,17 +163,21 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
       return keys[provider] && keys[provider].trim() !== "";
     };
 
-    // Find available models with API keys
-    const availableModels = AVAILABLE_MODELS.filter((model) =>
-      hasApiKey(model.provider),
+    // Find available models with API keys + always include Gemini 2.5 Flash for free usage
+    const availableModels = AVAILABLE_MODELS.filter(
+      (model) => model.id === "gemini-2.5-flash" || hasApiKey(model.provider),
     );
 
     // Set model with fallback logic
     let selectedModel = null;
     if (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)) {
       const savedModelData = AVAILABLE_MODELS.find((m) => m.id === savedModel);
-      // Check if the saved model's provider has an API key
-      if (savedModelData && hasApiKey(savedModelData.provider)) {
+      // Check if the saved model's provider has an API key OR if it's Gemini 2.5 Flash (free)
+      if (
+        savedModelData &&
+        (savedModelData.id === "gemini-2.5-flash" ||
+          hasApiKey(savedModelData.provider))
+      ) {
         selectedModel = savedModel;
       }
     }
@@ -203,11 +213,30 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
     setLocalStorage("reasoningEffort", newReasoningEffort);
   };
 
+  // Fetch rate limit info when using Gemini 2.5 Flash without API key
+  const fetchRateLimitInfo = async () => {
+    if (model === "gemini-2.5-flash" && !apiKeys.openrouter) {
+      try {
+        const data = await getRateLimitStatus({} as any);
+        setRateLimitInfo(data);
+      } catch (error) {
+        console.error("Failed to fetch rate limit info:", error);
+      }
+    } else {
+      setRateLimitInfo(null);
+    }
+  };
+
   useEffect(() => {
     if (promptRef.current) {
       promptRef.current.focus();
     }
   }, []);
+
+  // Fetch rate limit info when model changes
+  useEffect(() => {
+    fetchRateLimitInfo();
+  }, [model, apiKeys]);
 
   // Listen for storage changes to update API keys in real-time
   useEffect(() => {
@@ -240,7 +269,9 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasApiKeys && prompt.trim()) {
+    // Allow submission if user has API keys OR if using free Gemini 2.5 Flash
+    const canSubmit = hasApiKeys || model === "gemini-2.5-flash";
+    if (canSubmit && prompt.trim()) {
       console.log("Sending message:", prompt);
       setPrompt("");
     }
@@ -259,13 +290,35 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
   return (
     <div className="w-full space-y-3">
-      {!hasApiKeys && (
+      {!hasApiKeys && model !== "gemini-2.5-flash" && (
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="flex items-center justify-between px-3">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
               <span className="text-sm text-yellow-800 dark:text-yellow-200">
                 No API keys detected. Add one to start chatting.
+              </span>
+            </div>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:bg-zinc-800"
+            >
+              <Link to="/settings/keys">Add Keys</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {model === "gemini-2.5-flash" && !apiKeys.openrouter && rateLimitInfo && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="flex items-center justify-between px-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm text-blue-800 dark:text-blue-200">
+                Free Gemini 2.5 Flash: {rateLimitInfo.remaining} messages
+                remaining today. Add an API key for unlimited usage.
               </span>
             </div>
             <Button
@@ -307,7 +360,9 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
               type="button"
               size="icon"
               onClick={handleSubmit}
-              disabled={!prompt.trim() || !hasApiKeys}
+              disabled={
+                !prompt.trim() || (!hasApiKeys && model !== "gemini-2.5-flash")
+              }
             >
               <ArrowUp className="size-6" />
             </Button>
