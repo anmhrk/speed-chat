@@ -9,7 +9,7 @@ import { ThreadSearchInput } from "@/components/ThreadSearchInput";
 import { UserButton } from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { User } from "better-auth";
 
@@ -29,7 +29,6 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ user }: AppSidebarProps) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
 
   return (
@@ -46,13 +45,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </div>
 
         <div className="mt-4">
-          <Button
-            className="w-full font-semibold"
-            onClick={() => {
-              router.navigate({ to: "/" });
-            }}
-          >
-            New Chat
+          <Button className="w-full font-semibold" asChild>
+            <Link to="/">New Chat</Link>
           </Button>
 
           <ThreadSearchInput search={search} setSearch={setSearch} />

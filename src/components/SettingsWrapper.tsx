@@ -1,5 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -10,7 +10,6 @@ interface SettingsWrapperProps {
 
 export function SettingsWrapper({ children }: SettingsWrapperProps) {
   const location = useLocation();
-  const router = useRouter();
 
   const getActiveTab = () => {
     if (location.pathname === "/settings/keys") return "keys";
@@ -22,9 +21,11 @@ export function SettingsWrapper({ children }: SettingsWrapperProps) {
     <>
       <div className="relative">
         <div className="absolute top-8 left-8 z-10">
-          <Button variant="ghost" onClick={() => router.navigate({ to: "/" })}>
-            <ArrowLeft className="!h-5 !w-5" />
-            Back to chat
+          <Button variant="ghost" asChild>
+            <Link to="/">
+              <ArrowLeft className="!h-5 !w-5" />
+              Back to chat
+            </Link>
           </Button>
         </div>
       </div>

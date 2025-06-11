@@ -1,30 +1,44 @@
 import { SidebarTrigger } from "./ui/sidebar";
 import { Button } from "./ui/button";
-import { Share, Ghost } from "lucide-react";
+import { Share, Ghost, Settings } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
+import { Link, useLocation } from "@tanstack/react-router";
 
 export function Header() {
+  const location = useLocation();
+  const isChatPage = location.pathname.includes("/chat");
+
   return (
     <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4">
       <SidebarTrigger />
-      <div className="flex gap-2">
+      <div className="flex items-center gap-1">
+        {isChatPage && (
+          <Button variant="outline">
+            <Share className="size-4" />
+            <span className="hidden text-sm md:block">Share</span>
+          </Button>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7">
-              <Share className="size-5" />
-              <span className="sr-only">Share Chat</span>
+            <Button asChild variant="ghost" size="icon">
+              {/* Routing this to keys cos user button routes to main settings page
+                  Non authed users dont need main settings page anyway */}
+              <Link to="/settings/keys">
+                <Settings className="size-5" />
+                <span className="sr-only">Settings</span>
+              </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Share Chat</TooltipContent>
+          <TooltipContent>Settings</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7">
+            <Button variant="ghost" size="icon">
               <Ghost className="size-5" />
-              <span className="sr-only">Temporary Chat</span>
+              <span className="sr-only">Start Temporary Chat</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Temporary Chat</TooltipContent>
+          <TooltipContent>Start temporary chat</TooltipContent>
         </Tooltip>
       </div>
     </div>
