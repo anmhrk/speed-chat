@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { SettingsWrapper } from "@/components/SettingsWrapper";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Key, Save } from "lucide-react";
+import { Eye, EyeOff, Key } from "lucide-react";
 import { toast } from "sonner";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/settings/keys")({
   component: RouteComponent,
@@ -53,20 +54,16 @@ function RouteComponent() {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
   const [originalKeys, setOriginalKeys] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [isSaving, setIsSaving] = useState(false);
 
   const hasChanges = JSON.stringify(apiKeys) !== JSON.stringify(originalKeys);
 
   const handleSave = async () => {
-    setIsSaving(true);
     try {
       setLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(apiKeys));
       setOriginalKeys({ ...apiKeys });
       toast.success("API keys saved successfully!");
     } catch {
       toast.error("Failed to save API keys. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -147,17 +144,17 @@ function RouteComponent() {
             </div>
           ))}
 
-          <div className="flex items-center justify-between border-t pt-4">
+          <Separator />
+          <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
             <p className="text-muted-foreground text-sm">
-              API keys are stored locally and never sent to our servers
+              API keys are stored locally and never sent to our servers.
             </p>
             <Button
               onClick={handleSave}
-              disabled={isSaving || !hasChanges}
-              className="flex items-center space-x-2"
+              disabled={!hasChanges}
+              className="flex w-full md:w-auto"
             >
-              <Save className="size-4" />
-              <span>{isSaving ? "Saving..." : "Save Keys"}</span>
+              <span>Save Keys</span>
             </Button>
           </div>
         </CardContent>

@@ -288,7 +288,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
-            className="placeholder:text-muted-foreground max-h-[350px] min-h-[100px] w-full resize-none border-0 bg-transparent p-4 text-sm focus-visible:ring-0"
+            className="placeholder:text-muted-foreground max-h-[350px] min-h-[100px] w-full resize-none border-0 bg-transparent p-4 focus-visible:ring-0"
           />
 
           <div className="flex items-center justify-between px-4 py-3">

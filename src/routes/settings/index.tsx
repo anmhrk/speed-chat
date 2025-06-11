@@ -89,7 +89,7 @@ function RouteComponent() {
               <CardDescription>Your account information</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between gap-6">
+              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
                 <div className="flex min-w-0 flex-1 items-center gap-4">
                   <Avatar className="ring-border h-16 w-16 ring-2">
                     {user.image && (

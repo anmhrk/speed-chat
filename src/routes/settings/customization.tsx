@@ -12,13 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { SettingsWrapper } from "@/components/SettingsWrapper";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Save, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings/customization")({
   component: RouteComponent,
 });
+
+const LOCAL_STORAGE_KEY = "customization";
 
 type CustomizationSettings = {
   name: string;
@@ -41,7 +43,6 @@ function RouteComponent() {
       howToRespond: "",
       additionalInfo: "",
     });
-  const [isSaving, setIsSaving] = useState(false);
 
   const hasChanges =
     JSON.stringify(settings) !== JSON.stringify(originalSettings);
@@ -54,21 +55,18 @@ function RouteComponent() {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
     try {
-      setLocalStorage("customization", JSON.stringify(settings));
+      setLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(settings));
       setOriginalSettings({ ...settings });
       toast.success("Customization settings saved successfully!");
     } catch (error) {
       toast.error("Failed to save customization settings. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
   useEffect(() => {
     try {
-      const savedSettings = getLocalStorage("customization");
+      const savedSettings = getLocalStorage(LOCAL_STORAGE_KEY);
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
         setSettings(parsed);
@@ -142,11 +140,10 @@ function RouteComponent() {
             <div className="flex justify-end">
               <Button
                 onClick={handleSave}
-                disabled={isSaving || !hasChanges}
-                className="flex items-center space-x-2"
+                disabled={!hasChanges}
+                className="flex w-full md:w-auto"
               >
-                <Save className="size-4" />
-                <span>{isSaving ? "Saving..." : "Save Customization"}</span>
+                <span>Save Customization</span>
               </Button>
             </div>
           </CardContent>

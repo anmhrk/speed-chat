@@ -18,7 +18,7 @@ export function ThreadSearchInput({
         placeholder="Search your threads..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="rounded-none border-0 border-b pr-10 pl-9 !text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="rounded-none border-0 border-b pr-10 pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       {search && (
         <Button
