@@ -77,7 +77,7 @@ function RouteComponent() {
       setApiKeys(keys);
       setOriginalKeys(keys);
     } catch {
-      toast.error("Failed to load saved API keys.");
+      console.error("Failed to load saved API keys.");
     }
   }, []);
 

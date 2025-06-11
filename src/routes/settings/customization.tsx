@@ -12,7 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { SettingsWrapper } from "@/components/SettingsWrapper";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { User, MessageSquare, Save, Brain } from "lucide-react";
+import { Save, Sparkles } from "lucide-react";
+import { getLocalStorage, setLocalStorage } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings/customization")({
   component: RouteComponent,
@@ -32,7 +34,17 @@ function RouteComponent() {
     howToRespond: "",
     additionalInfo: "",
   });
+  const [originalSettings, setOriginalSettings] =
+    useState<CustomizationSettings>({
+      name: "",
+      whatYouDo: "",
+      howToRespond: "",
+      additionalInfo: "",
+    });
   const [isSaving, setIsSaving] = useState(false);
+
+  const hasChanges =
+    JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
   const handleChange = (field: keyof CustomizationSettings, value: string) => {
     setSettings((prev) => ({
@@ -44,101 +56,74 @@ function RouteComponent() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // TODO: Implement customization settings saving
-      // This would typically save to backend or local storage
-      localStorage.setItem("speedchat_customization", JSON.stringify(settings));
-
-      // Show success feedback
-      alert("Customization settings saved successfully!");
+      setLocalStorage("customization", JSON.stringify(settings));
+      setOriginalSettings({ ...settings });
+      toast.success("Customization settings saved successfully!");
     } catch (error) {
-      alert("Failed to save customization settings. Please try again.");
+      toast.error("Failed to save customization settings. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Load existing settings on component mount
   useEffect(() => {
     try {
-      const savedSettings = localStorage.getItem("speedchat_customization");
+      const savedSettings = getLocalStorage("customization");
       if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings(parsed);
+        setOriginalSettings(parsed);
       }
     } catch (error) {
-      console.error("Failed to load saved customization settings:", error);
+      console.error("Failed to load saved customization settings.");
     }
   }, []);
 
   return (
     <SettingsWrapper>
       <div className="space-y-6">
-        {/* Personal Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Personal Information</span>
-            </CardTitle>
-            <CardDescription>
-              Help Speed Chat understand who you are and what you do
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="What should Speed Chat call you?"
-                value={settings.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-              />
-              <p className="text-muted-foreground text-sm">
-                This helps personalize the conversation and responses
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="what-you-do">What do you do?</Label>
-              <Textarea
-                id="what-you-do"
-                placeholder="e.g., I'm a software engineer at a startup, I work on React and Node.js applications..."
-                value={settings.whatYouDo}
-                onChange={(e) => handleChange("whatYouDo", e.target.value)}
-                rows={3}
-              />
-              <p className="text-muted-foreground text-sm">
-                Describe your profession, interests, or current projects
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Chat Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MessageSquare className="h-5 w-5" />
-              <span>Chat Preferences</span>
+              <Sparkles className="h-5 w-5" />
+              <span>Customization</span>
             </CardTitle>
             <CardDescription>
               Customize how Speed Chat responds to you
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter your name"
+                value={settings.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="what-you-do">What do you do?</Label>
+              <Input
+                id="what-you-do"
+                placeholder="Engineer, student, etc."
+                value={settings.whatYouDo}
+                onChange={(e) => handleChange("whatYouDo", e.target.value)}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="how-to-respond">
                 How should Speed Chat respond to you?
               </Label>
               <Textarea
                 id="how-to-respond"
-                placeholder="e.g., Be concise and technical, use examples, explain like I'm a beginner, be creative and fun..."
+                placeholder="Explain concepts in an easy manner and use examples"
                 value={settings.howToRespond}
                 onChange={(e) => handleChange("howToRespond", e.target.value)}
-                rows={4}
+                className="max-h-[150px] min-h-[100px] resize-none"
               />
-              <p className="text-muted-foreground text-sm">
-                Specify the tone, style, and approach you prefer for responses
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -147,77 +132,25 @@ function RouteComponent() {
               </Label>
               <Textarea
                 id="additional-info"
-                placeholder="e.g., I prefer TypeScript over JavaScript, I'm learning machine learning, I work remotely..."
+                placeholder="Interests, values, or preferences to keep in mind"
                 value={settings.additionalInfo}
                 onChange={(e) => handleChange("additionalInfo", e.target.value)}
-                rows={4}
+                className="max-h-[150px] min-h-[100px] resize-none"
               />
-              <p className="text-muted-foreground text-sm">
-                Any additional context that would help provide better responses
-              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="flex items-center space-x-2"
+              >
+                <Save className="size-4" />
+                <span>{isSaving ? "Saving..." : "Save Customization"}</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* AI Behavior */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Brain className="h-5 w-5" />
-              <span>Response Style</span>
-            </CardTitle>
-            <CardDescription>
-              Fine-tune how the AI assistant behaves in conversations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Current Settings Preview:</h4>
-                  <div className="bg-muted space-y-1 rounded-lg p-3">
-                    <p>
-                      <strong>Name:</strong> {settings.name || "Not set"}
-                    </p>
-                    <p>
-                      <strong>Role:</strong>{" "}
-                      {settings.whatYouDo
-                        ? settings.whatYouDo.slice(0, 50) + "..."
-                        : "Not specified"}
-                    </p>
-                    <p>
-                      <strong>Style:</strong>{" "}
-                      {settings.howToRespond
-                        ? settings.howToRespond.slice(0, 50) + "..."
-                        : "Default"}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium">Tips for better responses:</h4>
-                  <ul className="text-muted-foreground space-y-1">
-                    <li>• Be specific about your experience level</li>
-                    <li>• Mention preferred programming languages</li>
-                    <li>• Specify if you want code examples</li>
-                    <li>• Include your learning goals</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center space-x-2"
-          >
-            <Save className="h-4 w-4" />
-            <span>{isSaving ? "Saving..." : "Save Customization"}</span>
-          </Button>
-        </div>
       </div>
     </SettingsWrapper>
   );
