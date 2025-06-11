@@ -1,3 +1,5 @@
+import { createServerFn } from "@tanstack/react-start";
+import { getWebRequest } from "@tanstack/react-start/server";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -18,3 +20,15 @@ export const setLocalStorage = (key: string, value: string) => {
   }
   return null;
 };
+
+export const getSidebarState = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const request = getWebRequest();
+    const cookies = request?.headers?.get("cookie") || "";
+
+    const match = cookies.match(/sidebar_state=([^;]*)/);
+    const sidebarState = match ? match[1] : null;
+
+    return sidebarState !== "false";
+  },
+);

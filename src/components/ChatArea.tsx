@@ -11,9 +11,10 @@ const PROMPT_SUGGESTIONS = [
 
 interface ChatAreaProps {
   user: User | null | undefined;
+  chatId?: string;
 }
 
-export function ChatArea({ user }: ChatAreaProps) {
+export function ChatArea({ user, chatId }: ChatAreaProps) {
   const [prompt, setPrompt] = useState("");
 
   return (
