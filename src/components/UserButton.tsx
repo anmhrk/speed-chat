@@ -1,7 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
-import { useState } from "react";
 import type { User } from "better-auth";
 
 interface UserButtonProps {
@@ -9,8 +8,6 @@ interface UserButtonProps {
 }
 
 export function UserButton({ user }: UserButtonProps) {
-  const [imageError, setImageError] = useState(false);
-
   if (!user) {
     return (
       <Link
@@ -30,13 +27,12 @@ export function UserButton({ user }: UserButtonProps) {
     >
       <div className="flex-shrink-0">
         <Avatar>
-          {!imageError && user.image && (
+          {user.image && (
             <AvatarImage
               src={user.image}
               alt={user.name}
               className="h-8 w-8 rounded-full object-cover"
               referrerPolicy="no-referrer"
-              onError={() => setImageError(true)}
             />
           )}
           <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>

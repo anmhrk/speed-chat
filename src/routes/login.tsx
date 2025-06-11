@@ -1,7 +1,7 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { signIn } from "@/backend/auth/auth-client";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/login")({
@@ -17,26 +17,22 @@ export const Route = createFileRoute("/login")({
 
 function RouteComponent() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="relative min-h-screen">
-      <div className="absolute top-4 left-4 z-10">
-        <Link to="/">
-          <Button variant="ghost">
-            <ChevronLeft className="!h-5 !w-5" />
-            Back to chat
-          </Button>
-        </Link>
+      <div className="absolute top-8 left-8 z-10">
+        <Button variant="ghost" onClick={() => router.navigate({ to: "/" })}>
+          <ArrowLeft className="mr-1 !h-5 !w-5" />
+          Back to chat
+        </Button>
       </div>
 
       <div className="flex min-h-screen items-center justify-center">
         <div className="space-y-8 text-center">
-          <div className="space-y-4">
-            <h1 className="text-3xl font-bold">Hello! 👋</h1>
-            <p className="text-muted-foreground text-lg">
-              Sign in below to sync your chat history across devices ✨
-            </p>
-          </div>
+          <p className="text-muted-foreground text-xl">
+            Sign in below to sync your chat history across devices ✨
+          </p>
 
           <Button
             onClick={() => {
@@ -49,6 +45,7 @@ function RouteComponent() {
                   setIsLoading(false);
                 });
             }}
+            variant="outline"
             disabled={isLoading}
             className="h-12 w-full rounded-lg text-lg font-semibold"
           >
@@ -57,7 +54,7 @@ function RouteComponent() {
             ) : (
               <>
                 <img
-                  src="/logos/google.svg"
+                  src="/logos/Google.svg"
                   alt="Google"
                   className="mr-1 h-6 w-6"
                 />

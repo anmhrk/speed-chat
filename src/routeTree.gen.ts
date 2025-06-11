@@ -11,18 +11,14 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as SettingsImport } from './routes/settings'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
+import { Route as SettingsIndexImport } from './routes/settings/index'
+import { Route as SettingsKeysImport } from './routes/settings/keys'
+import { Route as SettingsCustomizationImport } from './routes/settings/customization'
 import { Route as ChatChatIdImport } from './routes/chat.$chatId'
 
 // Create/Update Routes
-
-const SettingsRoute = SettingsImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const LoginRoute = LoginImport.update({
   id: '/login',
@@ -33,6 +29,24 @@ const LoginRoute = LoginImport.update({
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SettingsIndexRoute = SettingsIndexImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SettingsKeysRoute = SettingsKeysImport.update({
+  id: '/settings/keys',
+  path: '/settings/keys',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SettingsCustomizationRoute = SettingsCustomizationImport.update({
+  id: '/settings/customization',
+  path: '/settings/customization',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -60,18 +74,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsImport
-      parentRoute: typeof rootRoute
-    }
     '/chat/$chatId': {
       id: '/chat/$chatId'
       path: '/chat/$chatId'
       fullPath: '/chat/$chatId'
       preLoaderRoute: typeof ChatChatIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/settings/customization': {
+      id: '/settings/customization'
+      path: '/settings/customization'
+      fullPath: '/settings/customization'
+      preLoaderRoute: typeof SettingsCustomizationImport
+      parentRoute: typeof rootRoute
+    }
+    '/settings/keys': {
+      id: '/settings/keys'
+      path: '/settings/keys'
+      fullPath: '/settings/keys'
+      preLoaderRoute: typeof SettingsKeysImport
+      parentRoute: typeof rootRoute
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsIndexImport
       parentRoute: typeof rootRoute
     }
   }
@@ -82,46 +110,75 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/settings': typeof SettingsRoute
   '/chat/$chatId': typeof ChatChatIdRoute
+  '/settings/customization': typeof SettingsCustomizationRoute
+  '/settings/keys': typeof SettingsKeysRoute
+  '/settings': typeof SettingsIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/settings': typeof SettingsRoute
   '/chat/$chatId': typeof ChatChatIdRoute
+  '/settings/customization': typeof SettingsCustomizationRoute
+  '/settings/keys': typeof SettingsKeysRoute
+  '/settings': typeof SettingsIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/settings': typeof SettingsRoute
   '/chat/$chatId': typeof ChatChatIdRoute
+  '/settings/customization': typeof SettingsCustomizationRoute
+  '/settings/keys': typeof SettingsKeysRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/settings' | '/chat/$chatId'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/chat/$chatId'
+    | '/settings/customization'
+    | '/settings/keys'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/settings' | '/chat/$chatId'
-  id: '__root__' | '/' | '/login' | '/settings' | '/chat/$chatId'
+  to:
+    | '/'
+    | '/login'
+    | '/chat/$chatId'
+    | '/settings/customization'
+    | '/settings/keys'
+    | '/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/chat/$chatId'
+    | '/settings/customization'
+    | '/settings/keys'
+    | '/settings/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  SettingsRoute: typeof SettingsRoute
   ChatChatIdRoute: typeof ChatChatIdRoute
+  SettingsCustomizationRoute: typeof SettingsCustomizationRoute
+  SettingsKeysRoute: typeof SettingsKeysRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  SettingsRoute: SettingsRoute,
   ChatChatIdRoute: ChatChatIdRoute,
+  SettingsCustomizationRoute: SettingsCustomizationRoute,
+  SettingsKeysRoute: SettingsKeysRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -136,8 +193,10 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/login",
-        "/settings",
-        "/chat/$chatId"
+        "/chat/$chatId",
+        "/settings/customization",
+        "/settings/keys",
+        "/settings/"
       ]
     },
     "/": {
@@ -146,11 +205,17 @@ export const routeTree = rootRoute
     "/login": {
       "filePath": "login.tsx"
     },
-    "/settings": {
-      "filePath": "settings.tsx"
-    },
     "/chat/$chatId": {
       "filePath": "chat.$chatId.tsx"
+    },
+    "/settings/customization": {
+      "filePath": "settings/customization.tsx"
+    },
+    "/settings/keys": {
+      "filePath": "settings/keys.tsx"
+    },
+    "/settings/": {
+      "filePath": "settings/index.tsx"
     }
   }
 }

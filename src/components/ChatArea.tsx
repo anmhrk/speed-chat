@@ -17,19 +17,16 @@ export function ChatArea({ user }: ChatAreaProps) {
   const [prompt, setPrompt] = useState("");
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col">
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
         {!prompt.trim() ? (
           <>
-            <div className="mb-8 text-center">
-              <h1 className="text-foreground mb-4 text-4xl font-medium">
-                {user
-                  ? `How can I help you, ${user.name.split(" ")[0]}?`
-                  : "How can I help you?"}
-              </h1>
-            </div>
-
-            <div className="mb-8 grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2">
+            <h1 className="mb-12 text-4xl font-medium">
+              {user
+                ? `How can I help you, ${user.name.split(" ")[0]}?`
+                : "How can I help you?"}
+            </h1>
+            <div className="grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2">
               {PROMPT_SUGGESTIONS.map((suggestion, index) => (
                 <div
                   key={index}
