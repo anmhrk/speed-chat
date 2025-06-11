@@ -7,9 +7,12 @@ import {
   Sparkle,
   Sparkles,
   WandSparkles,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
+import { Link } from "@tanstack/react-router";
+import { Card, CardContent } from "./ui/card";
 
 type ReasoningEffort = {
   id: string;
@@ -66,6 +69,19 @@ export const AVAILABLE_MODELS: Model[] = [
     search: true,
   },
   {
+    id: "claude-4-opus",
+    name: "Claude 4 Opus",
+    logo: (
+      <img
+        src="/logos/Anthropic-dark.svg"
+        alt="Anthropic"
+        className="h-4 w-4"
+      />
+    ),
+    provider: "anthropic",
+    attachments: true,
+  },
+  {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
@@ -115,17 +131,61 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [model, setModel] = useState<string | null>(null);
   const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
+  const [hasApiKeys, setHasApiKeys] = useState<boolean>(true);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedModel = getLocalStorage("selectedModel");
     const savedReasoningEffort = getLocalStorage("reasoningEffort");
+    let keys: Record<string, string> = {};
 
-    setModel(
-      (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)?.id) ||
-        AVAILABLE_MODELS.find((m) => m.default)?.id ||
-        AVAILABLE_MODELS[0].id,
+    try {
+      const savedKeys = getLocalStorage("api_keys");
+      keys = savedKeys ? JSON.parse(savedKeys) : {};
+      const hasAnyKey = Object.values(keys).some(
+        (key) => key && key.toString().trim() !== "",
+      );
+      setHasApiKeys(hasAnyKey);
+      setApiKeys(keys);
+    } catch {
+      setHasApiKeys(false);
+      setApiKeys({});
+    }
+
+    // Helper function to check if a provider has an API key
+    const hasApiKey = (provider: string) => {
+      return keys[provider] && keys[provider].trim() !== "";
+    };
+
+    // Find available models with API keys
+    const availableModels = AVAILABLE_MODELS.filter((model) =>
+      hasApiKey(model.provider),
     );
 
+    // Set model with fallback logic
+    let selectedModel = null;
+    if (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)) {
+      const savedModelData = AVAILABLE_MODELS.find((m) => m.id === savedModel);
+      // Check if the saved model's provider has an API key
+      if (savedModelData && hasApiKey(savedModelData.provider)) {
+        selectedModel = savedModel;
+      }
+    }
+
+    // If no valid saved model, find the first available model with API key
+    if (!selectedModel && availableModels.length > 0) {
+      // Try to find a default model first
+      const defaultModel = availableModels.find((m) => m.default);
+      selectedModel = defaultModel ? defaultModel.id : availableModels[0].id;
+    }
+
+    // Final fallback to any model (for cases where no API keys are set)
+    if (!selectedModel) {
+      selectedModel =
+        AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
+    }
+
+    setModel(selectedModel);
     setReasoningEffort(
       (savedReasoningEffort &&
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
@@ -149,10 +209,38 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
     }
   }, []);
 
+  // Listen for storage changes to update API keys in real-time
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const savedKeys = getLocalStorage("api_keys");
+        const keys = savedKeys ? JSON.parse(savedKeys) : {};
+        const hasAnyKey = Object.values(keys).some(
+          (key) => key && key.toString().trim() !== "",
+        );
+        setHasApiKeys(hasAnyKey);
+        setApiKeys(keys);
+      } catch {
+        setHasApiKeys(false);
+        setApiKeys({});
+      }
+    };
+
+    // Listen for storage events (when localStorage is changed in another tab)
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also listen for focus events to check when user returns to tab
+    window.addEventListener("focus", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", handleStorageChange);
+    };
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      // TODO: Handle message submission
+    if (hasApiKeys && prompt.trim()) {
       console.log("Sending message:", prompt);
       setPrompt("");
     }
@@ -170,7 +258,28 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-3">
+      {!hasApiKeys && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="flex items-center justify-between px-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <span className="text-sm text-yellow-800 dark:text-yellow-200">
+                No API keys detected. Add one to start chatting.
+              </span>
+            </div>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:bg-zinc-800"
+            >
+              <Link to="/settings/keys">Add Keys</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <form onSubmit={handleSubmit} className="relative">
         <div className="bg-background relative rounded-t-2xl border border-b-0">
           <Textarea
@@ -189,6 +298,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
                 onModelChange={handleModelChange}
                 reasoningEffort={reasoningEffort}
                 onReasoningEffortChange={handleReasoningEffortChange}
+                availableApiKeys={apiKeys}
               />
             ) : (
               <div className="flex-1" />
@@ -197,7 +307,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
               type="button"
               size="icon"
               onClick={handleSubmit}
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || !hasApiKeys}
             >
               <ArrowUp className="size-6" />
             </Button>

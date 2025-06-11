@@ -15,6 +15,7 @@ interface ModelPickerProps {
   onModelChange: (modelId: string) => void;
   reasoningEffort: string;
   onReasoningEffortChange: (reasoningEffort: string) => void;
+  availableApiKeys?: Record<string, string>;
 }
 
 export function ModelPicker({
@@ -22,7 +23,15 @@ export function ModelPicker({
   onModelChange,
   reasoningEffort,
   onReasoningEffortChange,
+  availableApiKeys = {},
 }: ModelPickerProps) {
+  // Check if a provider has an API key configured
+  const hasApiKey = (provider: string) => {
+    return (
+      availableApiKeys[provider] && availableApiKeys[provider].trim() !== ""
+    );
+  };
+
   return (
     <div className="flex items-center gap-3">
       <Select value={selectedModel} onValueChange={onModelChange}>
@@ -43,61 +52,79 @@ export function ModelPicker({
             if (!a.default && b.default) return 1;
             // If both or neither are default, sort by name
             return a.name.localeCompare(b.name);
-          }).map((model) => (
-            <SelectItem key={model.id} value={model.id}>
-              <div className="flex w-75 items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {model.logo}
-                  {model.name}
-                  <div className="text-muted-foreground text-xs">
-                    {model.provider}
+          }).map((model) => {
+            const isDisabled = !hasApiKey(model.provider);
+            const selectItem = (
+              <SelectItem key={model.id} value={model.id} disabled={isDisabled}>
+                <div className="flex w-75 items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {model.logo}
+                    {model.name}
+                    <div className="text-muted-foreground text-xs">
+                      {model.provider}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {model.reasoning && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Brain className="size-4 text-cyan-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          Has reasoning capabilities
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {model.images && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Image className="size-4 text-pink-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          Can generate images
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {model.search && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Globe className="size-4 text-blue-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          Can search the web
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {model.attachments && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Paperclip className="size-4 text-green-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          Supports images and PDFs
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {model.reasoning && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Brain className="size-4 text-cyan-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        Has reasoning capabilities
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {model.images && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Image className="size-4 text-pink-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        Can generate images
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {model.search && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Globe className="size-4 text-blue-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        Can search the web
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {model.attachments && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Paperclip className="size-4 text-green-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        Supports images and PDFs
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-            </SelectItem>
-          ))}
+              </SelectItem>
+            );
+
+            if (isDisabled) {
+              return (
+                <Tooltip key={model.id}>
+                  <TooltipTrigger asChild>
+                    <div className="w-full">{selectItem}</div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">
+                    API key not set for provider
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return selectItem;
+          })}
         </SelectContent>
       </Select>
 
