@@ -6,5 +6,17 @@ interface AssistantMessageProps {
 }
 
 export function AssistantMessage({ message, error }: AssistantMessageProps) {
-  return <div>AI: {error ? error.message : message.content}</div>;
+  return (
+    <div className="flex justify-start">
+      <div className="w-full">
+        <div className="text-foreground break-words whitespace-pre-wrap">
+          {error ? (
+            <div className="text-red-500">Error: {error.message}</div>
+          ) : (
+            message.content
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

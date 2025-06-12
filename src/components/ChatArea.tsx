@@ -38,11 +38,11 @@ export function ChatArea({ user, chatId }: ChatAreaProps) {
   });
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-1 flex-col">
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {messages.length === 0 && !input.trim() ? (
-          <>
-            <h1 className="mb-12 text-4xl font-medium">
+          <div className="flex h-full flex-col items-center justify-center px-4 py-8 sm:px-6">
+            <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
               {user
                 ? `How can I help you, ${user.name.split(" ")[0]}?`
                 : "How can I help you?"}
@@ -60,13 +60,15 @@ export function ChatArea({ user, chatId }: ChatAreaProps) {
                 </div>
               ))}
             </div>
-          </>
+          </div>
         ) : (
-          <Messages messages={messages} error={error} />
+          <div className="px-6 py-8">
+            <Messages messages={messages} error={error} />
+          </div>
         )}
       </div>
 
-      <div className="px-6">
+      <div className="flex-shrink-0 px-4">
         <ChatInput
           prompt={input}
           handleInputChange={handleInputChange}

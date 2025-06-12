@@ -11,9 +11,9 @@ export const authGuard = async () => {
 
     const session = await auth.api.getSession({
       headers: request.headers,
-      query: {
-        disableCookieCache: true,
-      },
+      // query: {
+      //   disableCookieCache: true,
+      // },
     });
 
     if (!session) {

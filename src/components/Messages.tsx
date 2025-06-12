@@ -9,9 +9,9 @@ interface MessagesProps {
 
 export function Messages({ messages, error }: MessagesProps) {
   return (
-    <div>
+    <div className="flex w-full flex-col space-y-10">
       {messages.map((message) => (
-        <div key={message.id}>
+        <div key={message.id} className="w-full">
           {message.role === "user" ? (
             <UserMessage message={message} />
           ) : (

@@ -20,7 +20,7 @@ export function SettingsWrapper({ children }: SettingsWrapperProps) {
   return (
     <>
       <div className="relative">
-        <div className="absolute top-8 left-8 z-10">
+        <div className="absolute top-8 left-4 z-10 md:left-8">
           <Button variant="ghost" asChild>
             <Link to="/">
               <ArrowLeft className="!h-5 !w-5" />

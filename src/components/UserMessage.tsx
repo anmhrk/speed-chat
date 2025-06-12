@@ -5,5 +5,11 @@ interface UserMessageProps {
 }
 
 export function UserMessage({ message }: UserMessageProps) {
-  return <div>User: {message.content}</div>;
+  return (
+    <div className="flex justify-end">
+      <div className="bg-accent max-w-[66.67%] rounded-lg px-4 py-3">
+        <div className="break-words whitespace-pre-wrap">{message.content}</div>
+      </div>
+    </div>
+  );
 }
