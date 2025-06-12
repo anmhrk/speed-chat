@@ -1,186 +1,130 @@
-// import { createAPIFileRoute } from "@tanstack/react-start/api";
-// import { generateText, streamText } from "ai";
-// import { createOpenAI } from "@ai-sdk/openai";
-// import { createAnthropic } from "@ai-sdk/anthropic";
-// import { checkGeminiFlashRateLimit } from "../../backend/ratelimit";
-// import type { ChatRequest } from "@/lib/types";
+import { createAPIFileRoute } from "@tanstack/react-start/api";
+import { generateText, streamText } from "ai";
+import { createOpenAI, openai } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import type { ChatRequest, Models, Providers } from "@/lib/types";
+import { AVAILABLE_MODELS } from "@/components/ChatInput";
+import { env } from "@/env";
+import { authGuard } from "@/backend/auth/auth-guard";
+import { setResponseStatus } from "@tanstack/react-start/server";
+import { nanoid } from "nanoid";
 
-// export const APIRoute = createAPIFileRoute("/api/chat")({
-//   POST: async ({ request }) => {
-//     try {
-//       const body: ChatRequest = await request.json();
-//       const { messages, model, apiKeys, userId } = body;
+export const APIRoute = createAPIFileRoute("/api/chat")({
+  POST: async ({ request }) => {
+    try {
+      const body: ChatRequest = await request.json();
+      const { messages, model, apiKeys, userId, chatId } = body;
 
-//       // Check if this is a free Gemini 2.5 Flash request
-//       const isFreeGeminiFlash =
-//         model === "gemini-2.5-flash" && !apiKeys?.openrouter;
+      const isAuthenticated = await authGuard();
+      if (!isAuthenticated) {
+        setResponseStatus(401);
+        throw new Error("Unauthorized");
+      }
 
-//       if (isFreeGeminiFlash) {
-//         // Get identifier for rate limiting (user ID if authenticated, IP if not)
-//         const identifier = userId || getClientIP(request);
+      console.log("userId", userId);
+      if (!chatId) {
+        const newChatId = nanoid();
+        console.log("newChatId", newChatId);
+      }
 
-//         // Check rate limit
-//         const rateLimitResult = await checkGeminiFlashRateLimit(identifier);
+      let freeGeminiFlash = false;
+      if (
+        model === "google/gemini-2.5-flash-preview-05-20" &&
+        !apiKeys?.openrouter
+      ) {
+        // TODO: check rate limit here and return error if exceeded
+        freeGeminiFlash = true;
+      }
 
-//         if (!rateLimitResult.success) {
-//           return Response.json(
-//             {
-//               error: "Rate limit exceeded",
-//               rateLimitExceeded: true,
-//               remaining: rateLimitResult.remaining,
-//               reset: rateLimitResult.reset,
-//               limit: rateLimitResult.limit,
-//             },
-//             { status: 429 },
-//           );
-//         }
+      const aiModel = createAIProvider(model, freeGeminiFlash, apiKeys);
 
-//         // Create OpenRouter provider for free Gemini 2.5 Flash
-//         const openrouter = createOpenAI({
-//           baseURL: "https://openrouter.ai/api/v1",
-//           apiKey: process.env.OPENROUTER_API_KEY!,
-//           headers: {
-//             "HTTP-Referer": process.env.SITE_URL || "http://localhost:3000",
-//             "X-Title": "Speed Chat",
-//           },
-//         });
+      const chatStream = streamText({
+        model: aiModel,
+        messages,
+      });
 
-//         const { text, usage } = await generateText({
-//           model: openrouter("google/gemini-2.0-flash-exp"),
-//           messages: [
-//             {
-//               role: "user",
-//               content: message,
-//             },
-//           ],
-//         });
+      const titlePromise = generateText({
+        model: openai("gpt-4.1-nano"), // TODO: experiment with gemini 2.5 flash later
+        prompt: `Generate a title for the chat based on the first user message.
+        User message: ${messages[0].content}
+        `,
+        maxTokens: 100,
+      });
 
-//         return Response.json({
-//           message: text,
-//           usage,
-//           rateLimitInfo: {
-//             remaining: rateLimitResult.remaining - 1, // Subtract 1 since we consumed one
-//             reset: rateLimitResult.reset,
-//             limit: rateLimitResult.limit,
-//           },
-//         });
-//       }
+      const stream = new ReadableStream({
+        async start(controller) {
+          // Handle title async
+          titlePromise
+            .then((title) => {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "title",
+                  content: title.text,
+                })}\n\n`,
+              );
+            })
+            .catch(console.error);
 
-//       // Handle paid model requests with user's API keys
-//       const modelConfig = getModelConfig(model);
-//       if (!modelConfig) {
-//         return Response.json({ error: "Invalid model" }, { status: 400 });
-//       }
+          // Stream chat tokens
+          try {
+            for await (const chunk of chatStream.textStream) {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "text-delta",
+                  content: chunk,
+                })}\n\n`,
+              );
+            }
+            controller.enqueue(`data: [DONE]\n\n`);
+          } finally {
+            controller.close();
+          }
+        },
+      });
 
-//       const apiKey = apiKeys[modelConfig.provider];
-//       if (!apiKey) {
-//         return Response.json(
-//           { error: `API key required for ${modelConfig.provider}` },
-//           { status: 400 },
-//         );
-//       }
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+});
 
-//       // Create AI SDK provider with user's API key
-//       const aiProvider = createAIProvider(modelConfig, apiKey);
+function createAIProvider(
+  model: Models,
+  freeGeminiFlash: boolean,
+  apiKeys: Record<Providers, string>,
+) {
+  const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
 
-//       const { text, usage } = await generateText({
-//         model: aiProvider,
-//         messages: [
-//           {
-//             role: "user",
-//             content: message,
-//           },
-//         ],
-//       });
+  switch (modelConfig?.provider) {
+    case "openai":
+      const openaiProvider = createOpenAI({ apiKey: apiKeys.openai });
+      return openaiProvider(modelConfig.id);
+    case "anthropic":
+      const anthropicProvider = createAnthropic({ apiKey: apiKeys.anthropic });
+      return anthropicProvider(modelConfig.id);
+    case "openrouter":
+      const headers = import.meta.env.PROD
+        ? {
+            "HTTP-Referer": env.VITE_SITE_URL,
+            "X-Title": "Speed Chat",
+          }
+        : undefined;
 
-//       return Response.json({
-//         message: text,
-//         usage,
-//       });
-//     } catch (error) {
-//       console.error("Chat API error:", error);
-//       return Response.json({ error: "Internal server error" }, { status: 500 });
-//     }
-//   },
-// });
+      const openrouterProvider = createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: freeGeminiFlash ? env.OPENROUTER_API_KEY : apiKeys.openrouter,
+        ...(headers && { headers }),
+      });
+      return openrouterProvider(modelConfig.id);
 
-// function getClientIP(request: Request): string {
-//   // Try to get IP from various headers
-//   const forwarded = request.headers.get("x-forwarded-for");
-//   if (forwarded) {
-//     return forwarded.split(",")[0].trim();
-//   }
-
-//   const realIP = request.headers.get("x-real-ip");
-//   if (realIP) {
-//     return realIP;
-//   }
-
-//   const cfConnectingIP = request.headers.get("cf-connecting-ip");
-//   if (cfConnectingIP) {
-//     return cfConnectingIP;
-//   }
-
-//   // Fallback
-//   return "unknown";
-// }
-
-// function getModelConfig(modelId: string) {
-//   const modelMap: Record<string, { provider: string; aiModel: string }> = {
-//     "gpt-4.1": {
-//       provider: "openai",
-//       aiModel: "gpt-4-turbo",
-//     },
-//     "claude-4-sonnet": {
-//       provider: "anthropic",
-//       aiModel: "claude-3-5-sonnet-20241022",
-//     },
-//     "claude-4-opus": {
-//       provider: "anthropic",
-//       aiModel: "claude-3-opus-20240229",
-//     },
-//     "gemini-2.5-pro": {
-//       provider: "openrouter",
-//       aiModel: "google/gemini-2.0-flash-exp",
-//     },
-//     "o4-mini": {
-//       provider: "openai",
-//       aiModel: "gpt-4o-mini",
-//     },
-//     o3: {
-//       provider: "openai",
-//       aiModel: "o3-mini",
-//     },
-//   };
-
-//   return modelMap[modelId];
-// }
-
-// function createAIProvider(
-//   config: { provider: string; aiModel: string },
-//   apiKey: string,
-// ) {
-//   switch (config.provider) {
-//     case "openai":
-//       const openaiProvider = createOpenAI({ apiKey });
-//       return openaiProvider(config.aiModel as any);
-
-//     case "anthropic":
-//       const anthropicProvider = createAnthropic({ apiKey });
-//       return anthropicProvider(config.aiModel as any);
-
-//     case "openrouter":
-//       const openrouterProvider = createOpenAI({
-//         baseURL: "https://openrouter.ai/api/v1",
-//         apiKey,
-//         headers: {
-//           "HTTP-Referer": process.env.SITE_URL || "http://localhost:3000",
-//           "X-Title": "Speed Chat",
-//         },
-//       });
-//       return openrouterProvider(config.aiModel as any);
-
-//     default:
-//       throw new Error(`Unsupported provider: ${config.provider}`);
-//   }
-// }
+    default:
+      throw new Error(`Unsupported provider: ${modelConfig?.provider}`);
+  }
+}

@@ -1,3 +1,4 @@
+import type { Message } from "ai";
 import type { LucideIcon } from "lucide-react";
 
 export type Providers = "openai" | "anthropic" | "openrouter";
@@ -50,9 +51,10 @@ export type RateLimitInfo = {
 };
 
 export type ChatRequest = {
-  chatId: string;
-  messages: string;
-  model: string;
-  apiKeys?: Record<Providers, string>;
+  chatId?: string;
+  messages: Message[];
+  model: Models;
+  apiKeys: Record<Providers, string>;
   userId: string;
+  // temporaryChat: boolean;
 };
