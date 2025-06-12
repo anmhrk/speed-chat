@@ -15,7 +15,7 @@ export function ChatPage({ chatId, user, defaultOpen }: ChatPageProps) {
     <SidebarProvider defaultOpen={defaultOpen}>
       <Header />
       <AppSidebar user={user} />
-      <main className="relative h-screen flex-1 overflow-hidden pt-10">
+      <main className="h-screen flex-1">
         <ChatArea user={user} chatId={chatId} />
       </main>
     </SidebarProvider>

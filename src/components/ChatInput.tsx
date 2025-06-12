@@ -8,6 +8,7 @@ import {
   Sparkles,
   WandSparkles,
   AlertTriangle,
+  ArrowDown,
 } from "lucide-react";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
@@ -120,6 +121,8 @@ interface ChatInputProps {
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent) => void;
   user: User | null | undefined;
+  showScrollToBottom: boolean;
+  scrollToBottom: () => void;
 }
 
 export function ChatInput({
@@ -127,6 +130,8 @@ export function ChatInput({
   handleInputChange,
   handleSubmit,
   user,
+  showScrollToBottom,
+  scrollToBottom,
 }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [model, setModel] = useState<Models | null>(null);
@@ -297,7 +302,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="w-full space-y-3">
+    <div className="relative w-full space-y-3">
       {user &&
         model === "google/gemini-2.5-flash-preview-05-20" &&
         !apiKeys.openrouter &&
@@ -322,6 +327,18 @@ export function ChatInput({
             </CardContent>
           </Card>
         )}
+
+      {showScrollToBottom && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={scrollToBottom}
+          className="absolute -top-16 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full"
+        >
+          <ArrowDown className="size-4" />
+          Scroll to bottom
+        </Button>
+      )}
 
       <form onSubmit={handleChatSubmit} className="relative">
         <div className="bg-background relative rounded-t-2xl border border-b-0">

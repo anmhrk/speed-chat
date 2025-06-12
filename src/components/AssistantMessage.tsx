@@ -7,7 +7,7 @@ interface AssistantMessageProps {
 
 export function AssistantMessage({ message, error }: AssistantMessageProps) {
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start text-[15px]">
       <div className="w-full">
         <div className="text-foreground break-words whitespace-pre-wrap">
           {error ? (
