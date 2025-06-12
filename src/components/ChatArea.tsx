@@ -1,9 +1,10 @@
 import { ChatInput } from "./ChatInput";
 import type { User } from "better-auth";
-import { useChat } from "@ai-sdk/react";
 import { Messages } from "./Messages";
 import { ScrollArea } from "./ui/scroll-area";
 import { useEffect, useRef, useState } from "react";
+import type { Message } from "ai";
+import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
@@ -14,33 +15,47 @@ const PROMPT_SUGGESTIONS = [
 
 interface ChatAreaProps {
   user: User | null | undefined;
-  chatId?: string;
+  messages: Message[];
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  error: Error | undefined;
+  setInput: (input: string) => void;
+  status: "error" | "submitted" | "streaming" | "ready";
+  stop: () => void;
+  reload: () => void;
+  model: Models | null;
+  reasoningEffort: ReasoningEfforts | null;
+  setModel: (model: Models) => void;
+  setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
+  apiKeys: Record<Providers, string>;
+  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  hasApiKeys: boolean;
+  setHasApiKeys: (hasApiKeys: boolean) => void;
 }
 
-export function ChatArea({ user, chatId }: ChatAreaProps) {
+export function ChatArea({
+  user,
+  messages,
+  input,
+  handleInputChange,
+  handleSubmit,
+  error,
+  setInput,
+  status,
+  stop,
+  reload,
+  model,
+  reasoningEffort,
+  setModel,
+  setReasoningEffort,
+  apiKeys,
+  setApiKeys,
+  hasApiKeys,
+  setHasApiKeys,
+}: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    error,
-    setInput,
-    // status,
-    // stop,
-    // reload,
-  } = useChat({
-    credentials: "include",
-    body: {
-      chatId,
-      userId: user?.id,
-      model: "google/gemini-2.5-flash-preview-05-20",
-      reasoningEffort: "low",
-      apiKeys: {},
-    },
-  });
 
   // Scroll to bottom on initial page load
   // TODO: Need another listener for show scroll to bottom state so
@@ -87,7 +102,7 @@ export function ChatArea({ user, chatId }: ChatAreaProps) {
       ) : (
         <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
           <div className="mx-auto max-w-3xl px-6 py-18 sm:py-16">
-            <Messages messages={messages} error={error} />
+            <Messages messages={messages} error={error} reload={reload} />
           </div>
         </ScrollArea>
       )}
@@ -100,6 +115,16 @@ export function ChatArea({ user, chatId }: ChatAreaProps) {
           user={user}
           showScrollToBottom={showScrollToBottom}
           scrollToBottom={scrollToBottom}
+          status={status}
+          stop={stop}
+          model={model}
+          reasoningEffort={reasoningEffort}
+          apiKeys={apiKeys}
+          setModel={setModel}
+          setReasoningEffort={setReasoningEffort}
+          setApiKeys={setApiKeys}
+          hasApiKeys={hasApiKeys}
+          setHasApiKeys={setHasApiKeys}
         />
       </div>
     </div>

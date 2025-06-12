@@ -6,8 +6,9 @@ import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/components/ChatInput";
 import { env } from "@/env";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { nanoid } from "nanoid";
 import { authGuard } from "@/backend/auth/auth-guard";
+// import { db } from "@/backend/db";
+// import { chat } from "@/backend/db/schema/chat.schema";
 
 export const APIRoute = createAPIFileRoute("/api/chat")({
   POST: async ({ request }) => {
@@ -16,16 +17,9 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
       const { messages, model, apiKeys, userId, chatId } = body;
 
       const isAuthenticated = await authGuard();
-
       if (!isAuthenticated) {
         setResponseStatus(401);
         throw new Error("Unauthorized");
-      }
-
-      console.log("userId", userId);
-      if (!chatId) {
-        const newChatId = nanoid();
-        console.log("newChatId", newChatId);
       }
 
       let freeGeminiFlash = false;
@@ -44,56 +38,19 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
         messages,
       });
 
-      //   const titlePromise = generateText({
-      //     model: openai("gpt-4.1-nano"), // TODO: experiment with gemini 2.5 flash later
-      //     prompt: `Generate a title for the chat based on the first user message.
-      //     User message: ${messages[0].content}
-      //     `,
-      //     maxTokens: 100,
-      //   });
+      const titlePromise = generateText({
+        model: openai("gpt-4.1-nano"), // TODO: experiment with gemini 2.5 flash later
+        prompt: `Generate a title for the chat based on the first user message.
+          User message: ${messages[0].content}
+          `,
+      });
 
-      //   const stream = new ReadableStream({
-      //     async start(controller) {
-      //       // Handle title async
-      //       titlePromise
-      //         .then((title) => {
-      //           controller.enqueue(
-      //             `data: ${JSON.stringify({
-      //               type: "title",
-      //               content: title.text,
-      //             })}\n\n`,
-      //           );
-      //         })
-      //         .catch(console.error);
-
-      //       // Stream chat tokens
-      //       try {
-      //         for await (const chunk of chatStream.textStream) {
-      //           controller.enqueue(
-      //             `data: ${JSON.stringify({
-      //               type: "text-delta",
-      //               content: chunk,
-      //             })}\n\n`,
-      //           );
-      //         }
-      //         controller.enqueue(`data: [DONE]\n\n`);
-      //       } finally {
-      //         controller.close();
-      //       }
-      //     },
-      //   });
-
-      //   return new Response(stream, {
-      //     headers: {
-      //       "Content-Type": "text/event-stream",
-      //       "Cache-Control": "no-cache",
-      //       Connection: "keep-alive",
-      //     },
-      //   });
+      const title = await titlePromise;
+      console.log("title", title.text);
 
       return chatStream.toDataStreamResponse();
     } catch (error) {
-      console.log("❌ Error in chat API:", error);
+      console.log("[Chat API] Error:", error);
       throw error;
     }
   },

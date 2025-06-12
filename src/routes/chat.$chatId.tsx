@@ -20,5 +20,7 @@ function RouteComponent() {
   const { chatId } = Route.useParams();
   const { user } = Route.useRouteContext();
 
-  return <ChatPage user={user} defaultOpen={defaultOpen} chatId={chatId} />;
+  return (
+    <ChatPage user={user} defaultOpen={defaultOpen} chatIdParams={chatId} />
+  );
 }

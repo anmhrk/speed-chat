@@ -26,9 +26,10 @@ const dummyThreads = [
 
 interface AppSidebarProps {
   user: User | null | undefined;
+  status: "error" | "submitted" | "streaming" | "ready";
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, status }: AppSidebarProps) {
   const [search, setSearch] = useState<string>("");
 
   return (

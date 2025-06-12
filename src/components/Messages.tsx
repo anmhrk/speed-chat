@@ -5,9 +5,10 @@ import { UserMessage } from "./UserMessage";
 interface MessagesProps {
   messages: Message[];
   error: Error | undefined;
+  reload: () => void;
 }
 
-export function Messages({ messages, error }: MessagesProps) {
+export function Messages({ messages, error, reload }: MessagesProps) {
   return (
     <div className="flex w-full flex-col space-y-10">
       {messages.map((message) => (

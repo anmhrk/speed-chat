@@ -9,13 +9,13 @@ import {
   WandSparkles,
   AlertTriangle,
   ArrowDown,
+  Square,
 } from "lucide-react";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "./ui/card";
 import { getRateLimitStatus } from "../backend/ratelimit/status";
 import type { User } from "better-auth";
-import { toast } from "sonner";
 import type {
   ReasoningEfforts,
   ReasoningEffortConfig,
@@ -123,6 +123,16 @@ interface ChatInputProps {
   user: User | null | undefined;
   showScrollToBottom: boolean;
   scrollToBottom: () => void;
+  status: "error" | "submitted" | "streaming" | "ready";
+  stop: () => void;
+  model: Models | null;
+  reasoningEffort: ReasoningEfforts | null;
+  apiKeys: Record<Providers, string>;
+  setModel: (model: Models) => void;
+  setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
+  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  hasApiKeys: boolean;
+  setHasApiKeys: (hasApiKeys: boolean) => void;
 }
 
 export function ChatInput({
@@ -132,17 +142,18 @@ export function ChatInput({
   user,
   showScrollToBottom,
   scrollToBottom,
+  status,
+  stop,
+  model,
+  reasoningEffort,
+  apiKeys,
+  setModel,
+  setReasoningEffort,
+  setApiKeys,
+  hasApiKeys,
+  setHasApiKeys,
 }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const [model, setModel] = useState<Models | null>(null);
-  const [reasoningEffort, setReasoningEffort] =
-    useState<ReasoningEfforts | null>(null);
-  const [hasApiKeys, setHasApiKeys] = useState<boolean>(false);
-  const [apiKeys, setApiKeys] = useState<Record<Providers, string>>({
-    openrouter: "",
-    openai: "",
-    anthropic: "",
-  });
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(
     null,
   );
@@ -275,21 +286,6 @@ export function ChatInput({
     };
   }, []);
 
-  const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!user) {
-      toast.error("Please login to chat");
-      return;
-    }
-
-    const canSubmit =
-      hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
-    if (canSubmit && prompt.trim()) {
-      handleSubmit(e);
-    }
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -340,7 +336,7 @@ export function ChatInput({
         </Button>
       )}
 
-      <form onSubmit={handleChatSubmit} className="relative">
+      <form onSubmit={handleSubmit} className="relative">
         <div className="bg-background relative rounded-t-2xl border border-b-0">
           <Textarea
             ref={promptRef}
@@ -363,19 +359,30 @@ export function ChatInput({
             ) : (
               <div className="flex-1" />
             )}
-            <Button
-              type="button"
-              size="icon"
-              onClick={handleSubmit}
-              disabled={
-                !user ||
-                !prompt.trim() ||
-                (!hasApiKeys &&
-                  model !== "google/gemini-2.5-flash-preview-05-20")
-              }
-            >
-              <ArrowUp className="size-6" />
-            </Button>
+            {status === "streaming" ? (
+              <Button
+                type="button"
+                size="icon"
+                onClick={stop}
+                className="bg-muted-foreground hover:bg-muted-foreground/80"
+              >
+                <Square className="size-6" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="icon"
+                onClick={handleSubmit}
+                disabled={
+                  !user ||
+                  !prompt.trim() ||
+                  (!hasApiKeys &&
+                    model !== "google/gemini-2.5-flash-preview-05-20")
+                }
+              >
+                <ArrowUp className="size-6" />
+              </Button>
+            )}
           </div>
         </div>
       </form>

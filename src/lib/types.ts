@@ -51,7 +51,7 @@ export type RateLimitInfo = {
 };
 
 export type ChatRequest = {
-  chatId: string | null;
+  chatId: string;
   messages: Message[];
   model: Models;
   reasoningEffort: ReasoningEfforts | null;
