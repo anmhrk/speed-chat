@@ -117,11 +117,17 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
 
 interface ChatInputProps {
   prompt: string;
-  setPrompt: (prompt: string) => void;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleSubmit: (e: React.FormEvent) => void;
   user: User | null | undefined;
 }
 
-export function ChatInput({ prompt, setPrompt, user }: ChatInputProps) {
+export function ChatInput({
+  prompt,
+  handleInputChange,
+  handleSubmit,
+  user,
+}: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
@@ -264,7 +270,7 @@ export function ChatInput({ prompt, setPrompt, user }: ChatInputProps) {
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user) {
@@ -275,8 +281,7 @@ export function ChatInput({ prompt, setPrompt, user }: ChatInputProps) {
     const canSubmit =
       hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
     if (canSubmit && prompt.trim()) {
-      console.log("Sending message:", prompt);
-      setPrompt("");
+      handleSubmit(e);
     }
   };
 
@@ -318,12 +323,12 @@ export function ChatInput({ prompt, setPrompt, user }: ChatInputProps) {
           </Card>
         )}
 
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleChatSubmit} className="relative">
         <div className="bg-background relative rounded-t-2xl border border-b-0">
           <Textarea
             ref={promptRef}
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
             className="placeholder:text-muted-foreground max-h-[350px] min-h-[100px] w-full resize-none border-0 bg-transparent p-4 focus-visible:ring-0"

@@ -1,10 +1,10 @@
-import { createServerFn } from "@tanstack/react-start";
 import { getWebRequest } from "@tanstack/react-start/server";
 import { auth } from ".";
 
-export const authGuard = createServerFn({ method: "GET" }).handler(async () => {
+export const authGuard = async () => {
   try {
     const request = getWebRequest();
+
     if (!request?.headers) {
       return false;
     }
@@ -24,4 +24,4 @@ export const authGuard = createServerFn({ method: "GET" }).handler(async () => {
   } catch (error) {
     throw error;
   }
-});
+};

@@ -51,9 +51,10 @@ export type RateLimitInfo = {
 };
 
 export type ChatRequest = {
-  chatId?: string;
+  chatId: string | null;
   messages: Message[];
   model: Models;
+  reasoningEffort: ReasoningEfforts | null;
   apiKeys: Record<Providers, string>;
   userId: string;
   // temporaryChat: boolean;

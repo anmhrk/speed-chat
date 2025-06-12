@@ -1,6 +1,7 @@
-import { useState } from "react";
 import { ChatInput } from "./ChatInput";
 import type { User } from "better-auth";
+import { useChat } from "@ai-sdk/react";
+import { Messages } from "./Messages";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
@@ -14,13 +15,32 @@ interface ChatAreaProps {
   chatId?: string;
 }
 
-export function ChatArea({ user }: ChatAreaProps) {
-  const [prompt, setPrompt] = useState<string>("");
+export function ChatArea({ user, chatId }: ChatAreaProps) {
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    error,
+    setInput,
+    // status,
+    // stop,
+    // reload,
+  } = useChat({
+    credentials: "include",
+    body: {
+      chatId,
+      userId: user?.id,
+      model: "google/gemini-2.5-flash-preview-05-20",
+      reasoningEffort: "low",
+      apiKeys: {},
+    },
+  });
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
-        {!prompt.trim() ? (
+        {messages.length === 0 && !input.trim() ? (
           <>
             <h1 className="mb-12 text-4xl font-medium">
               {user
@@ -32,7 +52,7 @@ export function ChatArea({ user }: ChatAreaProps) {
                 <div
                   key={index}
                   className="border-border bg-card hover:bg-accent cursor-pointer rounded-lg border p-4 text-left transition-colors"
-                  onClick={() => setPrompt(suggestion)}
+                  onClick={() => setInput(suggestion)}
                 >
                   <span className="text-muted-foreground text-sm">
                     {suggestion}
@@ -42,12 +62,17 @@ export function ChatArea({ user }: ChatAreaProps) {
             </div>
           </>
         ) : (
-          <div className="flex-1" />
+          <Messages messages={messages} error={error} />
         )}
       </div>
 
       <div className="px-6">
-        <ChatInput prompt={prompt} setPrompt={setPrompt} user={user} />
+        <ChatInput
+          prompt={input}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+          user={user}
+        />
       </div>
     </div>
   );
