@@ -8,19 +8,23 @@ import {
   Sparkles,
   WandSparkles,
   AlertTriangle,
-  type LucideIcon,
 } from "lucide-react";
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "./ui/card";
 import { getRateLimitStatus } from "../backend/ratelimit/status";
+import type { User } from "better-auth";
+import { toast } from "sonner";
+import type {
+  ReasoningEfforts,
+  ReasoningEffortConfig,
+  Models,
+  ModelConfig,
+  Providers,
+  RateLimitInfo,
+} from "@/lib/types";
 
-type ReasoningEffort = {
-  id: string;
-  icon: LucideIcon;
-};
-
-export const REASONING_EFFORTS: ReasoningEffort[] = [
+export const REASONING_EFFORTS: ReasoningEffortConfig[] = [
   {
     id: "low",
     icon: Sparkle,
@@ -35,19 +39,7 @@ export const REASONING_EFFORTS: ReasoningEffort[] = [
   },
 ];
 
-type Model = {
-  id: string;
-  name: string;
-  logo: React.ReactNode;
-  default?: boolean;
-  provider: "openai" | "anthropic" | "openrouter";
-  reasoning?: boolean;
-  images?: boolean;
-  attachments?: boolean;
-  search?: boolean;
-};
-
-export const AVAILABLE_MODELS: Model[] = [
+export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "gpt-4.1",
     name: "GPT 4.1",
@@ -56,8 +48,8 @@ export const AVAILABLE_MODELS: Model[] = [
     attachments: true,
   },
   {
-    id: "claude-4-sonnet",
-    name: "Claude 4 Sonnet",
+    id: "claude-sonnet-4",
+    name: "Claude Sonnet 4",
     logo: (
       <img
         src="/logos/Anthropic-dark.svg"
@@ -70,8 +62,8 @@ export const AVAILABLE_MODELS: Model[] = [
     search: true,
   },
   {
-    id: "claude-4-opus",
-    name: "Claude 4 Opus",
+    id: "claude-opus-4",
+    name: "Claude Opus 4",
     logo: (
       <img
         src="/logos/Anthropic-dark.svg"
@@ -83,7 +75,7 @@ export const AVAILABLE_MODELS: Model[] = [
     attachments: true,
   },
   {
-    id: "gemini-2.5-flash",
+    id: "google/gemini-2.5-flash-preview-05-20",
     name: "Gemini 2.5 Flash",
     logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
     provider: "openrouter",
@@ -91,7 +83,7 @@ export const AVAILABLE_MODELS: Model[] = [
     attachments: true,
   },
   {
-    id: "gemini-2.5-pro",
+    id: "google/gemini-2.5-pro-preview",
     name: "Gemini 2.5 Pro",
     logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
     provider: "openrouter",
@@ -107,7 +99,7 @@ export const AVAILABLE_MODELS: Model[] = [
     reasoning: true,
   },
   {
-    id: "gpt-imagegen",
+    id: "gpt-image-1",
     name: "GPT ImageGen",
     logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
     provider: "openai",
@@ -126,46 +118,51 @@ export const AVAILABLE_MODELS: Model[] = [
 interface ChatInputProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
+  user: User | null | undefined;
 }
 
-export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
+export function ChatInput({ prompt, setPrompt, user }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const [model, setModel] = useState<string | null>(null);
-  const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
-  const [hasApiKeys, setHasApiKeys] = useState<boolean>(true);
-  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-  const [rateLimitInfo, setRateLimitInfo] = useState<{
-    remaining: number;
-    reset: number;
-    limit: number;
-  } | null>(null);
+  const [model, setModel] = useState<Models | null>(null);
+  const [reasoningEffort, setReasoningEffort] =
+    useState<ReasoningEfforts | null>(null);
+  const [hasApiKeys, setHasApiKeys] = useState<boolean>(false);
+  const [apiKeys, setApiKeys] = useState<Record<Providers, string>>({
+    openrouter: "",
+    openai: "",
+    anthropic: "",
+  });
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(
+    null,
+  );
 
   useEffect(() => {
     const savedModel = getLocalStorage("selectedModel");
     const savedReasoningEffort = getLocalStorage("reasoningEffort");
-    let keys: Record<string, string> = {};
+    let keys: Record<Providers, string> = {
+      openrouter: "",
+      openai: "",
+      anthropic: "",
+    };
 
-    try {
-      const savedKeys = getLocalStorage("api_keys");
-      keys = savedKeys ? JSON.parse(savedKeys) : {};
-      const hasAnyKey = Object.values(keys).some(
-        (key) => key && key.toString().trim() !== "",
-      );
-      setHasApiKeys(hasAnyKey);
-      setApiKeys(keys);
-    } catch {
-      setHasApiKeys(false);
-      setApiKeys({});
-    }
+    const savedKeys = getLocalStorage("api_keys");
+    keys = savedKeys ? JSON.parse(savedKeys) : {};
+    const hasAnyKey = Object.values(keys).some(
+      (key) => key && key.toString().trim() !== "",
+    );
+    setHasApiKeys(hasAnyKey);
+    setApiKeys(keys);
 
     // Helper function to check if a provider has an API key
-    const hasApiKey = (provider: string) => {
+    const hasApiKey = (provider: Providers) => {
       return keys[provider] && keys[provider].trim() !== "";
     };
 
     // Find available models with API keys + always include Gemini 2.5 Flash for free usage
     const availableModels = AVAILABLE_MODELS.filter(
-      (model) => model.id === "gemini-2.5-flash" || hasApiKey(model.provider),
+      (model) =>
+        model.id === "google/gemini-2.5-flash-preview-05-20" ||
+        hasApiKey(model.provider),
     );
 
     // Set model with fallback logic
@@ -175,7 +172,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
       // Check if the saved model's provider has an API key OR if it's Gemini 2.5 Flash (free)
       if (
         savedModelData &&
-        (savedModelData.id === "gemini-2.5-flash" ||
+        (savedModelData.id === "google/gemini-2.5-flash-preview-05-20" ||
           hasApiKey(savedModelData.provider))
       ) {
         selectedModel = savedModel;
@@ -195,7 +192,7 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
         AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
     }
 
-    setModel(selectedModel);
+    setModel(selectedModel as Models);
     setReasoningEffort(
       (savedReasoningEffort &&
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
@@ -203,22 +200,28 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
     );
   }, []);
 
-  const handleModelChange = (newModel: string) => {
+  const handleModelChange = (newModel: Models) => {
     setModel(newModel);
     setLocalStorage("selectedModel", newModel);
   };
 
-  const handleReasoningEffortChange = (newReasoningEffort: string) => {
+  const handleReasoningEffortChange = (
+    newReasoningEffort: ReasoningEfforts,
+  ) => {
     setReasoningEffort(newReasoningEffort);
     setLocalStorage("reasoningEffort", newReasoningEffort);
   };
 
   // Fetch rate limit info when using Gemini 2.5 Flash without API key
   const fetchRateLimitInfo = async () => {
-    if (model === "gemini-2.5-flash" && !apiKeys.openrouter) {
+    if (
+      user &&
+      model === "google/gemini-2.5-flash-preview-05-20" &&
+      !apiKeys.openrouter
+    ) {
       try {
-        const data = await getRateLimitStatus({} as any);
-        setRateLimitInfo(data);
+        const data = await getRateLimitStatus();
+        setRateLimitInfo(data ?? null);
       } catch (error) {
         console.error("Failed to fetch rate limit info:", error);
       }
@@ -233,11 +236,6 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
     }
   }, []);
 
-  // Fetch rate limit info when model changes
-  useEffect(() => {
-    fetchRateLimitInfo();
-  }, [model, apiKeys]);
-
   // Listen for storage changes to update API keys in real-time
   useEffect(() => {
     const handleStorageChange = () => {
@@ -251,7 +249,6 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
         setApiKeys(keys);
       } catch {
         setHasApiKeys(false);
-        setApiKeys({});
       }
     };
 
@@ -269,8 +266,14 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Allow submission if user has API keys OR if using free Gemini 2.5 Flash
-    const canSubmit = hasApiKeys || model === "gemini-2.5-flash";
+
+    if (!user) {
+      toast.error("Please login to chat");
+      return;
+    }
+
+    const canSubmit =
+      hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
     if (canSubmit && prompt.trim()) {
       console.log("Sending message:", prompt);
       setPrompt("");
@@ -290,48 +293,30 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
 
   return (
     <div className="w-full space-y-3">
-      {!hasApiKeys && model !== "gemini-2.5-flash" && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="flex items-center justify-between px-3">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-              <span className="text-sm text-yellow-800 dark:text-yellow-200">
-                No API keys detected. Add one to start chatting.
-              </span>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="hover:bg-zinc-800"
-            >
-              <Link to="/settings/keys">Add Keys</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {model === "gemini-2.5-flash" && !apiKeys.openrouter && rateLimitInfo && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="flex items-center justify-between px-3">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm text-blue-800 dark:text-blue-200">
-                Free Gemini 2.5 Flash: {rateLimitInfo.remaining} messages
-                remaining today. Add an API key for unlimited usage.
-              </span>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="hover:bg-zinc-800"
-            >
-              <Link to="/settings/keys">Add Keys</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {user &&
+        model === "google/gemini-2.5-flash-preview-05-20" &&
+        !apiKeys.openrouter &&
+        rateLimitInfo && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="flex items-center justify-between px-3">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm text-blue-800 dark:text-blue-200">
+                  Free Gemini 2.5 Flash: {rateLimitInfo.remaining} messages
+                  remaining today. Add API keys for extended usage.
+                </span>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="hover:bg-zinc-800"
+              >
+                <Link to="/settings/keys">Add Keys</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
       <form onSubmit={handleSubmit} className="relative">
         <div className="bg-background relative rounded-t-2xl border border-b-0">
@@ -361,7 +346,10 @@ export function ChatInput({ prompt, setPrompt }: ChatInputProps) {
               size="icon"
               onClick={handleSubmit}
               disabled={
-                !prompt.trim() || (!hasApiKeys && model !== "gemini-2.5-flash")
+                !user ||
+                !prompt.trim() ||
+                (!hasApiKeys &&
+                  model !== "google/gemini-2.5-flash-preview-05-20")
               }
             >
               <ArrowUp className="size-6" />

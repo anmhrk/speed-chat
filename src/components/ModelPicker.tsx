@@ -9,12 +9,13 @@ import { AVAILABLE_MODELS, REASONING_EFFORTS } from "./ChatInput";
 import { Toggle } from "./ui/toggle";
 import { Globe, Paperclip, Brain, Image } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import type { Models, ReasoningEfforts } from "@/lib/types";
 
 interface ModelPickerProps {
-  selectedModel: string;
-  onModelChange: (modelId: string) => void;
-  reasoningEffort: string;
-  onReasoningEffortChange: (reasoningEffort: string) => void;
+  selectedModel: Models;
+  onModelChange: (modelId: Models) => void;
+  reasoningEffort: ReasoningEfforts;
+  onReasoningEffortChange: (reasoningEffort: ReasoningEfforts) => void;
   availableApiKeys?: Record<string, string>;
 }
 
@@ -55,7 +56,8 @@ export function ModelPicker({
           }).map((model) => {
             // Always allow Gemini 2.5 Flash (free usage), disable others without API keys
             const isDisabled =
-              model.id !== "gemini-2.5-flash" && !hasApiKey(model.provider);
+              model.id !== "google/gemini-2.5-flash-preview-05-20" &&
+              !hasApiKey(model.provider);
             const selectItem = (
               <SelectItem key={model.id} value={model.id} disabled={isDisabled}>
                 <div className="flex w-75 items-center justify-between gap-2">
@@ -119,7 +121,7 @@ export function ModelPicker({
                     <div className="w-full">{selectItem}</div>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs">
-                    {model.id === "gemini-2.5-flash"
+                    {model.id === "google/gemini-2.5-flash-preview-05-20"
                       ? "Available for free usage (rate limited)"
                       : "API key not set for provider"}
                   </TooltipContent>

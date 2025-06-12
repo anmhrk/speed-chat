@@ -8,17 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SettingsWrapper } from "@/components/SettingsWrapper";
-import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  LogIn,
-  Trash2,
-  LogOut,
-  BarChart3,
-  User,
-  AlertTriangle,
-} from "lucide-react";
+import { Trash2, LogOut, BarChart3, User, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/settings/")({
   component: RouteComponent,
@@ -27,8 +19,8 @@ export const Route = createFileRoute("/settings/")({
 function RouteComponent() {
   const router = useRouter();
   const { user } = Route.useRouteContext();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -61,137 +53,119 @@ function RouteComponent() {
     setIsDeletingAccount(false);
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <SettingsWrapper>
-      {!user ? (
-        <Card>
-          <CardHeader className="text-center">
-            <LogIn className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-            <CardTitle>Not Signed In</CardTitle>
-            <CardDescription>
-              Sign in to access your account settings and sync your chat history
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button asChild>
-              <Link to="/login">Sign In</Link>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <User className="size-5" />
+            <span>Profile</span>
+          </CardTitle>
+          <CardDescription>Your account information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
+              <Avatar className="ring-border h-16 w-16 ring-2">
+                {user.image && (
+                  <AvatarImage
+                    src={user.image}
+                    alt={user.name}
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <AvatarFallback className="text-xl font-semibold">
+                  {user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <h3 className="mb-1 text-xl font-semibold tracking-tight">
+                  {user.name}
+                </h3>
+                <p className="text-muted-foreground mb-2 font-medium">
+                  {user.email}
+                </p>
+                <div className="bg-muted inline-flex items-center gap-1.5 rounded-full px-2.5 py-1">
+                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                  <span className="text-xs font-medium">
+                    Member since {new Date(user.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex shrink-0 items-center gap-2"
+            >
+              <LogOut className="size-4" />
+              <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="size-5" />
-                <span>Profile</span>
-              </CardTitle>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-                <div className="flex min-w-0 flex-1 items-center gap-4">
-                  <Avatar className="ring-border h-16 w-16 ring-2">
-                    {user.image && (
-                      <AvatarImage
-                        src={user.image}
-                        alt={user.name}
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                    <AvatarFallback className="text-xl font-semibold">
-                      {user.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="mb-1 text-xl font-semibold tracking-tight">
-                      {user.name}
-                    </h3>
-                    <p className="text-muted-foreground mb-2 font-medium">
-                      {user.email}
-                    </p>
-                    <div className="bg-muted inline-flex items-center gap-1.5 rounded-full px-2.5 py-1">
-                      <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                      <span className="text-xs font-medium">
-                        Member since{" "}
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                  className="flex shrink-0 items-center gap-2"
-                >
-                  <LogOut className="size-4" />
-                  <span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="size-5" />
-                <span>Usage Statistics</span>
-              </CardTitle>
-              <CardDescription>Your Speed Chat usage overview</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div className="space-y-1 text-center">
-                  <p className="text-2xl font-bold">--</p>
-                  <p className="text-muted-foreground text-sm">Messages Sent</p>
-                </div>
-                <div className="space-y-1 text-center">
-                  <p className="text-2xl font-bold">--</p>
-                  <p className="text-muted-foreground text-sm">Chat Threads</p>
-                </div>
-                <div className="space-y-1 text-center">
-                  <p className="text-2xl font-bold">--</p>
-                  <p className="text-muted-foreground text-sm">Tokens In</p>
-                </div>
-                <div className="space-y-1 text-center">
-                  <p className="text-2xl font-bold">--</p>
-                  <p className="text-muted-foreground text-sm">Tokens Out</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <BarChart3 className="size-5" />
+            <span>Usage Statistics</span>
+          </CardTitle>
+          <CardDescription>Your Speed Chat usage overview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="space-y-1 text-center">
+              <p className="text-2xl font-bold">--</p>
+              <p className="text-muted-foreground text-sm">Messages Sent</p>
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-2xl font-bold">--</p>
+              <p className="text-muted-foreground text-sm">Chat Threads</p>
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-2xl font-bold">--</p>
+              <p className="text-muted-foreground text-sm">Tokens In</p>
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-2xl font-bold">--</p>
+              <p className="text-muted-foreground text-sm">Tokens Out</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center space-x-2">
-                <AlertTriangle className="size-5" />
-                <span>Danger Zone</span>
-              </CardTitle>
-              <CardDescription>
-                Delete your account and all your data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                onClick={handleDeleteAccount}
-                disabled={isDeletingAccount}
-                variant="destructive"
-                className="flex items-center space-x-2"
-              >
-                <Trash2 className="size-4" />
-                <span>
-                  {isDeletingAccount ? "Deleting..." : "Delete Account"}
-                </span>
-              </Button>
-              <p className="text-muted-foreground text-sm">
-                <strong>Note: </strong>Once you delete your account, there is no
-                going back. Please be certain. This will permanently remove all
-                your data, including chat history and settings.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </SettingsWrapper>
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center space-x-2">
+            <AlertTriangle className="size-5" />
+            <span>Danger Zone</span>
+          </CardTitle>
+          <CardDescription>
+            Delete your account and all your data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={handleDeleteAccount}
+            disabled={isDeletingAccount}
+            variant="destructive"
+            className="flex items-center space-x-2"
+          >
+            <Trash2 className="size-4" />
+            <span>{isDeletingAccount ? "Deleting..." : "Delete Account"}</span>
+          </Button>
+          <p className="text-muted-foreground text-sm">
+            <strong>Note: </strong>Once you delete your account, there is no
+            going back. Please be certain. This will permanently remove all your
+            data, including chat history and settings.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

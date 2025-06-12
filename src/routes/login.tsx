@@ -17,7 +17,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function RouteComponent() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   return (
     <div className="relative min-h-screen">
@@ -30,12 +30,8 @@ function RouteComponent() {
         </Button>
       </div>
 
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="space-y-8 text-center">
-          <p className="text-muted-foreground text-xl">
-            Sign in below to sync your chat history across devices ✨
-          </p>
-
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-md">
           <Button
             onClick={() => {
               setIsLoading(true);
@@ -48,6 +44,7 @@ function RouteComponent() {
                 });
             }}
             variant="outline"
+            size="lg"
             disabled={isLoading}
             className="h-12 w-full rounded-lg text-lg font-semibold"
           >

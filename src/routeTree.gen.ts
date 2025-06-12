@@ -11,6 +11,7 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as SettingsImport } from './routes/settings'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as SettingsIndexImport } from './routes/settings/index'
@@ -19,6 +20,12 @@ import { Route as SettingsCustomizationImport } from './routes/settings/customiz
 import { Route as ChatChatIdImport } from './routes/chat.$chatId'
 
 // Create/Update Routes
+
+const SettingsRoute = SettingsImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const LoginRoute = LoginImport.update({
   id: '/login',
@@ -33,21 +40,21 @@ const IndexRoute = IndexImport.update({
 } as any)
 
 const SettingsIndexRoute = SettingsIndexImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => rootRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
 } as any)
 
 const SettingsKeysRoute = SettingsKeysImport.update({
-  id: '/settings/keys',
-  path: '/settings/keys',
-  getParentRoute: () => rootRoute,
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => SettingsRoute,
 } as any)
 
 const SettingsCustomizationRoute = SettingsCustomizationImport.update({
-  id: '/settings/customization',
-  path: '/settings/customization',
-  getParentRoute: () => rootRoute,
+  id: '/customization',
+  path: '/customization',
+  getParentRoute: () => SettingsRoute,
 } as any)
 
 const ChatChatIdRoute = ChatChatIdImport.update({
@@ -74,6 +81,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsImport
+      parentRoute: typeof rootRoute
+    }
     '/chat/$chatId': {
       id: '/chat/$chatId'
       path: '/chat/$chatId'
@@ -83,37 +97,54 @@ declare module '@tanstack/react-router' {
     }
     '/settings/customization': {
       id: '/settings/customization'
-      path: '/settings/customization'
+      path: '/customization'
       fullPath: '/settings/customization'
       preLoaderRoute: typeof SettingsCustomizationImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof SettingsImport
     }
     '/settings/keys': {
       id: '/settings/keys'
-      path: '/settings/keys'
+      path: '/keys'
       fullPath: '/settings/keys'
       preLoaderRoute: typeof SettingsKeysImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof SettingsImport
     }
     '/settings/': {
       id: '/settings/'
-      path: '/settings'
-      fullPath: '/settings'
+      path: '/'
+      fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexImport
-      parentRoute: typeof rootRoute
+      parentRoute: typeof SettingsImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface SettingsRouteChildren {
+  SettingsCustomizationRoute: typeof SettingsCustomizationRoute
+  SettingsKeysRoute: typeof SettingsKeysRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsCustomizationRoute: SettingsCustomizationRoute,
+  SettingsKeysRoute: SettingsKeysRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/chat/$chatId': typeof ChatChatIdRoute
   '/settings/customization': typeof SettingsCustomizationRoute
   '/settings/keys': typeof SettingsKeysRoute
-  '/settings': typeof SettingsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 
 export interface FileRoutesByTo {
@@ -129,6 +160,7 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/chat/$chatId': typeof ChatChatIdRoute
   '/settings/customization': typeof SettingsCustomizationRoute
   '/settings/keys': typeof SettingsKeysRoute
@@ -140,10 +172,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/settings'
     | '/chat/$chatId'
     | '/settings/customization'
     | '/settings/keys'
-    | '/settings'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -156,6 +189,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/settings'
     | '/chat/$chatId'
     | '/settings/customization'
     | '/settings/keys'
@@ -166,19 +200,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   ChatChatIdRoute: typeof ChatChatIdRoute
-  SettingsCustomizationRoute: typeof SettingsCustomizationRoute
-  SettingsKeysRoute: typeof SettingsKeysRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   ChatChatIdRoute: ChatChatIdRoute,
-  SettingsCustomizationRoute: SettingsCustomizationRoute,
-  SettingsKeysRoute: SettingsKeysRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -193,10 +223,8 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/login",
-        "/chat/$chatId",
-        "/settings/customization",
-        "/settings/keys",
-        "/settings/"
+        "/settings",
+        "/chat/$chatId"
       ]
     },
     "/": {
@@ -205,17 +233,28 @@ export const routeTree = rootRoute
     "/login": {
       "filePath": "login.tsx"
     },
+    "/settings": {
+      "filePath": "settings.tsx",
+      "children": [
+        "/settings/customization",
+        "/settings/keys",
+        "/settings/"
+      ]
+    },
     "/chat/$chatId": {
       "filePath": "chat.$chatId.tsx"
     },
     "/settings/customization": {
-      "filePath": "settings/customization.tsx"
+      "filePath": "settings/customization.tsx",
+      "parent": "/settings"
     },
     "/settings/keys": {
-      "filePath": "settings/keys.tsx"
+      "filePath": "settings/keys.tsx",
+      "parent": "/settings"
     },
     "/settings/": {
-      "filePath": "settings/index.tsx"
+      "filePath": "settings/index.tsx",
+      "parent": "/settings"
     }
   }
 }

@@ -1,6 +1,6 @@
 import { SidebarTrigger } from "./ui/sidebar";
 import { Button } from "./ui/button";
-import { Share, Ghost, Settings } from "lucide-react";
+import { Share, Ghost, Key } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { Link, useLocation } from "@tanstack/react-router";
 
@@ -21,15 +21,13 @@ export function Header() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button asChild variant="ghost" size="icon">
-              {/* Routing this to keys cos user button routes to main settings page
-                  Non authed users dont need main settings page anyway */}
               <Link to="/settings/keys">
-                <Settings className="size-5" />
-                <span className="sr-only">Settings</span>
+                <Key className="size-5" />
+                <span className="sr-only">API Keys</span>
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Settings</TooltipContent>
+          <TooltipContent>Set API Keys</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>

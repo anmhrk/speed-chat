@@ -1,70 +1,27 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import type { RateLimitInfo } from "@/lib/types";
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis = Redis.fromEnv();
+const REDIS_KEY = "gemini-flash-free";
 
-// Create rate limiter for free Gemini 2.5 Flash usage
-// 5 requests per day per identifier (IP or user ID)
+// Create rate limiter for free Gemini 2.5 Flash
+// 5 requests per day per user
 export const geminiFlashRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "1 d"),
   analytics: true,
-  prefix: "gemini-flash-free",
+  prefix: REDIS_KEY,
 });
 
-/**
- * Check if user/IP has exceeded rate limit for free Gemini 2.5 Flash usage
- * @param identifier - User ID (if authenticated) or IP address (if not)
- * @returns Promise with rate limit result
- */
-export async function checkGeminiFlashRateLimit(identifier: string) {
+export async function getGeminiFlashRateLimitStatus(
+  userId: string,
+): Promise<RateLimitInfo> {
   try {
-    const result = await geminiFlashRateLimit.limit(identifier);
+    const result = await geminiFlashRateLimit.getRemaining(userId);
     return {
-      success: result.success,
       remaining: result.remaining,
       reset: result.reset,
-      limit: result.limit,
-    };
-  } catch (error) {
-    console.error("Rate limit check failed:", error);
-    // Fail open - allow request if rate limit check fails
-    return {
-      success: true,
-      remaining: 5,
-      reset: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
-      limit: 5,
-    };
-  }
-}
-
-/**
- * Get current rate limit status without consuming a request
- * @param identifier - User ID (if authenticated) or IP address (if not)
- */
-export async function getGeminiFlashRateLimitStatus(identifier: string) {
-  try {
-    // Use a separate key to check status without consuming
-    const statusKey = `gemini-flash-free:${identifier}`;
-    const current = await redis.get(statusKey);
-
-    if (!current) {
-      return {
-        remaining: 5,
-        reset: Date.now() + 24 * 60 * 60 * 1000,
-        limit: 5,
-      };
-    }
-
-    // Parse the stored data to get remaining count
-    const data = JSON.parse(current as string);
-    return {
-      remaining: Math.max(0, 5 - data.count),
-      reset: data.reset,
       limit: 5,
     };
   } catch (error) {

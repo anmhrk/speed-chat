@@ -14,8 +14,8 @@ interface ChatAreaProps {
   chatId?: string;
 }
 
-export function ChatArea({ user, chatId }: ChatAreaProps) {
-  const [prompt, setPrompt] = useState("");
+export function ChatArea({ user }: ChatAreaProps) {
+  const [prompt, setPrompt] = useState<string>("");
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-1 flex-col">
@@ -47,7 +47,7 @@ export function ChatArea({ user, chatId }: ChatAreaProps) {
       </div>
 
       <div className="px-6">
-        <ChatInput prompt={prompt} setPrompt={setPrompt} />
+        <ChatInput prompt={prompt} setPrompt={setPrompt} user={user} />
       </div>
     </div>
   );
