@@ -75,7 +75,6 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     input,
     handleInputChange,
     handleSubmit,
-    error,
     setInput,
     status,
     stop,
@@ -112,6 +111,9 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
         }
         setPendingTitleUpdate(null);
       }
+    },
+    onError: (error) => {
+      console.error("Chat error:", error);
     },
   });
 
@@ -195,7 +197,6 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
           input={input}
           handleInputChange={handleInputChange}
           handleSubmit={handleChatSubmit}
-          error={error}
           setInput={setInput}
           status={status}
           stop={stop}

@@ -20,7 +20,6 @@ interface ChatAreaProps {
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent) => void;
-  error: Error | undefined;
   setInput: (input: string) => void;
   status: "error" | "submitted" | "streaming" | "ready";
   stop: () => void;
@@ -42,7 +41,6 @@ export function ChatArea({
   input,
   handleInputChange,
   handleSubmit,
-  error,
   setInput,
   status,
   stop,
@@ -173,7 +171,7 @@ export function ChatArea({
       ) : (
         <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
           <div className="mx-auto max-w-3xl px-6 py-18 sm:py-16">
-            <Messages messages={messages} error={error} reload={reload} />
+            <Messages messages={messages} reload={reload} />
           </div>
         </ScrollArea>
       )}

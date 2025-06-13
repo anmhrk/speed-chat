@@ -4,11 +4,10 @@ import { UserMessage } from "./UserMessage";
 
 interface MessagesProps {
   messages: Message[];
-  error: Error | undefined;
   reload: () => void;
 }
 
-export function Messages({ messages, error, reload }: MessagesProps) {
+export function Messages({ messages, reload: _reload }: MessagesProps) {
   return (
     <div className="flex w-full flex-col space-y-10">
       {messages.map((message, index) => (
@@ -16,7 +15,7 @@ export function Messages({ messages, error, reload }: MessagesProps) {
           {message.role === "user" ? (
             <UserMessage message={message} />
           ) : (
-            <AssistantMessage message={message} error={error} />
+            <AssistantMessage message={message} />
           )}
         </div>
       ))}

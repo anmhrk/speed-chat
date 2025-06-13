@@ -35,7 +35,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
 
       const aiModel = createAIProvider(model, freeGeminiFlash, apiKeys);
 
-      // Check if this is a new chat (first message)
       const isNewChat = messages.length === 1 && messages[0].role === "user";
 
       // Start title generation in parallel for new chats
@@ -55,6 +54,60 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
           const chatStream = streamText({
             model: aiModel,
             messages,
+            onError: async ({ error }) => {
+              console.error("[Chat API] Error:", error);
+
+              try {
+                const errorMessage: Message = {
+                  id: `error-${Date.now()}`,
+                  role: "assistant",
+                  content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                  createdAt: new Date(),
+                };
+
+                const messagesWithError: Message[] = [
+                  ...messages,
+                  errorMessage,
+                ];
+
+                if (isNewChat) {
+                  const chatTitle = "New Chat";
+
+                  await db.insert(chat).values({
+                    id: chatId,
+                    title: chatTitle,
+                    messages: messagesWithError,
+                    userId: userId,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  });
+                } else {
+                  const existingChat = await db
+                    .select()
+                    .from(chat)
+                    .where(eq(chat.id, chatId))
+                    .limit(1);
+
+                  if (existingChat.length > 0) {
+                    await db
+                      .update(chat)
+                      .set({
+                        messages: messagesWithError,
+                        updatedAt: new Date(),
+                      })
+                      .where(eq(chat.id, chatId));
+                  } else {
+                    // TODO: improve this
+                    throw new Error("Chat not found");
+                  }
+                }
+              } catch (dbError) {
+                console.error(
+                  "[Chat API] Failed to save error message to database:",
+                  dbError,
+                );
+              }
+            },
             onFinish: async ({ response }) => {
               try {
                 // Convert response messages to the format expected by our database
@@ -79,7 +132,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                           : String(msg.content),
                   }));
 
-                // Get the complete message history including the AI response
                 const allMessages: Message[] = [
                   ...messages,
                   ...responseMessages,
@@ -104,7 +156,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                   }
                 }
 
-                // Check if chat already exists
                 const existingChat = await db
                   .select()
                   .from(chat)
@@ -112,7 +163,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                   .limit(1);
 
                 if (existingChat.length > 0) {
-                  // Update existing chat
                   await db
                     .update(chat)
                     .set({
@@ -121,7 +171,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                     })
                     .where(eq(chat.id, chatId));
                 } else {
-                  // Create new chat
                   await db.insert(chat).values({
                     id: chatId,
                     title: chatTitle,
@@ -138,7 +187,6 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
             },
           });
 
-          // Merge the chat stream into the data stream
           chatStream.mergeIntoDataStream(dataStream);
         },
       });
