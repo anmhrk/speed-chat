@@ -4,11 +4,16 @@ import { Header } from "./Header";
 import { SidebarProvider } from "./ui/sidebar";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
 import { customAlphabet } from "nanoid";
+
+interface Thread {
+  id: string;
+  title: string;
+}
 
 interface ChatPageProps {
   chatIdParams?: string;
@@ -28,6 +33,10 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     openai: "",
     anthropic: "",
   });
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [pendingTitleUpdate, setPendingTitleUpdate] = useState<string | null>(
+    null,
+  );
 
   const {
     messages,
@@ -39,6 +48,7 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     status,
     stop,
     reload,
+    data,
   } = useChat({
     credentials: "include",
     body: {
@@ -48,7 +58,47 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
     },
+    onFinish: (message, { finishReason }) => {
+      // Handle any remaining title updates if needed
+      if (pendingTitleUpdate && finishReason === "stop") {
+        // Check if we received title data from the stream
+        const titleData = data?.find(
+          (d: any) => d.type === "title" && d.chatId === pendingTitleUpdate,
+        ) as { type: string; chatId: string; title: string } | undefined;
+        if (titleData) {
+          setThreads((prev) =>
+            prev.map((thread) =>
+              thread.id === pendingTitleUpdate
+                ? { ...thread, title: titleData.title }
+                : thread,
+            ),
+          );
+        } else {
+          // Fallback: extract title from message content
+          setThreads((prev) =>
+            prev.map((thread) =>
+              thread.id === pendingTitleUpdate
+                ? {
+                    ...thread,
+                    title: extractTitleFromResponse(message.content),
+                  }
+                : thread,
+            ),
+          );
+        }
+        setPendingTitleUpdate(null);
+      }
+    },
   });
+
+  // Function to extract a title from the assistant's response
+  const extractTitleFromResponse = (content: string): string => {
+    // Simple heuristic: take first few words, max 6 words
+    const words = content.trim().split(/\s+/).slice(0, 6);
+    return (
+      words.join(" ") + (content.trim().split(/\s+/).length > 6 ? "..." : "")
+    );
+  };
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,28 +108,79 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       return;
     }
 
-    // for new chat
-    if (!chatId) {
-      setChatId(customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10)());
-    }
-
     const canSubmit =
       hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
-    if (canSubmit && input.trim()) {
-      handleSubmit(e);
-      router.navigate({
-        to: "/chat/$chatId",
-        params: {
-          chatId,
-        },
-      });
+
+    if (!canSubmit || !input.trim()) {
+      return;
     }
+
+    // for new chat
+    if (!chatId) {
+      const newChatId = customAlphabet(
+        "0123456789abcdefghijklmnopqrstuvwxyz",
+        16,
+      )();
+      setChatId(newChatId);
+
+      // Add new thread with empty title (will show skeleton)
+      const newThread: Thread = {
+        id: newChatId,
+        title: "", // Empty title will show skeleton
+      };
+
+      setThreads((prev) => [newThread, ...prev]);
+      setPendingTitleUpdate(newChatId);
+
+      // router.navigate({
+      //   to: "/chat/$chatId",
+      //   params: {
+      //     chatId: newChatId,
+      //   },
+      //   replace: true,
+      // });
+    }
+
+    handleSubmit(e);
   };
+
+  // Watch for title data updates from the stream
+  useEffect(() => {
+    if (data && pendingTitleUpdate) {
+      const titleData = data.find(
+        (d: any) => d.type === "title" && d.chatId === pendingTitleUpdate,
+      ) as { type: string; chatId: string; title: string } | undefined;
+
+      if (titleData) {
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === pendingTitleUpdate
+              ? { ...thread, title: titleData.title }
+              : thread,
+          ),
+        );
+        setPendingTitleUpdate(null);
+      }
+    }
+  }, [data, pendingTitleUpdate]);
+
+  // Load existing chat title if we're viewing an existing chat
+  useEffect(() => {
+    if (chatIdParams && !threads.find((t) => t.id === chatIdParams)) {
+      // TODO: In the future, fetch the actual title from the database
+      // For now, add a placeholder
+      const existingThread: Thread = {
+        id: chatIdParams,
+        title: "New Chat",
+      };
+      setThreads((prev) => [existingThread, ...prev]);
+    }
+  }, [chatIdParams, threads]);
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <Header />
-      <AppSidebar user={user} status={status} />
+      <AppSidebar user={user} threads={threads} />
       <main className="h-screen flex-1">
         <ChatArea
           user={user}

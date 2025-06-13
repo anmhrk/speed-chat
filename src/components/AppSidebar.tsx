@@ -12,24 +12,21 @@ import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { User } from "better-auth";
+import { Skeleton } from "./ui/skeleton";
 
-const dummyThreads = [
-  "Best phone to buy in 2025",
-  "Best phone to buy in 2025",
-  "Best AI model for coding",
-  "Best AI model for coding",
-  "Best phone to buy in 2025",
-  "Best phone to buy in 2025",
-  "Best AI model for coding",
-  "Best AI model for coding",
-];
+interface Thread {
+  id: string;
+  title: string;
+}
 
 interface AppSidebarProps {
   user: User | null | undefined;
-  status: "error" | "submitted" | "streaming" | "ready";
+  status?: "error" | "submitted" | "streaming" | "ready";
+  threads: Thread[];
+  setThreads?: React.Dispatch<React.SetStateAction<Thread[]>>;
 }
 
-export function AppSidebar({ user, status }: AppSidebarProps) {
+export function AppSidebar({ user, threads }: AppSidebarProps) {
   const [search, setSearch] = useState<string>("");
 
   return (
@@ -58,18 +55,24 @@ export function AppSidebar({ user, status }: AppSidebarProps) {
         <ScrollArea className="h-full">
           {/* TODO: Sort threads by relative date later once db fetching is implemented */}
           <div className="space-y-2">
-            {dummyThreads
+            {threads
               .filter((thread) =>
-                thread.toLowerCase().includes(search.toLowerCase()),
+                thread.title.toLowerCase().includes(search.toLowerCase()),
               )
-              .map((thread, index) => (
+              .map((thread) => (
                 <Link
-                  key={index}
+                  key={thread.id}
                   className="hover:bg-muted flex items-center rounded-lg p-2 text-sm"
                   to="/chat/$chatId"
-                  params={{ chatId: crypto.randomUUID() }}
+                  params={{ chatId: thread.id }}
                 >
-                  <span className="truncate">{thread}</span>
+                  <span className="truncate">
+                    {thread.title === "" ? (
+                      <Skeleton className="h-4 w-full rounded" />
+                    ) : (
+                      thread.title
+                    )}
+                  </span>
                 </Link>
               ))}
           </div>

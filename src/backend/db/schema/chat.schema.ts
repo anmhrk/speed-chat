@@ -5,7 +5,7 @@ import type { Message } from "ai";
 export const chat = pgTable("chat", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
-  messages: jsonb("messages").notNull().$type<Message>(),
+  messages: jsonb("messages").notNull().$type<Message[]>(),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
