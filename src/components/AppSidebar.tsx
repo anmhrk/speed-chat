@@ -28,7 +28,7 @@ export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="relative flex items-center">
-          <SidebarTrigger />
+          <SidebarTrigger variant="ghost" />
           <Link
             to="/"
             className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold"

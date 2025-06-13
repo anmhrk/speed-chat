@@ -329,7 +329,7 @@ export function ChatInput({
           variant="outline"
           size="sm"
           onClick={scrollToBottom}
-          className="absolute -top-16 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full"
+          className="absolute -top-16 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full shadow-md"
         >
           <ArrowDown className="size-4" />
           Scroll to bottom

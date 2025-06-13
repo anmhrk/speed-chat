@@ -4,11 +4,10 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/chat/$chatId")({
   component: RouteComponent,
-  beforeLoad: async ({ params }) => {
-    console.log("params", params);
-    // TODO: check if chatId is valid (it exists in db)
-    // Will need to figure out how to verify user access for unauthed user
-  },
+  // beforeLoad: async ({ params }) => {
+  //   // TODO: check if chatId is valid (it exists in db)
+  //   // Will need to figure out how to verify user access for unauthed user
+  // },
   loader: async () => {
     const defaultOpen = await getSidebarState();
     return { defaultOpen };

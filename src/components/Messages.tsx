@@ -11,8 +11,8 @@ interface MessagesProps {
 export function Messages({ messages, error, reload }: MessagesProps) {
   return (
     <div className="flex w-full flex-col space-y-10">
-      {messages.map((message) => (
-        <div key={message.id} className="w-full">
+      {messages.map((message, index) => (
+        <div key={message.id} className="w-full" data-message-index={index}>
           {message.role === "user" ? (
             <UserMessage message={message} />
           ) : (

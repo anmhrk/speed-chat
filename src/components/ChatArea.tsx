@@ -59,25 +59,89 @@ export function ChatArea({
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const previousMessagesLength = useRef(messages.length);
+  const hasScrolledOnLoad = useRef(false);
 
-  // Scroll to bottom on initial page load
-  // TODO: Need another listener for show scroll to bottom state so
-  // i can render the button when needed
-
-  // TODO: When sending a message, put the active user message at the top of the scroll area
-  // just like t3 chat
-  useEffect(() => {
-    scrollToBottom();
-  }, []);
+  // Helper to grab the Radix ScrollArea viewport element
+  const getViewport = () =>
+    scrollAreaRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]',
+    ) as HTMLDivElement | null;
 
   const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
+    const viewport = getViewport();
+    if (viewport) {
+      viewport.scrollTo({
+        top: viewport.scrollHeight,
         behavior: "instant",
       });
     }
   };
+
+  // Scroll to bottom on page load once chat is loaded
+  useEffect(() => {
+    if (!isLoadingChat && messages.length > 0 && !hasScrolledOnLoad.current) {
+      scrollToBottom();
+      hasScrolledOnLoad.current = true;
+    }
+  }, [isLoadingChat, messages.length]);
+
+  const scrollToShowUserMessage = () => {
+    const viewport = getViewport();
+    if (!viewport || messages.length === 0) return;
+
+    const lastUserMessageIndex = messages.length - 1;
+    const messageElements = viewport.querySelectorAll("[data-message-index]");
+    const lastUserElement = messageElements[lastUserMessageIndex] as
+      | HTMLElement
+      | undefined;
+
+    if (lastUserElement) {
+      const elementTop = lastUserElement.offsetTop;
+      const containerPadding = 72;
+
+      viewport.scrollTo({
+        top: elementTop - containerPadding,
+        behavior: "instant",
+      });
+    }
+  };
+
+  // Handle scroll behavior when new user message comes in
+  useEffect(() => {
+    const currentLength = messages.length;
+    const previousLength = previousMessagesLength.current;
+
+    if (currentLength > previousLength && hasScrolledOnLoad.current) {
+      const isUserMessage = messages[currentLength - 1]?.role === "user";
+
+      if (isUserMessage) {
+        setTimeout(() => {
+          scrollToShowUserMessage();
+        }, 50);
+      }
+    }
+
+    previousMessagesLength.current = currentLength;
+  }, [messages.length]);
+
+  // Scroll event listener to show/hide scroll to bottom button
+  useEffect(() => {
+    const viewport = getViewport();
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+      setShowScrollToBottom(!isNearBottom && messages.length > 0);
+    };
+    viewport.addEventListener("scroll", handleScroll);
+    handleScroll();
+
+    return () => {
+      viewport.removeEventListener("scroll", handleScroll);
+    };
+  }, [messages.length]);
 
   return (
     <div className="flex h-full flex-col">

@@ -184,17 +184,6 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     }
   }, [data, pendingTitleUpdate, updateThreadTitleMutation]);
 
-  // Log when we successfully load an existing chat
-  useEffect(() => {
-    if (chatData?.chat && chatIdParams && chatData.chat.messages.length > 0) {
-      console.log(
-        "Loaded existing chat with",
-        chatData.chat.messages.length,
-        "messages",
-      );
-    }
-  }, [chatData, chatIdParams]);
-
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <Header />
