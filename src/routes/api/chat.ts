@@ -144,6 +144,7 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
       });
     } catch (error) {
       console.log("[Chat API] Error:", error);
+      setResponseStatus(500);
       throw error;
     }
   },

@@ -13,20 +13,15 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { User } from "better-auth";
 import { Skeleton } from "./ui/skeleton";
-
-interface Thread {
-  id: string;
-  title: string;
-}
+import type { Thread } from "@/lib/types";
 
 interface AppSidebarProps {
   user: User | null | undefined;
-  status?: "error" | "submitted" | "streaming" | "ready";
   threads: Thread[];
-  setThreads?: React.Dispatch<React.SetStateAction<Thread[]>>;
+  isLoading?: boolean;
 }
 
-export function AppSidebar({ user, threads }: AppSidebarProps) {
+export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
   const [search, setSearch] = useState<string>("");
 
   return (
@@ -53,28 +48,33 @@ export function AppSidebar({ user, threads }: AppSidebarProps) {
 
       <SidebarContent className="mt-1 px-4">
         <ScrollArea className="h-full">
-          {/* TODO: Sort threads by relative date later once db fetching is implemented */}
           <div className="space-y-2">
-            {threads
-              .filter((thread) =>
-                thread.title.toLowerCase().includes(search.toLowerCase()),
-              )
-              .map((thread) => (
-                <Link
-                  key={thread.id}
-                  className="hover:bg-muted flex items-center rounded-lg p-2 text-sm"
-                  to="/chat/$chatId"
-                  params={{ chatId: thread.id }}
-                >
-                  <span className="truncate">
-                    {thread.title === "" ? (
-                      <Skeleton className="h-4 w-full rounded" />
-                    ) : (
-                      thread.title
-                    )}
-                  </span>
-                </Link>
-              ))}
+            {isLoading
+              ? Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="flex items-center rounded-lg p-2">
+                    <Skeleton className="h-4 w-full animate-pulse rounded-md" />
+                  </div>
+                ))
+              : threads
+                  .filter((thread) =>
+                    thread.title.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((thread) => (
+                    <Link
+                      key={thread.id}
+                      className="hover:bg-muted flex items-center rounded-lg p-2 text-sm"
+                      to="/chat/$chatId"
+                      params={{ chatId: thread.id }}
+                    >
+                      <span className="truncate">
+                        {thread.title === "" ? (
+                          <Skeleton className="h-4 w-full animate-pulse rounded-md" />
+                        ) : (
+                          thread.title
+                        )}
+                      </span>
+                    </Link>
+                  ))}
           </div>
         </ScrollArea>
       </SidebarContent>

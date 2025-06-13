@@ -5,6 +5,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "ai";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
@@ -32,6 +33,7 @@ interface ChatAreaProps {
   setApiKeys: (apiKeys: Record<Providers, string>) => void;
   hasApiKeys: boolean;
   setHasApiKeys: (hasApiKeys: boolean) => void;
+  isLoadingChat?: boolean;
 }
 
 export function ChatArea({
@@ -53,6 +55,7 @@ export function ChatArea({
   setApiKeys,
   hasApiKeys,
   setHasApiKeys,
+  isLoadingChat,
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -78,7 +81,11 @@ export function ChatArea({
 
   return (
     <div className="flex h-full flex-col">
-      {messages.length === 0 && !input.trim() ? (
+      {isLoadingChat ? (
+        <div className="mx-auto flex h-full w-full max-w-3xl items-center justify-center px-6 py-18 sm:py-16">
+          <Loader2 className="text-muted-foreground size-7 animate-spin" />
+        </div>
+      ) : messages.length === 0 && !input.trim() ? (
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-4 py-8">
           <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
             {user

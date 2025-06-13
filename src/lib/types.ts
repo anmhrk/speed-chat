@@ -59,3 +59,27 @@ export type ChatRequest = {
   userId: string;
   // temporaryChat: boolean;
 };
+
+export type Thread = {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ChatData = {
+  id: string;
+  title: string;
+  messages: Message[];
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ThreadsResponse = {
+  threads: Thread[];
+};
+
+export type ChatResponse = {
+  chat: ChatData;
+};

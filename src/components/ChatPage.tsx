@@ -9,11 +9,12 @@ import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
 import { customAlphabet } from "nanoid";
-
-interface Thread {
-  id: string;
-  title: string;
-}
+import { useThreads } from "@/hooks/useThreads";
+import { useChatData } from "@/hooks/useChat";
+import {
+  useCreateThread,
+  useUpdateThreadTitle,
+} from "@/hooks/useThreadsMutation";
 
 interface ChatPageProps {
   chatIdParams?: string;
@@ -33,10 +34,41 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     openai: "",
     anthropic: "",
   });
-  const [threads, setThreads] = useState<Thread[]>([]);
   const [pendingTitleUpdate, setPendingTitleUpdate] = useState<string | null>(
     null,
   );
+
+  // React Query hooks
+  const {
+    data: threadsData,
+    isLoading: threadsLoading,
+    error: threadsError,
+  } = useThreads(user?.id);
+  const {
+    data: chatData,
+    isLoading: chatLoading,
+    error: chatError,
+  } = useChatData(chatIdParams, user?.id);
+  const createThreadMutation = useCreateThread(user?.id);
+  const updateThreadTitleMutation = useUpdateThreadTitle(user?.id);
+
+  const threads = threadsData?.threads || [];
+
+  // Determine if we should show loading state for chat
+  const isLoadingChat = Boolean(chatIdParams && chatLoading && !chatData);
+
+  // Show error toast if threads or chat fail to load
+  useEffect(() => {
+    if (threadsError) {
+      toast.error("Failed to load chat history");
+    }
+  }, [threadsError]);
+
+  useEffect(() => {
+    if (chatError) {
+      toast.error("Failed to load chat messages");
+    }
+  }, [chatError]);
 
   const {
     messages,
@@ -50,6 +82,7 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     reload,
     data,
   } = useChat({
+    initialMessages: chatData?.chat?.messages || [],
     credentials: "include",
     body: {
       chatId,
@@ -66,25 +99,16 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
           (d: any) => d.type === "title" && d.chatId === pendingTitleUpdate,
         ) as { type: string; chatId: string; title: string } | undefined;
         if (titleData) {
-          setThreads((prev) =>
-            prev.map((thread) =>
-              thread.id === pendingTitleUpdate
-                ? { ...thread, title: titleData.title }
-                : thread,
-            ),
-          );
+          updateThreadTitleMutation.mutate({
+            id: pendingTitleUpdate,
+            title: titleData.title,
+          });
         } else {
           // Fallback: extract title from message content
-          setThreads((prev) =>
-            prev.map((thread) =>
-              thread.id === pendingTitleUpdate
-                ? {
-                    ...thread,
-                    title: extractTitleFromResponse(message.content),
-                  }
-                : thread,
-            ),
-          );
+          updateThreadTitleMutation.mutate({
+            id: pendingTitleUpdate,
+            title: extractTitleFromResponse(message.content),
+          });
         }
         setPendingTitleUpdate(null);
       }
@@ -124,21 +148,20 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       setChatId(newChatId);
 
       // Add new thread with empty title (will show skeleton)
-      const newThread: Thread = {
+      createThreadMutation.mutate({
         id: newChatId,
         title: "", // Empty title will show skeleton
-      };
+      });
 
-      setThreads((prev) => [newThread, ...prev]);
       setPendingTitleUpdate(newChatId);
 
-      // router.navigate({
-      //   to: "/chat/$chatId",
-      //   params: {
-      //     chatId: newChatId,
-      //   },
-      //   replace: true,
-      // });
+      router.navigate({
+        to: "/chat/$chatId",
+        params: {
+          chatId: newChatId,
+        },
+        replace: true,
+      });
     }
 
     handleSubmit(e);
@@ -152,35 +175,30 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       ) as { type: string; chatId: string; title: string } | undefined;
 
       if (titleData) {
-        setThreads((prev) =>
-          prev.map((thread) =>
-            thread.id === pendingTitleUpdate
-              ? { ...thread, title: titleData.title }
-              : thread,
-          ),
-        );
+        updateThreadTitleMutation.mutate({
+          id: pendingTitleUpdate,
+          title: titleData.title,
+        });
         setPendingTitleUpdate(null);
       }
     }
-  }, [data, pendingTitleUpdate]);
+  }, [data, pendingTitleUpdate, updateThreadTitleMutation]);
 
-  // Load existing chat title if we're viewing an existing chat
+  // Log when we successfully load an existing chat
   useEffect(() => {
-    if (chatIdParams && !threads.find((t) => t.id === chatIdParams)) {
-      // TODO: In the future, fetch the actual title from the database
-      // For now, add a placeholder
-      const existingThread: Thread = {
-        id: chatIdParams,
-        title: "New Chat",
-      };
-      setThreads((prev) => [existingThread, ...prev]);
+    if (chatData?.chat && chatIdParams && chatData.chat.messages.length > 0) {
+      console.log(
+        "Loaded existing chat with",
+        chatData.chat.messages.length,
+        "messages",
+      );
     }
-  }, [chatIdParams, threads]);
+  }, [chatData, chatIdParams]);
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <Header />
-      <AppSidebar user={user} threads={threads} />
+      <AppSidebar user={user} threads={threads} isLoading={threadsLoading} />
       <main className="h-screen flex-1">
         <ChatArea
           user={user}
@@ -201,6 +219,7 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
+          isLoadingChat={isLoadingChat}
         />
       </main>
     </SidebarProvider>
