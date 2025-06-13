@@ -170,8 +170,8 @@ export function ChatArea({
         </div>
       ) : (
         <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
-          <div className="mx-auto max-w-3xl px-6 py-18 sm:py-16">
-            <Messages messages={messages} reload={reload} />
+          <div className="mx-auto max-w-3xl px-6 py-18">
+            <Messages messages={messages} reload={reload} status={status} />
           </div>
         </ScrollArea>
       )}

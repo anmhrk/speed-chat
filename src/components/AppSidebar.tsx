@@ -9,11 +9,12 @@ import { ThreadSearchInput } from "@/components/ThreadSearchInput";
 import { UserButton } from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import type { User } from "better-auth";
 import { Skeleton } from "./ui/skeleton";
 import type { Thread } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   user: User | null | undefined;
@@ -23,6 +24,11 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
   const [search, setSearch] = useState<string>("");
+  const routerState = useRouterState();
+
+  const chatId = routerState.location.pathname.startsWith("/chat/")
+    ? routerState.location.pathname.split("/chat/")[1]
+    : undefined;
 
   return (
     <Sidebar>
@@ -62,7 +68,10 @@ export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
                   .map((thread) => (
                     <Link
                       key={thread.id}
-                      className="hover:bg-muted flex items-center rounded-lg p-2 text-sm"
+                      className={cn(
+                        "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
+                        chatId === thread.id && "bg-muted",
+                      )}
                       to="/chat/$chatId"
                       params={{ chatId: thread.id }}
                     >

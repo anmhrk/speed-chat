@@ -11,6 +11,7 @@ import { db } from "@/backend/db";
 import { chat } from "@/backend/db/schema/chat.schema";
 import { eq } from "drizzle-orm";
 import type { Message } from "ai";
+import { nanoid } from "nanoid";
 
 export const APIRoute = createAPIFileRoute("/api/chat")({
   POST: async ({ request }) => {
@@ -35,7 +36,32 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
 
       const aiModel = createAIProvider(model, freeGeminiFlash, apiKeys);
 
-      const isNewChat = messages.length === 1 && messages[0].role === "user";
+      let isNewChat = false;
+      let requestMessages: Message[] = []; // Using this to ensure all messages have ids. Cannot trust client
+
+      const existingChat = await db
+        .select()
+        .from(chat)
+        .where(eq(chat.id, chatId))
+        .limit(1);
+
+      const latestUserMessage = messages[messages.length - 1];
+      const latestUserMessageWithId = {
+        ...latestUserMessage,
+        id: `user-${nanoid()}`,
+        createdAt: new Date(),
+      };
+
+      if (existingChat.length === 0) {
+        isNewChat = true;
+        requestMessages = [latestUserMessageWithId];
+      } else {
+        // Db messages will already have ids
+        requestMessages = existingChat[0].messages;
+
+        // Add the latest user message to the request messages
+        requestMessages.push(latestUserMessageWithId);
+      }
 
       // Start title generation in parallel for new chats
       let titlePromise: Promise<{ text: string }> | null = null;
@@ -53,24 +79,33 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
         execute: async (dataStream) => {
           const chatStream = streamText({
             model: aiModel,
-            messages,
+            messages, // Use standard messages array for this to avoid weird errors
             onError: async ({ error }) => {
               console.error("[Chat API] Error:", error);
 
+              const errorContent = `Error: ${error instanceof Error ? error.message : String(error)}`;
+
+              // Send error message to client via data stream
+              dataStream.writeData({
+                type: "error",
+                error: errorContent,
+              });
+
               try {
                 const errorMessage: Message = {
-                  id: `error-${Date.now()}`,
+                  id: `error-${nanoid()}`,
                   role: "assistant",
-                  content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                  content: errorContent,
                   createdAt: new Date(),
                 };
 
                 const messagesWithError: Message[] = [
-                  ...messages,
+                  ...requestMessages,
                   errorMessage,
                 ];
 
                 if (isNewChat) {
+                  // Keep default title for new chats erroring on first message (change later?)
                   const chatTitle = "New Chat";
 
                   await db.insert(chat).values({
@@ -82,24 +117,13 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                     updatedAt: new Date(),
                   });
                 } else {
-                  const existingChat = await db
-                    .select()
-                    .from(chat)
-                    .where(eq(chat.id, chatId))
-                    .limit(1);
-
-                  if (existingChat.length > 0) {
-                    await db
-                      .update(chat)
-                      .set({
-                        messages: messagesWithError,
-                        updatedAt: new Date(),
-                      })
-                      .where(eq(chat.id, chatId));
-                  } else {
-                    // TODO: improve this
-                    throw new Error("Chat not found");
-                  }
+                  await db
+                    .update(chat)
+                    .set({
+                      messages: messagesWithError,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(chat.id, chatId));
                 }
               } catch (dbError) {
                 console.error(
@@ -110,12 +134,12 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
             },
             onFinish: async ({ response }) => {
               try {
-                // Convert response messages to the format expected by our database
                 const responseMessages: Message[] = response.messages
                   .filter((msg) => msg.role !== "tool") // Filter out tool messages
                   .map((msg) => ({
-                    id: msg.id,
-                    role: msg.role as "assistant", // Cast to assistant since we filtered out tool
+                    id: `assistant-${nanoid()}`,
+                    role: msg.role as "assistant",
+                    createdAt: new Date(),
                     content:
                       typeof msg.content === "string"
                         ? msg.content
@@ -133,12 +157,12 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                   }));
 
                 const allMessages: Message[] = [
-                  ...messages,
+                  ...requestMessages,
                   ...responseMessages,
                 ];
 
                 // Get the title if this is a new chat
-                let chatTitle = "New Chat"; // Default title
+                let chatTitle = "New Chat";
                 if (titlePromise) {
                   try {
                     const titleResult = await titlePromise;
@@ -156,21 +180,7 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                   }
                 }
 
-                const existingChat = await db
-                  .select()
-                  .from(chat)
-                  .where(eq(chat.id, chatId))
-                  .limit(1);
-
-                if (existingChat.length > 0) {
-                  await db
-                    .update(chat)
-                    .set({
-                      messages: allMessages,
-                      updatedAt: new Date(),
-                    })
-                    .where(eq(chat.id, chatId));
-                } else {
+                if (isNewChat) {
                   await db.insert(chat).values({
                     id: chatId,
                     title: chatTitle,
@@ -179,6 +189,14 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                     createdAt: new Date(),
                     updatedAt: new Date(),
                   });
+                } else {
+                  await db
+                    .update(chat)
+                    .set({
+                      messages: allMessages,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(chat.id, chatId));
                 }
               } catch (error) {
                 console.error("[Chat API] Database save failed:", error);

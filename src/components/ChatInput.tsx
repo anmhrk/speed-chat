@@ -359,7 +359,7 @@ export function ChatInput({
             ) : (
               <div className="flex-1" />
             )}
-            {status === "streaming" ? (
+            {status === "submitted" || status === "streaming" ? (
               <Button
                 type="button"
                 size="icon"

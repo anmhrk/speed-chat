@@ -18,7 +18,7 @@ export function Header() {
             className="bg-transparent/60 backdrop-blur-md"
           >
             <Share className="size-4" />
-            <span className="hidden text-sm md:block">Share</span>
+            <span className="text-sm">Share</span>
           </Button>
         )}
         <Tooltip>
