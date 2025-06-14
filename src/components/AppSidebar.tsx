@@ -58,7 +58,7 @@ export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
             {isLoading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <div key={index} className="flex items-center rounded-lg p-2">
-                    <Skeleton className="h-4 w-full animate-pulse rounded-md" />
+                    <Skeleton className="h-5 w-full animate-pulse rounded-md" />
                   </div>
                 ))
               : threads

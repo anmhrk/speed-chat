@@ -15,6 +15,7 @@ import {
   useCreateThread,
   useUpdateThreadTitle,
 } from "@/hooks/useThreadsMutation";
+import type { Message } from "ai";
 
 interface ChatPageProps {
   chatIdParams?: string;
@@ -115,29 +116,6 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     },
     onError: (error) => {
       console.error("Chat error:", error);
-
-      // Check if there's a more detailed error in the data stream
-      const errorData = data?.find((d: any) => d.type === "error") as
-        | {
-            type: string;
-            error: string;
-          }
-        | undefined;
-
-      // Use the same format as the server to avoid inconsistency
-      const errorContent =
-        errorData?.error ||
-        `Error: ${error.message || "An error occurred while processing your request"}`;
-
-      // Add error message as assistant message
-      const errorAssistantMessage = {
-        id: `error-${Date.now()}`,
-        role: "assistant" as const,
-        content: errorContent,
-        createdAt: new Date(),
-      };
-
-      setMessages((prev) => [...prev, errorAssistantMessage]);
     },
   });
 
@@ -209,6 +187,29 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       }
     }
   }, [data, pendingTitleUpdate, updateThreadTitleMutation]);
+
+  // Watch for error data from the stream
+  useEffect(() => {
+    if (data) {
+      const errorData = data.find((d: any) => d.type === "error") as
+        | {
+            type: string;
+            error: Message;
+          }
+        | undefined;
+
+      if (errorData) {
+        // Check if we already have this error message to avoid duplicates
+        const hasErrorMessage = messages.some(
+          (msg) => msg.id === errorData.error.id,
+        );
+
+        if (!hasErrorMessage) {
+          setMessages((prev) => [...prev, errorData.error]);
+        }
+      }
+    }
+  }, [data, messages, setMessages]);
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>

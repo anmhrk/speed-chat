@@ -2,11 +2,14 @@ import type { Message } from "ai";
 
 interface AssistantMessageProps {
   message: Message;
+  isLoading: boolean;
 }
 
-export function AssistantMessage({ message }: AssistantMessageProps) {
+export function AssistantMessage({
+  message,
+  isLoading,
+}: AssistantMessageProps) {
   const isError = message.id.startsWith("error-");
-  const isLoading = !message.content && !isError;
 
   return (
     <div className="flex justify-start text-[15px]">

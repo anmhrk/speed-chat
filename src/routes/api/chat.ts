@@ -1,5 +1,12 @@
 import { createAPIFileRoute } from "@tanstack/react-start/api";
-import { generateText, streamText, createDataStreamResponse } from "ai";
+import {
+  generateText,
+  streamText,
+  createDataStreamResponse,
+  APICallError,
+  InvalidPromptError,
+  RetryError,
+} from "ai";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
@@ -79,17 +86,34 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
         execute: async (dataStream) => {
           const chatStream = streamText({
             model: aiModel,
-            messages, // Use standard messages array for this to avoid weird errors
+            messages: requestMessages,
             onError: async ({ error }) => {
               console.error("[Chat API] Error:", error);
 
-              const errorContent = `Error: ${error instanceof Error ? error.message : String(error)}`;
-
-              // Send error message to client via data stream
-              dataStream.writeData({
-                type: "error",
-                error: errorContent,
-              });
+              let errorContent = "";
+              if (
+                APICallError.isInstance(error) ||
+                InvalidPromptError.isInstance(error)
+              ) {
+                errorContent = `Error: ${error.message}`;
+              } else if (RetryError.isInstance(error)) {
+                // Extract the actual error message from the lastError property
+                if (
+                  error.lastError &&
+                  APICallError.isInstance(error.lastError)
+                ) {
+                  errorContent = `Error: ${error.lastError.message}`;
+                } else {
+                  // Fallback to parsing the message string
+                  const lastErrorMatch =
+                    error.message.match(/Last error: (.+)$/);
+                  errorContent = lastErrorMatch
+                    ? `Error: ${lastErrorMatch[1].trim()}`
+                    : `Error: ${error.message}`;
+                }
+              } else {
+                errorContent = "An unknown error occurred. Please try again.";
+              }
 
               try {
                 const errorMessage: Message = {
@@ -98,6 +122,16 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
                   content: errorContent,
                   createdAt: new Date(),
                 };
+
+                // Send complete error message object to client via data stream
+                dataStream.writeData({
+                  type: "error",
+                  error: {
+                    id: errorMessage.id,
+                    role: errorMessage.role,
+                    content: errorMessage.content,
+                  },
+                });
 
                 const messagesWithError: Message[] = [
                   ...requestMessages,

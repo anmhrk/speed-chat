@@ -28,12 +28,17 @@ export function Messages({ messages, reload: _reload, status }: MessagesProps) {
   return (
     <div className="flex w-full flex-col space-y-10">
       {displayMessages.map((message, index) => {
+        const isLoadingMessage = message.id === "loading-temp";
+
         return (
           <div key={message.id} className="w-full" data-message-index={index}>
             {message.role === "user" ? (
               <UserMessage message={message} />
             ) : (
-              <AssistantMessage message={message} />
+              <AssistantMessage
+                message={message}
+                isLoading={isLoadingMessage}
+              />
             )}
           </div>
         );
