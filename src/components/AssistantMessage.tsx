@@ -2,23 +2,15 @@ import type { Message } from "ai";
 
 interface AssistantMessageProps {
   message: Message;
-  isLoading: boolean;
 }
 
-export function AssistantMessage({
-  message,
-  isLoading,
-}: AssistantMessageProps) {
+export function AssistantMessage({ message }: AssistantMessageProps) {
   const isError = message.id.startsWith("error-");
 
   return (
     <div className="flex justify-start text-[15px]">
       <div className="w-full">
-        {isLoading ? (
-          <div className="text-muted-foreground break-words whitespace-pre-wrap">
-            <BouncingDotsLoader />
-          </div>
-        ) : isError ? (
+        {isError ? (
           <ErrorMessage content={message.content} />
         ) : (
           <div className="text-foreground break-words whitespace-pre-wrap">
@@ -38,16 +30,6 @@ function ErrorMessage({ content }: { content: string }) {
           {content}
         </div>
       </div>
-    </div>
-  );
-}
-
-function BouncingDotsLoader() {
-  return (
-    <div className="flex items-center space-x-1">
-      <div className="bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.3s]"></div>
-      <div className="bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.15s]"></div>
-      <div className="bg-accent h-2 w-2 animate-bounce rounded-full"></div>
     </div>
   );
 }

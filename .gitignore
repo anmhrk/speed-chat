@@ -8,3 +8,4 @@ dist-ssr
 .cursor
 .claude
 .env
+CLAUDE.md

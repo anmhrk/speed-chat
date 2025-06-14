@@ -114,9 +114,6 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
         setPendingTitleUpdate(null);
       }
     },
-    onError: (error) => {
-      console.error("Chat error:", error);
-    },
   });
 
   // Function to extract a title from the assistant's response
@@ -199,17 +196,22 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
         | undefined;
 
       if (errorData) {
-        // Check if we already have this error message to avoid duplicates
-        const hasErrorMessage = messages.some(
-          (msg) => msg.id === errorData.error.id,
-        );
-
-        if (!hasErrorMessage) {
-          setMessages((prev) => [...prev, errorData.error]);
-        }
+        setMessages((prev) => {
+          // On error an empty assistant message is created, so we replace it with the error message
+          const lastMessage = prev[prev.length - 1];
+          if (
+            lastMessage?.role === "assistant" &&
+            (!lastMessage.content || lastMessage.content.trim() === "")
+          ) {
+            return [...prev.slice(0, -1), errorData.error];
+          } else {
+            // Fallback
+            return [...prev, errorData.error];
+          }
+        });
       }
     }
-  }, [data, messages, setMessages]);
+  }, [data, setMessages]);
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
