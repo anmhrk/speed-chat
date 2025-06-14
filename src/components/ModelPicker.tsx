@@ -16,7 +16,7 @@ interface ModelPickerProps {
   onModelChange: (modelId: Models) => void;
   reasoningEffort: ReasoningEfforts;
   onReasoningEffortChange: (reasoningEffort: ReasoningEfforts) => void;
-  availableApiKeys?: Record<string, string>;
+  availableApiKeys?: Record<string, string> | null;
 }
 
 export function ModelPicker({
@@ -24,12 +24,12 @@ export function ModelPicker({
   onModelChange,
   reasoningEffort,
   onReasoningEffortChange,
-  availableApiKeys = {},
+  availableApiKeys,
 }: ModelPickerProps) {
   // Check if a provider has an API key configured
   const hasApiKey = (provider: string) => {
     return (
-      availableApiKeys[provider] && availableApiKeys[provider].trim() !== ""
+      availableApiKeys?.[provider] && availableApiKeys[provider].trim() !== ""
     );
   };
 

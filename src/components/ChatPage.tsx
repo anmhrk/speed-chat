@@ -21,15 +21,14 @@ interface ChatPageProps {
 
 export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
   const router = useRouter();
+  const [chatId, setChatId] = useState<string | null>(chatIdParams || null);
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
     useState<ReasoningEfforts | null>(null);
   const [hasApiKeys, setHasApiKeys] = useState<boolean>(false);
-  const [apiKeys, setApiKeys] = useState<Record<Providers, string>>({
-    openrouter: "",
-    openai: "",
-    anthropic: "",
-  });
+  const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
+    null,
+  );
   const [pendingTitleUpdate, setPendingTitleUpdate] = useState<string | null>(
     null,
   );
@@ -46,10 +45,15 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     data: messagesData,
     isLoading: messagesLoading,
     error: messagesError,
-  } = useMessages(chatIdParams, user?.id);
-  const isLoadingChat = Boolean(
-    chatIdParams && messagesLoading && !messagesData,
-  );
+  } = useMessages(chatId || undefined, user?.id);
+
+  const isLoadingChat = Boolean(chatId && messagesLoading && !messagesData);
+
+  useEffect(() => {
+    if (chatIdParams) {
+      setChatId(chatIdParams);
+    }
+  }, [chatIdParams]);
 
   useEffect(() => {
     if (threadsError) {
@@ -81,11 +85,11 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     data,
     setMessages,
   } = useChat({
-    id: chatIdParams,
+    id: chatId || undefined,
     initialMessages: messagesData?.messages || [],
     credentials: "include",
     body: {
-      chatId: chatIdParams,
+      chatId: chatId || undefined,
       userId: user?.id,
       model: model,
       reasoningEffort: reasoningEffort,
@@ -108,12 +112,12 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       return;
     }
 
-    // For new chat
     if (!chatIdParams) {
       const newChatId = customAlphabet(
         "0123456789abcdefghijklmnopqrstuvwxyz",
         16,
       )();
+      setChatId(newChatId);
 
       // Add new thread to the threads array with empty title
       threads.unshift({
@@ -124,14 +128,7 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       });
 
       setPendingTitleUpdate(newChatId);
-
-      router.navigate({
-        to: "/chat/$chatId",
-        params: {
-          chatId: newChatId,
-        },
-        replace: true,
-      });
+      window.history.replaceState({}, "", `/chat/${newChatId}`);
     }
 
     handleSubmit(e);

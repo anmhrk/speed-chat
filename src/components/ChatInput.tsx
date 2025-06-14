@@ -127,10 +127,10 @@ interface ChatInputProps {
   stop: () => void;
   model: Models | null;
   reasoningEffort: ReasoningEfforts | null;
-  apiKeys: Record<Providers, string>;
+  apiKeys: Record<Providers, string> | null;
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
   hasApiKeys: boolean;
   setHasApiKeys: (hasApiKeys: boolean) => void;
 }
@@ -239,7 +239,7 @@ export function ChatInput({
     if (
       user &&
       model === "google/gemini-2.5-flash-preview-05-20" &&
-      !apiKeys.openrouter
+      !apiKeys?.openrouter
     ) {
       try {
         const data = await getRateLimitStatus();
@@ -301,7 +301,7 @@ export function ChatInput({
     <div className="relative w-full space-y-3">
       {user &&
         model === "google/gemini-2.5-flash-preview-05-20" &&
-        !apiKeys.openrouter &&
+        !apiKeys?.openrouter &&
         rateLimitInfo && (
           <Card className="border-blue-200 bg-blue-50">
             <CardContent className="flex items-center justify-between px-3">

@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
-  "How many corgis are in the world?",
+  "Write a funny poem about a cat in space",
   "Is React Native actually better than Flutter?",
   "What is a black hole? Explain like I'm 5",
 ];
@@ -28,8 +28,8 @@ interface ChatAreaProps {
   reasoningEffort: ReasoningEfforts | null;
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  apiKeys: Record<Providers, string>;
-  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  apiKeys: Record<Providers, string> | null;
+  setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
   hasApiKeys: boolean;
   setHasApiKeys: (hasApiKeys: boolean) => void;
   isLoadingChat?: boolean;
