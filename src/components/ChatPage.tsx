@@ -156,13 +156,13 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
 
       setPendingTitleUpdate(newChatId);
 
-      // router.navigate({
-      //   to: "/chat/$chatId",
-      //   params: {
-      //     chatId: newChatId,
-      //   },
-      //   replace: true,
-      // });
+      router.navigate({
+        to: "/chat/$chatId",
+        params: {
+          chatId: newChatId,
+        },
+        replace: true,
+      });
     }
 
     handleSubmit(e);

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/backend/auth/auth-client";
+import { signIn } from "@/lib/auth/auth-client";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";

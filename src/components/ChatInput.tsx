@@ -14,7 +14,7 @@ import {
 import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "./ui/card";
-import { getRateLimitStatus } from "../backend/ratelimit/status";
+import { getRateLimitStatus } from "@/lib/ratelimit/status";
 import type { User } from "better-auth";
 import type {
   ReasoningEfforts,

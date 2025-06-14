@@ -1,11 +1,11 @@
 import { createAPIFileRoute } from "@tanstack/react-start/api";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { authGuard } from "@/backend/auth/auth-guard";
-import { db } from "@/backend/db";
-import { chat } from "@/backend/db/schema/chat.schema";
+import { authGuard } from "@/lib/auth/auth-guard";
+import { db } from "@/lib/db";
+import { chat } from "@/lib/db/schema/chat.schema";
 import { eq, and } from "drizzle-orm";
 
-export const APIRoute = createAPIFileRoute("/api/chat/$chatId")({
+export const APIRoute = createAPIFileRoute("/api/chat/messages/$chatId")({
   POST: async ({ request, params }) => {
     try {
       const { chatId } = params;

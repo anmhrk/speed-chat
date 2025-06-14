@@ -1,4 +1,4 @@
-import { signOut } from "@/backend/auth/auth-client";
+import { signOut } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   Card,

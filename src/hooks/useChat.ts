@@ -5,7 +5,7 @@ async function fetchChat(
   chatId: string,
   userId: string,
 ): Promise<ChatResponse> {
-  const response = await fetch(`/api/chat/${chatId}`, {
+  const response = await fetch(`/api/chat/messages/${chatId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

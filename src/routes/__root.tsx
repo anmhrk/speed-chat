@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 
 import type { QueryClient } from "@tanstack/react-query";
 
-import { getUser } from "@/backend/auth/get-user";
+import { getUser } from "@/lib/auth/get-user";
 import { Toaster } from "@/components/ui/sonner";
 
 interface MyRouterContext {

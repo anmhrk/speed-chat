@@ -1,8 +1,8 @@
 import { createAPIFileRoute } from "@tanstack/react-start/api";
 import { setResponseStatus } from "@tanstack/react-start/server";
-import { authGuard } from "@/backend/auth/auth-guard";
-import { db } from "@/backend/db";
-import { chat } from "@/backend/db/schema/chat.schema";
+import { authGuard } from "@/lib/auth/auth-guard";
+import { db } from "@/lib/db";
+import { chat } from "@/lib/db/schema/chat.schema";
 import { eq, desc } from "drizzle-orm";
 
 export const APIRoute = createAPIFileRoute("/api/threads")({

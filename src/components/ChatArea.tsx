@@ -11,7 +11,7 @@ const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
   "How many corgis are in the world?",
   "Is React Native actually better than Flutter?",
-  "What is the meaning of life?",
+  "What is a black hole? Explain like I'm 5",
 ];
 
 interface ChatAreaProps {
