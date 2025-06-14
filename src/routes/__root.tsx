@@ -15,16 +15,19 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { getUser } from "@/lib/auth/get-user";
 import { Toaster } from "@/components/ui/sonner";
+import { getSidebarState } from "@/lib/utils.ts";
 
 interface MyRouterContext {
   queryClient: QueryClient;
   user?: Awaited<ReturnType<typeof getUser>>;
+  defaultOpen?: Awaited<ReturnType<typeof getSidebarState>>;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
     const user = await getUser();
-    return { user };
+    const defaultOpen = await getSidebarState();
+    return { user, defaultOpen };
   },
 
   head: () => ({

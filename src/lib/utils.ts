@@ -29,6 +29,10 @@ export const getSidebarState = createServerFn({ method: "GET" }).handler(
     const match = cookies.match(/sidebar_state=([^;]*)/);
     const sidebarState = match ? match[1] : null;
 
-    return sidebarState !== "false";
+    if (!sidebarState) {
+      return true;
+    } else {
+      return sidebarState === "true";
+    }
   },
 );
