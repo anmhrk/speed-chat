@@ -147,7 +147,7 @@ export function ChatArea({
         <div className="mx-auto flex h-full w-full max-w-3xl items-center justify-center px-6 py-18 sm:py-16">
           <Loader2 className="text-muted-foreground size-7 animate-spin" />
         </div>
-      ) : messages.length === 0 && !input.trim() ? (
+      ) : messages.length === 0 && status === "ready" ? (
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-4 py-8">
           <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
             {user

@@ -58,7 +58,7 @@ export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
             {isLoading
               ? Array.from({ length: 5 }).map((_, index) => (
                   <div key={index} className="flex items-center rounded-lg p-2">
-                    <Skeleton className="h-5 w-full animate-pulse rounded-md" />
+                    <Skeleton className="h-6 w-full rounded-md" />
                   </div>
                 ))
               : threads
@@ -71,17 +71,13 @@ export function AppSidebar({ user, threads, isLoading }: AppSidebarProps) {
                       className={cn(
                         "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
                         chatId === thread.id && "bg-muted",
+                        thread.title === "" && "h-8 animate-pulse",
                       )}
                       to="/chat/$chatId"
                       params={{ chatId: thread.id }}
+                      disabled={thread.title === ""}
                     >
-                      <span className="truncate">
-                        {thread.title === "" ? (
-                          <Skeleton className="h-4 w-full animate-pulse rounded-md" />
-                        ) : (
-                          thread.title
-                        )}
-                      </span>
+                      <span className="truncate">{thread.title}</span>
                     </Link>
                   ))}
           </div>

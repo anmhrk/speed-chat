@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ChatResponse } from "@/lib/types";
+import type { MessagesResponse } from "@/lib/types";
 
-async function fetchChat(
+async function fetchMessages(
   chatId: string,
   userId: string,
-): Promise<ChatResponse> {
+): Promise<MessagesResponse> {
   const response = await fetch(`/api/chat/messages/${chatId}`, {
     method: "POST",
     headers: {
@@ -14,22 +14,25 @@ async function fetchChat(
     body: JSON.stringify({ userId }),
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch chat");
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
-  return response.json();
+  return data;
 }
 
-export function useChatData(
+export function useMessages(
   chatId: string | undefined,
   userId: string | undefined,
 ) {
   return useQuery({
-    queryKey: ["chat", chatId, userId],
-    queryFn: () => fetchChat(chatId!, userId!),
+    queryKey: ["messages", chatId, userId],
+    queryFn: () => fetchMessages(chatId!, userId!),
     enabled: !!chatId && !!userId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
+    retry: false,
   });
 }

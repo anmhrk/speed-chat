@@ -10,11 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
 import { customAlphabet } from "nanoid";
 import { useThreads } from "@/hooks/useThreads";
-import { useChatData } from "@/hooks/useChat";
-import {
-  useCreateThread,
-  useUpdateThreadTitle,
-} from "@/hooks/useThreadsMutation";
+import { useMessages } from "@/hooks/useMessages";
 import type { Message } from "ai";
 
 interface ChatPageProps {
@@ -25,7 +21,6 @@ interface ChatPageProps {
 
 export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
   const router = useRouter();
-  const [chatId, setChatId] = useState<string>(chatIdParams || "");
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
     useState<ReasoningEfforts | null>(null);
@@ -39,37 +34,40 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     null,
   );
 
-  // React Query hooks
   const {
     data: threadsData,
     isLoading: threadsLoading,
     error: threadsError,
   } = useThreads(user?.id);
-  const {
-    data: chatData,
-    isLoading: chatLoading,
-    error: chatError,
-  } = useChatData(chatIdParams, user?.id);
-  const createThreadMutation = useCreateThread(user?.id);
-  const updateThreadTitleMutation = useUpdateThreadTitle(user?.id);
 
   const threads = threadsData?.threads || [];
 
-  // Determine if we should show loading state for chat
-  const isLoadingChat = Boolean(chatIdParams && chatLoading && !chatData);
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useMessages(chatIdParams, user?.id);
+  const isLoadingChat = Boolean(
+    chatIdParams && messagesLoading && !messagesData,
+  );
 
-  // Show error toast if threads or chat fail to load
   useEffect(() => {
     if (threadsError) {
-      toast.error("Failed to load chat history");
+      toast.error(threadsError.message);
+      router.navigate({
+        to: "/",
+      });
     }
   }, [threadsError]);
 
   useEffect(() => {
-    if (chatError) {
-      toast.error("Failed to load chat messages");
+    if (messagesError) {
+      toast.error(messagesError.message);
+      router.navigate({
+        to: "/",
+      });
     }
-  }, [chatError]);
+  }, [messagesError]);
 
   const {
     messages,
@@ -83,47 +81,17 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     data,
     setMessages,
   } = useChat({
-    initialMessages: chatData?.chat?.messages || [],
+    id: chatIdParams,
+    initialMessages: messagesData?.messages || [],
     credentials: "include",
     body: {
-      chatId,
+      chatId: chatIdParams,
       userId: user?.id,
       model: model,
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
     },
-    onFinish: (message, { finishReason }) => {
-      // Handle any remaining title updates if needed
-      if (pendingTitleUpdate && finishReason === "stop") {
-        // Check if we received title data from the stream
-        const titleData = data?.find(
-          (d: any) => d.type === "title" && d.chatId === pendingTitleUpdate,
-        ) as { type: string; chatId: string; title: string } | undefined;
-        if (titleData) {
-          updateThreadTitleMutation.mutate({
-            id: pendingTitleUpdate,
-            title: titleData.title,
-          });
-        } else {
-          // Fallback: extract title from message content
-          updateThreadTitleMutation.mutate({
-            id: pendingTitleUpdate,
-            title: extractTitleFromResponse(message.content),
-          });
-        }
-        setPendingTitleUpdate(null);
-      }
-    },
   });
-
-  // Function to extract a title from the assistant's response
-  const extractTitleFromResponse = (content: string): string => {
-    // Simple heuristic: take first few words, max 6 words
-    const words = content.trim().split(/\s+/).slice(0, 6);
-    return (
-      words.join(" ") + (content.trim().split(/\s+/).length > 6 ? "..." : "")
-    );
-  };
 
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,18 +108,19 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       return;
     }
 
-    // for new chat
-    if (!chatId) {
+    // For new chat
+    if (!chatIdParams) {
       const newChatId = customAlphabet(
         "0123456789abcdefghijklmnopqrstuvwxyz",
         16,
       )();
-      setChatId(newChatId);
 
-      // Add new thread with empty title (will show skeleton)
-      createThreadMutation.mutate({
+      // Add new thread to the threads array with empty title
+      threads.unshift({
         id: newChatId,
-        title: "", // Empty title will show skeleton
+        title: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       setPendingTitleUpdate(newChatId);
@@ -176,14 +145,16 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       ) as { type: string; chatId: string; title: string } | undefined;
 
       if (titleData) {
-        updateThreadTitleMutation.mutate({
-          id: pendingTitleUpdate,
-          title: titleData.title,
-        });
+        const thread = threads.find(
+          (thread) => thread.id === pendingTitleUpdate,
+        );
+        if (thread) {
+          thread.title = titleData.title;
+        }
         setPendingTitleUpdate(null);
       }
     }
-  }, [data, pendingTitleUpdate, updateThreadTitleMutation]);
+  }, [data, pendingTitleUpdate, threads]);
 
   // Watch for error data from the stream
   useEffect(() => {

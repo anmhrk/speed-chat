@@ -67,19 +67,10 @@ export type Thread = {
   updatedAt: Date;
 };
 
-export type ChatData = {
-  id: string;
-  title: string;
-  messages: Message[];
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type ThreadsResponse = {
   threads: Thread[];
 };
 
-export type ChatResponse = {
-  chat: ChatData;
+export type MessagesResponse = {
+  messages: Message[];
 };

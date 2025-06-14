@@ -1,7 +1,12 @@
 import { ChatPage } from "@/components/ChatPage";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/chat/$chatId")({
+  beforeLoad: async ({ context }) => {
+    if (!context.user) {
+      throw redirect({ to: "/login" });
+    }
+  },
   component: RouteComponent,
 });
 

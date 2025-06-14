@@ -11,11 +11,13 @@ async function fetchThreads(userId: string): Promise<ThreadsResponse> {
     body: JSON.stringify({ userId }),
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch threads");
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
-  return response.json();
+  return data;
 }
 
 export function useThreads(userId: string | undefined) {
@@ -25,5 +27,6 @@ export function useThreads(userId: string | undefined) {
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
+    retry: false,
   });
 }

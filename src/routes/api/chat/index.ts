@@ -19,6 +19,7 @@ import { chat } from "@/lib/db/schema/chat.schema";
 import { eq } from "drizzle-orm";
 import type { Message } from "ai";
 import { nanoid } from "nanoid";
+import { format } from "date-fns";
 
 export const APIRoute = createAPIFileRoute("/api/chat")({
   POST: async ({ request }) => {
@@ -86,6 +87,11 @@ export const APIRoute = createAPIFileRoute("/api/chat")({
         execute: async (dataStream) => {
           const chatStream = streamText({
             model: aiModel,
+            system: `
+            You are Speed Chat, an AI assistant powered by the ${model} model. Your role is to assist and engage in conversation while being helpful, respectful, and engaging.
+            - If you are specifically asked about the model you are using, you may mention that you use the ${model} model. If you are not asked specifically about the model you are using, you do not need to mention it.
+            - The current date and time is ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}.
+            `,
             messages: requestMessages,
             onError: async ({ error }) => {
               console.error("[Chat API] Error:", error);
