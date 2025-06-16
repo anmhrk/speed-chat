@@ -17,7 +17,7 @@ import {
 } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useChatContext } from "@/components/providers/ChatProvider";
-import type { Message } from "ai";
+import { type Message, createIdGenerator } from "ai";
 
 interface ChatPageProps {
   initialChatId?: string | null;
@@ -86,10 +86,16 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
     stop,
     reload,
     setMessages,
+    append,
   } = useChat({
     id: chatId || undefined,
     initialMessages: messagesData || [],
     credentials: "include",
+    sendExtraMessageFields: true,
+    generateId: createIdGenerator({
+      prefix: "user",
+      size: 16,
+    }),
     body: {
       chatId: chatId || undefined,
       userId: user?.id || undefined,
@@ -237,6 +243,8 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
           setHasApiKeys={setHasApiKeys}
           isLoadingChat={messagesLoading}
           temporaryChat={temporaryChat}
+          append={append}
+          setMessages={setMessages}
         />
       </main>
     </>

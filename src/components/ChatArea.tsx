@@ -36,6 +36,8 @@ interface ChatAreaProps {
   setHasApiKeys: (hasApiKeys: boolean) => void;
   isLoadingChat: boolean;
   temporaryChat: boolean;
+  append: (message: Message) => void;
+  setMessages: (messages: Message[]) => void;
 }
 
 export function ChatArea({
@@ -58,6 +60,8 @@ export function ChatArea({
   setHasApiKeys,
   isLoadingChat,
   temporaryChat,
+  append,
+  setMessages,
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -189,7 +193,13 @@ export function ChatArea({
       ) : (
         <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
           <div className="mx-auto max-w-3xl px-6 py-18">
-            <Messages messages={messages} reload={reload} status={status} />
+            <Messages
+              messages={messages}
+              reload={reload}
+              status={status}
+              append={append}
+              setMessages={setMessages}
+            />
           </div>
         </ScrollArea>
       )}

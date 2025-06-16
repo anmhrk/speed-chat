@@ -6,33 +6,46 @@ interface MessagesProps {
   messages: Message[];
   reload: () => void;
   status: "error" | "submitted" | "streaming" | "ready";
+  append: (message: Message) => void;
+  setMessages: (messages: Message[]) => void;
 }
 
-export function Messages({ messages, reload, status }: MessagesProps) {
+export function Messages({
+  messages,
+  reload,
+  status,
+  append,
+  setMessages,
+}: MessagesProps) {
   const showLoading =
     status === "submitted" && messages[messages.length - 1].role === "user";
 
   return (
-    <div className="flex w-full flex-col gap-10">
+    <div className="flex w-full flex-col gap-12">
       {messages.map((message, index) => (
         <div key={message.id} className="w-full" data-message-index={index}>
           {message.role === "user" ? (
-            <UserMessage message={message} />
+            <UserMessage
+              message={message}
+              append={append}
+              setMessages={setMessages}
+              allMessages={messages}
+            />
           ) : (
-            <AssistantMessage message={message} />
+            <AssistantMessage message={message} reload={reload} />
           )}
         </div>
       ))}
       {showLoading && (
         <div className="w-full">
-          <AssistantLoadingMessage />
+          <AssistantMessageLoader />
         </div>
       )}
     </div>
   );
 }
 
-function AssistantLoadingMessage() {
+function AssistantMessageLoader() {
   return (
     <div className="flex justify-start">
       <div className="w-full">

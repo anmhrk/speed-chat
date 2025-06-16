@@ -1,5 +1,11 @@
 import { NextRequest } from "next/server";
-import { streamText, APICallError, InvalidPromptError, RetryError } from "ai";
+import {
+  streamText,
+  APICallError,
+  InvalidPromptError,
+  RetryError,
+  createIdGenerator,
+} from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
@@ -34,31 +40,6 @@ export async function POST(request: NextRequest) {
 
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
 
-    let requestMessages: Message[] = [];
-
-    const existingChat = await db
-      .select()
-      .from(chat)
-      .where(eq(chat.id, chatId))
-      .limit(1);
-
-    const latestUserMessage = messages[messages.length - 1];
-    const latestUserMessageWithId = {
-      ...latestUserMessage,
-      id: `user-${crypto.randomUUID()}`,
-      createdAt: new Date(),
-    };
-
-    if (existingChat.length === 0) {
-      requestMessages = [latestUserMessageWithId];
-    } else {
-      // Db messages will already have ids
-      requestMessages = existingChat[0].messages;
-
-      // Add the latest user message to the request messages
-      requestMessages.push(latestUserMessageWithId);
-    }
-
     const chatStream = streamText({
       model: aiModel,
       system: `
@@ -66,7 +47,11 @@ export async function POST(request: NextRequest) {
         - If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
         - The current date and time is ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}.
         `,
-      messages: requestMessages,
+      experimental_generateMessageId: createIdGenerator({
+        prefix: "assistant",
+        size: 16,
+      }),
+      messages,
       onFinish: async ({ response }) => {
         try {
           if (temporaryChat) {
@@ -76,7 +61,7 @@ export async function POST(request: NextRequest) {
           const responseMessages: Message[] = response.messages
             .filter((msg) => msg.role !== "tool") // Filter out tool messages
             .map((msg) => ({
-              id: `assistant-${crypto.randomUUID()}`,
+              id: msg.id,
               role: msg.role as "assistant",
               createdAt: new Date(),
               content:
@@ -95,10 +80,7 @@ export async function POST(request: NextRequest) {
                     : String(msg.content),
             }));
 
-          const allMessages: Message[] = [
-            ...requestMessages,
-            ...responseMessages,
-          ];
+          const allMessages: Message[] = [...messages, ...responseMessages];
 
           await db
             .update(chat)
@@ -146,10 +128,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(),
           };
 
-          const messagesWithError: Message[] = [
-            ...requestMessages,
-            errorMessage,
-          ];
+          const messagesWithError: Message[] = [...messages, errorMessage];
 
           db.update(chat)
             .set({

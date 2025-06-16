@@ -2,9 +2,10 @@ import type { Message } from "ai";
 
 interface AssistantMessageProps {
   message: Message;
+  reload: () => void;
 }
 
-export function AssistantMessage({ message }: AssistantMessageProps) {
+export function AssistantMessage({ message, reload }: AssistantMessageProps) {
   const isError = message.id.startsWith("error-");
 
   return (
