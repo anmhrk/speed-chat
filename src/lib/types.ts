@@ -7,9 +7,9 @@ export type Models =
   | "google/gemini-2.5-flash-preview-05-20"
   | "google/gemini-2.5-pro-preview"
   | "gpt-4.1"
+  | "gpt-4.1-mini"
   | "o3"
   | "o4-mini"
-  | "gpt-image-1"
   | "claude-sonnet-4"
   | "claude-opus-4";
 
@@ -22,10 +22,9 @@ export type ModelConfig = {
   id: Models;
   name: string;
   logo: React.ReactNode;
-  default?: boolean;
   provider: Providers;
+  default?: boolean;
   reasoning?: boolean;
-  images?: boolean;
   attachments?: boolean;
   search?: boolean;
 };
@@ -57,7 +56,7 @@ export type ChatRequest = {
   reasoningEffort: ReasoningEfforts | null;
   apiKeys: Record<Providers, string>;
   userId: string;
-  // temporaryChat: boolean;
+  temporaryChat: boolean;
 };
 
 export type Thread = {
@@ -65,12 +64,4 @@ export type Thread = {
   title: string;
   createdAt: Date;
   updatedAt: Date;
-};
-
-export type ThreadsResponse = {
-  threads: Thread[];
-};
-
-export type MessagesResponse = {
-  messages: Message[];
 };

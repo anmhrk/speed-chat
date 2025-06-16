@@ -1,120 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { ModelPicker } from "./ModelPicker";
+"use client";
+
+import { useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ModelPicker } from "@/components/ModelPicker";
+import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import {
   ArrowUp,
-  Sparkle,
-  Sparkles,
-  WandSparkles,
-  AlertTriangle,
+  // AlertTriangle,
   ArrowDown,
   Square,
 } from "lucide-react";
-import { getLocalStorage, setLocalStorage } from "@/lib/utils";
-import { Link } from "@tanstack/react-router";
-import { Card, CardContent } from "./ui/card";
-import { getRateLimitStatus } from "@/lib/ratelimit/status";
+// import { Card, CardContent } from "@/components/ui/card";
+// import { useRouter } from "next/navigation";
+// import { getRateLimitStatus } from "@/lib/ratelimit/status";
 import type { User } from "better-auth";
 import type {
   ReasoningEfforts,
-  ReasoningEffortConfig,
   Models,
-  ModelConfig,
   Providers,
-  RateLimitInfo,
+  // RateLimitInfo,
 } from "@/lib/types";
-
-export const REASONING_EFFORTS: ReasoningEffortConfig[] = [
-  {
-    id: "low",
-    icon: Sparkle,
-  },
-  {
-    id: "medium",
-    icon: Sparkles,
-  },
-  {
-    id: "high",
-    icon: WandSparkles,
-  },
-];
-
-export const AVAILABLE_MODELS: ModelConfig[] = [
-  {
-    id: "gpt-4.1",
-    name: "GPT 4.1",
-    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
-    provider: "openai",
-    attachments: true,
-  },
-  {
-    id: "claude-sonnet-4",
-    name: "Claude Sonnet 4",
-    logo: (
-      <img
-        src="/logos/Anthropic-dark.svg"
-        alt="Anthropic"
-        className="h-4 w-4"
-      />
-    ),
-    provider: "anthropic",
-    attachments: true,
-    search: true,
-  },
-  {
-    id: "claude-opus-4",
-    name: "Claude Opus 4",
-    logo: (
-      <img
-        src="/logos/Anthropic-dark.svg"
-        alt="Anthropic"
-        className="h-4 w-4"
-      />
-    ),
-    provider: "anthropic",
-    attachments: true,
-  },
-  {
-    id: "google/gemini-2.5-flash-preview-05-20",
-    name: "Gemini 2.5 Flash",
-    logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
-    provider: "openrouter",
-    default: true,
-    attachments: true,
-  },
-  {
-    id: "google/gemini-2.5-pro-preview",
-    name: "Gemini 2.5 Pro",
-    logo: <img src="/logos/Google.svg" alt="Google" className="h-4 w-4" />,
-    provider: "openrouter",
-    reasoning: true,
-    attachments: true,
-  },
-  {
-    id: "o4-mini",
-    name: "o4 Mini",
-    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
-    provider: "openai",
-    attachments: true,
-    reasoning: true,
-  },
-  {
-    id: "gpt-image-1",
-    name: "GPT ImageGen",
-    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
-    provider: "openai",
-    images: true,
-  },
-  {
-    id: "o3",
-    name: "o3",
-    logo: <img src="/logos/OpenAI-dark.svg" alt="OpenAI" className="h-4 w-4" />,
-    provider: "openai",
-    attachments: true,
-    reasoning: true,
-  },
-];
 
 interface ChatInputProps {
   prompt: string;
@@ -153,21 +59,22 @@ export function ChatInput({
   hasApiKeys,
   setHasApiKeys,
 }: ChatInputProps) {
+  // const router = useRouter();
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(
-    null,
-  );
+  // const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(
+  //   null,
+  // );
 
   useEffect(() => {
-    const savedModel = getLocalStorage("selectedModel");
-    const savedReasoningEffort = getLocalStorage("reasoningEffort");
+    const savedModel = localStorage.getItem("selectedModel");
+    const savedReasoningEffort = localStorage.getItem("reasoningEffort");
+
     let keys: Record<Providers, string> = {
       openrouter: "",
       openai: "",
       anthropic: "",
     };
-
-    const savedKeys = getLocalStorage("api_keys");
+    const savedKeys = localStorage.getItem("api_keys");
     keys = savedKeys ? JSON.parse(savedKeys) : {};
     const hasAnyKey = Object.values(keys).some(
       (key) => key && key.toString().trim() !== "",
@@ -224,33 +131,33 @@ export function ChatInput({
 
   const handleModelChange = (newModel: Models) => {
     setModel(newModel);
-    setLocalStorage("selectedModel", newModel);
+    localStorage.setItem("selectedModel", newModel);
   };
 
   const handleReasoningEffortChange = (
     newReasoningEffort: ReasoningEfforts,
   ) => {
     setReasoningEffort(newReasoningEffort);
-    setLocalStorage("reasoningEffort", newReasoningEffort);
+    localStorage.setItem("reasoningEffort", newReasoningEffort);
   };
 
   // Fetch rate limit info when using Gemini 2.5 Flash without API key
-  const fetchRateLimitInfo = async () => {
-    if (
-      user &&
-      model === "google/gemini-2.5-flash-preview-05-20" &&
-      !apiKeys?.openrouter
-    ) {
-      try {
-        const data = await getRateLimitStatus();
-        setRateLimitInfo(data ?? null);
-      } catch (error) {
-        console.error("Failed to fetch rate limit info:", error);
-      }
-    } else {
-      setRateLimitInfo(null);
-    }
-  };
+  // const fetchRateLimitInfo = async () => {
+  //   if (
+  //     user &&
+  //     model === "google/gemini-2.5-flash-preview-05-20" &&
+  //     !apiKeys?.openrouter
+  //   ) {
+  //     try {
+  //       const data = await getRateLimitStatus();
+  //       setRateLimitInfo(data ?? null);
+  //     } catch (error) {
+  //       console.error("Failed to fetch rate limit info:", error);
+  //     }
+  //   } else {
+  //     setRateLimitInfo(null);
+  //   }
+  // };
 
   useEffect(() => {
     if (promptRef.current) {
@@ -262,7 +169,7 @@ export function ChatInput({
   useEffect(() => {
     const handleStorageChange = () => {
       try {
-        const savedKeys = getLocalStorage("api_keys");
+        const savedKeys = localStorage.getItem("api_keys");
         const keys = savedKeys ? JSON.parse(savedKeys) : {};
         const hasAnyKey = Object.values(keys).some(
           (key) => key && key.toString().trim() !== "",
@@ -284,7 +191,7 @@ export function ChatInput({
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleStorageChange);
     };
-  }, []);
+  });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -299,7 +206,7 @@ export function ChatInput({
 
   return (
     <div className="relative w-full space-y-3">
-      {user &&
+      {/* {user &&
         model === "google/gemini-2.5-flash-preview-05-20" &&
         !apiKeys?.openrouter &&
         rateLimitInfo && (
@@ -317,34 +224,33 @@ export function ChatInput({
                 variant="outline"
                 size="sm"
                 className="hover:bg-zinc-800"
+                onClick={() => router.push("/settings/keys")}
               >
-                <Link to="/settings/keys">Add Keys</Link>
+                Add Keys
               </Button>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
       {showScrollToBottom && (
         <Button
-          variant="outline"
-          size="sm"
           onClick={scrollToBottom}
-          className="absolute -top-16 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full shadow-md"
+          className="absolute -top-16 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full shadow-sm"
         >
-          <ArrowDown className="size-4" />
+          <ArrowDown className="size-5" />
           Scroll to bottom
         </Button>
       )}
 
       <form onSubmit={handleSubmit} className="relative">
-        <div className="bg-background relative rounded-t-2xl border border-b-0">
+        <div className="relative rounded-t-2xl border border-b-0">
           <Textarea
             ref={promptRef}
             value={prompt}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
-            className="placeholder:text-muted-foreground max-h-[350px] min-h-[100px] w-full resize-none border-0 bg-transparent p-4 focus-visible:ring-0"
+            className="placeholder:text-muted-foreground !bg-background max-h-[350px] min-h-[100px] w-full resize-none rounded-t-2xl border-0 p-4 focus-visible:ring-0"
           />
 
           <div className="flex items-center justify-between px-4 py-3">

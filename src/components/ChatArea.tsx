@@ -1,7 +1,9 @@
-import { ChatInput } from "./ChatInput";
+"use client";
+
+import { ChatInput } from "@/components/ChatInput";
 import type { User } from "better-auth";
-import { Messages } from "./Messages";
-import { ScrollArea } from "./ui/scroll-area";
+import { Messages } from "@/components/Messages";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "ai";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";

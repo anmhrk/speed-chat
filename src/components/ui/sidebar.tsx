@@ -1,9 +1,11 @@
+"use client";
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
+import { cva, VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useMobile } from "@/hooks/useMobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +66,7 @@ function SidebarProvider({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = useMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
 
   // This is the internal state of the sidebar.
@@ -252,9 +254,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({
-  className,
   onClick,
-  variant,
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
@@ -263,13 +263,13 @@ function SidebarTrigger({
     <Button
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant={variant}
+      variant="ghost"
       size="icon"
+      className="bg-transparent/60 backdrop-blur-md"
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
       }}
-      className="bg-transparent/60 backdrop-blur-md"
       {...props}
     >
       <PanelLeftIcon className="size-5" />

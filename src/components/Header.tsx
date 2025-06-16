@@ -1,12 +1,17 @@
-import { SidebarTrigger } from "./ui/sidebar";
-import { Button } from "./ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { Share, Ghost, Key } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
-import { Link, useLocation } from "@tanstack/react-router";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { usePathname, useRouter } from "next/navigation";
 
 export function Header() {
-  const location = useLocation();
-  const isChatPage = location.pathname.includes("/chat");
+  const pathname = usePathname();
+  const isChatPage = pathname.includes("/chat");
+  const router = useRouter();
 
   return (
     <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4">
@@ -24,15 +29,13 @@ export function Header() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              asChild
               variant="outline"
               size="icon"
               className="bg-transparent/60 backdrop-blur-md"
+              onClick={() => router.push("/settings/keys")}
             >
-              <Link to="/settings/keys">
-                <Key className="size-5" />
-                <span className="sr-only">API Keys</span>
-              </Link>
+              <Key className="size-5" />
+              <span className="sr-only">API Keys</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>Set API Keys</TooltipContent>

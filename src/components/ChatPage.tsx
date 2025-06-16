@@ -1,27 +1,34 @@
-import { AppSidebar } from "./AppSidebar";
-import { ChatArea } from "./ChatArea";
-import { Header } from "./Header";
-import { SidebarProvider } from "./ui/sidebar";
+"use client";
+
+import { Header } from "@/components/Header";
+import { AppSidebar } from "@/components/AppSidebar";
+import { ChatArea } from "@/components/ChatArea";
 import type { User } from "better-auth";
-import { useChat } from "@ai-sdk/react";
+import type { Models, ReasoningEfforts, Providers, Thread } from "@/lib/types";
 import { useState, useEffect } from "react";
-import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
+import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
-import { useRouter } from "@tanstack/react-router";
-import { customAlphabet } from "nanoid";
-import { useThreads } from "@/hooks/useThreads";
-import { useMessages } from "@/hooks/useMessages";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchMessages,
+  fetchThreads,
+  generateThreadTitle,
+  createInitialChat,
+} from "@/lib/actions";
+import { useRouter } from "next/navigation";
+import { useChatContext } from "@/components/providers/ChatProvider";
 import type { Message } from "ai";
 
 interface ChatPageProps {
-  chatIdParams?: string;
-  user: User | null | undefined;
-  defaultOpen: boolean;
+  initialChatId?: string | null;
+  user: User | null;
 }
 
-export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
+export function ChatPage({ initialChatId, user }: ChatPageProps) {
   const router = useRouter();
-  const [chatId, setChatId] = useState<string | null>(chatIdParams || null);
+  const queryClient = useQueryClient();
+  const chatContext = useChatContext();
+  const [chatId, setChatId] = useState<string | null>(initialChatId || null);
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
     useState<ReasoningEfforts | null>(null);
@@ -29,49 +36,45 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
   const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
     null,
   );
-  const [pendingTitleUpdate, setPendingTitleUpdate] = useState<string | null>(
-    null,
-  );
 
-  const {
-    data: threadsData,
-    isLoading: threadsLoading,
-    error: threadsError,
-  } = useThreads(user?.id);
-
-  const threads = threadsData?.threads || [];
+  // Only fetch messages if it's not a new chat
+  const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
 
   const {
     data: messagesData,
     isLoading: messagesLoading,
+    isError: isMessagesError,
     error: messagesError,
-  } = useMessages(chatId || undefined, user?.id);
+  } = useQuery({
+    queryKey: ["messages", chatId],
+    queryFn: () => fetchMessages(chatId!, user!.id),
+    enabled: !!shouldFetchMessages && !!user?.id,
+  });
 
-  const isLoadingChat = Boolean(chatId && messagesLoading && !messagesData);
-
-  useEffect(() => {
-    if (chatIdParams) {
-      setChatId(chatIdParams);
-    }
-  }, [chatIdParams]);
-
-  useEffect(() => {
-    if (threadsError) {
-      toast.error(threadsError.message);
-      router.navigate({
-        to: "/",
-      });
-    }
-  }, [threadsError]);
+  const {
+    data: threadsData,
+    isLoading: threadsLoading,
+    isError: isThreadsError,
+    error: threadsError,
+  } = useQuery({
+    queryKey: ["threads", user?.id],
+    queryFn: () => fetchThreads(user!.id),
+    enabled: !!user?.id,
+  });
 
   useEffect(() => {
-    if (messagesError) {
-      toast.error(messagesError.message);
-      router.navigate({
-        to: "/",
-      });
+    if (isThreadsError) {
+      toast.error(threadsError?.message || "Error fetching threads");
+      router.push("/");
     }
-  }, [messagesError]);
+  }, [isThreadsError, threadsError, router]);
+
+  useEffect(() => {
+    if (isMessagesError) {
+      toast.error(messagesError?.message || "Error fetching messages");
+      router.push("/");
+    }
+  }, [isMessagesError, messagesError, router]);
 
   const {
     messages,
@@ -82,22 +85,43 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
     status,
     stop,
     reload,
-    data,
     setMessages,
   } = useChat({
     id: chatId || undefined,
-    initialMessages: messagesData?.messages || [],
+    initialMessages: messagesData || [],
     credentials: "include",
     body: {
       chatId: chatId || undefined,
-      userId: user?.id,
+      userId: user?.id || undefined,
       model: model,
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
     },
+    onError: (error) => {
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: error.message,
+        createdAt: new Date(),
+      } as Message;
+
+      setMessages((prev) => {
+        // On error an empty assistant message is created, so we replace it with the error message
+        const lastMessage = prev[prev.length - 1];
+        if (
+          lastMessage?.role === "assistant" &&
+          (!lastMessage.content || lastMessage.content.trim() === "")
+        ) {
+          return [...prev.slice(0, -1), errorMessage];
+        } else {
+          // Fallback
+          return [...prev, errorMessage];
+        }
+      });
+    },
   });
 
-  const handleChatSubmit = (e: React.FormEvent) => {
+  const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user) {
@@ -112,79 +136,73 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
       return;
     }
 
-    if (!chatIdParams) {
-      const newChatId = customAlphabet(
-        "0123456789abcdefghijklmnopqrstuvwxyz",
-        16,
-      )();
+    if (!chatId) {
+      const newChatId = crypto.randomUUID();
+      const userMessage = input.trim();
+
       setChatId(newChatId);
+      chatContext.addNewChatId(newChatId);
+      await createInitialChat(newChatId, user.id);
 
-      // Add new thread to the threads array with empty title
-      threads.unshift({
-        id: newChatId,
-        title: "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      // Add a small delay to ensure the database write is complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      setPendingTitleUpdate(newChatId);
+      // Update threads data in the query cache to show new chat in the sidebar
+      queryClient.setQueryData(["threads", user!.id], (old: Thread[] = []) => [
+        {
+          id: newChatId,
+          title: "New Chat",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        ...old,
+      ]);
+
       window.history.replaceState({}, "", `/chat/${newChatId}`);
-    }
 
-    handleSubmit(e);
+      // Start both in parallel
+      const [, generatedTitle] = await Promise.all([
+        handleSubmit(e),
+        (async () => {
+          try {
+            const title = await generateThreadTitle(newChatId, userMessage);
+            return title;
+          } catch (error) {
+            console.error(error);
+            return "New Chat"; // Fallback title
+          }
+        })(),
+      ]);
+
+      // Update the threads cache with the real title
+      queryClient.setQueryData(["threads", user!.id], (old: Thread[] = []) =>
+        old.map((thread) =>
+          thread.id === newChatId
+            ? { ...thread, title: generatedTitle }
+            : thread,
+        ),
+      );
+
+      // To prevent refetch when the query becomes enabled after removing from new chat set
+      queryClient.setQueryData(["messages", newChatId], messages);
+      chatContext.removeNewChatId(newChatId);
+    } else {
+      handleSubmit(e);
+    }
   };
 
-  // Watch for title data updates from the stream
-  useEffect(() => {
-    if (data && pendingTitleUpdate) {
-      const titleData = data.find(
-        (d: any) => d.type === "title" && d.chatId === pendingTitleUpdate,
-      ) as { type: string; chatId: string; title: string } | undefined;
-
-      if (titleData) {
-        const thread = threads.find(
-          (thread) => thread.id === pendingTitleUpdate,
-        );
-        if (thread) {
-          thread.title = titleData.title;
-        }
-        setPendingTitleUpdate(null);
-      }
-    }
-  }, [data, pendingTitleUpdate, threads]);
-
-  // Watch for error data from the stream
-  useEffect(() => {
-    if (data) {
-      const errorData = data.find((d: any) => d.type === "error") as
-        | {
-            type: string;
-            error: Message;
-          }
-        | undefined;
-
-      if (errorData) {
-        setMessages((prev) => {
-          // On error an empty assistant message is created, so we replace it with the error message
-          const lastMessage = prev[prev.length - 1];
-          if (
-            lastMessage?.role === "assistant" &&
-            (!lastMessage.content || lastMessage.content.trim() === "")
-          ) {
-            return [...prev.slice(0, -1), errorData.error];
-          } else {
-            // Fallback
-            return [...prev, errorData.error];
-          }
-        });
-      }
-    }
-  }, [data, setMessages]);
+  console.log("chatId", chatId);
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <>
       <Header />
-      <AppSidebar user={user} threads={threads} isLoading={threadsLoading} />
+      <AppSidebar
+        user={user}
+        threads={threadsData || []}
+        isLoading={threadsLoading}
+        newThreads={chatContext.newChatIds}
+        setChatId={setChatId}
+      />
       <main className="h-screen flex-1">
         <ChatArea
           user={user}
@@ -204,9 +222,9 @@ export function ChatPage({ chatIdParams, user, defaultOpen }: ChatPageProps) {
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
-          isLoadingChat={isLoadingChat}
+          isLoadingChat={messagesLoading}
         />
       </main>
-    </SidebarProvider>
+    </>
   );
 }

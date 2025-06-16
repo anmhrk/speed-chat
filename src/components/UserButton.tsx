@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from "@tanstack/react-router";
 import { LogIn } from "lucide-react";
 import type { User } from "better-auth";
+import Link from "next/link";
 
 interface UserButtonProps {
   user: User | null | undefined;
@@ -12,7 +12,7 @@ export function UserButton({ user }: UserButtonProps) {
     return (
       <Link
         className="hover:bg-muted flex h-12 w-full items-center rounded-lg p-2 transition-colors"
-        to="/login"
+        href="/login"
       >
         <LogIn className="mr-3 size-4" />
         Login
@@ -23,7 +23,7 @@ export function UserButton({ user }: UserButtonProps) {
   return (
     <Link
       className="hover:bg-muted flex h-12 w-full items-center space-x-3 rounded-lg p-2 transition-colors"
-      to="/settings"
+      href="/settings"
     >
       <div className="flex-shrink-0">
         <Avatar>

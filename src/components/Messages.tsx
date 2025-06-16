@@ -1,6 +1,6 @@
 import type { Message } from "ai";
-import { AssistantMessage } from "./AssistantMessage";
-import { UserMessage } from "./UserMessage";
+import { AssistantMessage } from "@/components/AssistantMessage";
+import { UserMessage } from "@/components/UserMessage";
 
 interface MessagesProps {
   messages: Message[];
@@ -8,7 +8,7 @@ interface MessagesProps {
   status: "error" | "submitted" | "streaming" | "ready";
 }
 
-export function Messages({ messages, reload: _reload, status }: MessagesProps) {
+export function Messages({ messages, reload, status }: MessagesProps) {
   const showLoading =
     status === "submitted" && messages[messages.length - 1].role === "user";
 

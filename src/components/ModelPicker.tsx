@@ -5,9 +5,9 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Button } from "./ui/button";
-import { AVAILABLE_MODELS, REASONING_EFFORTS } from "./ChatInput";
+import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
-import { Globe, Paperclip, Brain, Image } from "lucide-react";
+import { Globe, Paperclip, Brain } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { Models, ReasoningEfforts } from "@/lib/types";
 
@@ -76,16 +76,6 @@ export function ModelPicker({
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
                           Has reasoning capabilities
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    {model.images && (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Image className="size-4 text-pink-400" />
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs">
-                          Can generate images
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -180,7 +170,7 @@ export function ModelPicker({
               <p className="hidden md:block">Attach</p>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Only PDFs and images are supported</TooltipContent>
+          <TooltipContent>Only images are supported currently</TooltipContent>
         </Tooltip>
       )}
 
@@ -197,7 +187,7 @@ export function ModelPicker({
               </Toggle>
             </div>
           </TooltipTrigger>
-          <TooltipContent>Enable Web Search</TooltipContent>
+          <TooltipContent>Enable web search</TooltipContent>
         </Tooltip>
       )}
     </div>
