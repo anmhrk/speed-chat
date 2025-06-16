@@ -49,7 +49,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
   } = useQuery({
     queryKey: ["messages", chatId],
     queryFn: () => fetchMessages(chatId!, user!.id),
-    enabled: !!shouldFetchMessages && !!user?.id,
+    enabled: !!shouldFetchMessages && !!user?.id && !temporaryChat,
   });
 
   const {
@@ -97,6 +97,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
       model: model,
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
+      temporaryChat: temporaryChat,
     },
     onError: (error) => {
       const errorMessage = {
@@ -134,6 +135,15 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
       hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
 
     if (!canSubmit || !input.trim()) {
+      return;
+    }
+
+    if (temporaryChat) {
+      if (!chatId) {
+        const tempChatId = crypto.randomUUID();
+        setChatId(tempChatId);
+      }
+      handleSubmit(e);
       return;
     }
 
@@ -192,13 +202,12 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
     }
   };
 
-  console.log("chatId", chatId);
-
   return (
     <>
       <Header
         temporaryChat={temporaryChat}
         setTemporaryChat={setTemporaryChat}
+        setChatId={setChatId}
       />
       <AppSidebar
         user={user}
@@ -227,6 +236,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
           isLoadingChat={messagesLoading}
+          temporaryChat={temporaryChat}
         />
       </main>
     </>

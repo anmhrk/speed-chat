@@ -21,9 +21,11 @@ import { Toggle } from "@/components/ui/toggle";
 export function Header({
   temporaryChat,
   setTemporaryChat,
+  setChatId,
 }: {
   temporaryChat: boolean;
   setTemporaryChat: (temporaryChat: boolean) => void;
+  setChatId: (chatId: string | null) => void;
 }) {
   const pathname = usePathname();
   const isChatPage = pathname.includes("/chat");
@@ -34,16 +36,24 @@ export function Header({
     <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between p-4">
       <div className="flex items-center gap-2">
         <SidebarTrigger variant="outline" />
-        {isChatPage && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="backdrop-blur-md"
-            onClick={() => router.push("/")}
-          >
-            <Plus className="size-5" />
-            <span className="sr-only">New Chat</span>
-          </Button>
+        {(isChatPage || temporaryChat) && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="backdrop-blur-md"
+                onClick={() => {
+                  setChatId(null);
+                  router.push("/");
+                }}
+              >
+                <Plus className="size-5" />
+                <span className="sr-only">New Chat</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>New Chat</TooltipContent>
+          </Tooltip>
         )}
       </div>
 
@@ -112,7 +122,10 @@ export function Header({
                   variant="outline"
                   size="icon"
                   className="backdrop-blur-md"
-                  onClick={() => setTemporaryChat(!temporaryChat)}
+                  onClick={() => {
+                    setTemporaryChat(!temporaryChat);
+                    setChatId(null);
+                  }}
                 >
                   <Ghost className="size-5" />
                   <span className="sr-only">Toggle Temporary Chat</span>

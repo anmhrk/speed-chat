@@ -34,7 +34,8 @@ interface ChatAreaProps {
   setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
   hasApiKeys: boolean;
   setHasApiKeys: (hasApiKeys: boolean) => void;
-  isLoadingChat?: boolean;
+  isLoadingChat: boolean;
+  temporaryChat: boolean;
 }
 
 export function ChatArea({
@@ -56,6 +57,7 @@ export function ChatArea({
   hasApiKeys,
   setHasApiKeys,
   isLoadingChat,
+  temporaryChat,
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -149,26 +151,40 @@ export function ChatArea({
         <div className="mx-auto flex h-full w-full max-w-3xl items-center justify-center px-6 py-18 sm:py-16">
           <Loader2 className="text-muted-foreground size-7 animate-spin" />
         </div>
-      ) : messages.length === 0 && status === "ready" ? (
+      ) : messages.length === 0 && !input.trim() ? (
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-4 py-8">
-          <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-            {user
-              ? `How can I help you, ${user.name.split(" ")[0]}?`
-              : "How can I help you?"}
-          </h1>
-          <div className="grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2">
-            {PROMPT_SUGGESTIONS.map((suggestion, index) => (
-              <div
-                key={index}
-                className="border-border bg-card hover:bg-accent cursor-pointer rounded-lg border p-4 text-left transition-colors"
-                onClick={() => setInput(suggestion)}
-              >
-                <span className="text-muted-foreground text-sm">
-                  {suggestion}
-                </span>
+          {temporaryChat ? (
+            <>
+              <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
+                Temporary chat
+              </h1>
+              <p className="text-muted-foreground text-md max-w-sm text-center">
+                This chat won&apos;t appear in your chat history and will be
+                cleared when you close the tab.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
+                {user
+                  ? `How can I help you, ${user.name.split(" ")[0]}?`
+                  : "How can I help you?"}
+              </h1>
+              <div className="grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2">
+                {PROMPT_SUGGESTIONS.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="border-border bg-card hover:bg-accent cursor-pointer rounded-lg border p-4 text-left transition-colors"
+                    onClick={() => setInput(suggestion)}
+                  >
+                    <span className="text-muted-foreground text-sm">
+                      {suggestion}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       ) : (
         <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">

@@ -51,7 +51,11 @@ export function AppSidebar({
         </div>
 
         <div className="mt-4">
-          <Button className="w-full font-semibold" asChild>
+          <Button
+            className="w-full font-semibold"
+            asChild
+            onClick={() => setChatId(null)}
+          >
             <Link href="/">New Chat</Link>
           </Button>
 

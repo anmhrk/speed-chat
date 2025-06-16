@@ -14,7 +14,7 @@ import { getUser } from "@/lib/auth/get-user";
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { messages, model, apiKeys, chatId } = body;
+    const { messages, model, apiKeys, chatId, temporaryChat } = body;
 
     const user = await getUser();
     if (!user) {
@@ -69,6 +69,10 @@ export async function POST(request: NextRequest) {
       messages: requestMessages,
       onFinish: async ({ response }) => {
         try {
+          if (temporaryChat) {
+            return;
+          }
+
           const responseMessages: Message[] = response.messages
             .filter((msg) => msg.role !== "tool") // Filter out tool messages
             .map((msg) => ({
