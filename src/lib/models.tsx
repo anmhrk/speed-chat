@@ -1,5 +1,3 @@
-"use client";
-
 import type { ModelConfig, ReasoningEffortConfig } from "@/lib/types";
 import Image from "next/image";
 import { Sparkle, Sparkles, WandSparkles } from "lucide-react";

@@ -252,7 +252,6 @@ export function ChatInput({
             placeholder="Type your message here..."
             className="placeholder:text-muted-foreground !bg-background max-h-[350px] min-h-[100px] w-full resize-none rounded-t-2xl border-0 p-4 shadow-none focus-visible:ring-0"
           />
-
           <div className="flex items-center justify-between px-4 py-3">
             {model && reasoningEffort ? (
               <ModelPicker

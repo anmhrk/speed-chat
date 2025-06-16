@@ -37,9 +37,9 @@ function AssistantLoadingMessage() {
     <div className="flex justify-start">
       <div className="w-full">
         <div className="flex items-center space-x-1">
-          <div className="bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.3s]"></div>
-          <div className="bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.15s]"></div>
-          <div className="bg-accent h-2 w-2 animate-bounce rounded-full"></div>
+          <div className="bg-primary/10 dark:bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.3s]"></div>
+          <div className="bg-primary/10 dark:bg-accent h-2 w-2 animate-bounce rounded-full [animation-delay:-0.15s]"></div>
+          <div className="bg-primary/10 dark:bg-accent h-2 w-2 animate-bounce rounded-full"></div>
         </div>
       </div>
     </div>

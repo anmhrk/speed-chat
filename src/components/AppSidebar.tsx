@@ -14,7 +14,6 @@ import { useState } from "react";
 import type { User } from "better-auth";
 import type { Thread } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -22,6 +21,7 @@ interface AppSidebarProps {
   threads: Thread[];
   isLoading: boolean;
   newThreads: Set<string>;
+  chatId: string | null;
   setChatId: (chatId: string | null) => void;
 }
 
@@ -30,11 +30,10 @@ export function AppSidebar({
   threads,
   isLoading,
   newThreads,
+  chatId,
   setChatId,
 }: AppSidebarProps) {
   const [search, setSearch] = useState<string>("");
-  const params = useParams<{ chatId: string }>();
-  const chatId = params.chatId;
 
   return (
     <Sidebar>

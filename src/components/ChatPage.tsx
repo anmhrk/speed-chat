@@ -38,7 +38,6 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
   );
   const [temporaryChat, setTemporaryChat] = useState<boolean>(false);
 
-  // Only fetch messages if it's not a new chat
   const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
 
   const {
@@ -158,7 +157,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
       // Add a small delay to ensure the database write is complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Update threads data in the query cache to show new chat in the sidebar
+      // Update threads data in the query cache to show new chat in the sidebar immediately
       queryClient.setQueryData(["threads", user!.id], (old: Thread[] = []) => [
         {
           id: newChatId,
@@ -214,6 +213,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
         threads={threadsData || []}
         isLoading={threadsLoading}
         newThreads={chatContext.newChatIds}
+        chatId={chatId}
         setChatId={setChatId}
       />
       <main className="h-screen flex-1">
