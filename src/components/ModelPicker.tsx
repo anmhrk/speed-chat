@@ -60,7 +60,7 @@ export function ModelPicker({
               !hasApiKey(model.provider);
             const selectItem = (
               <SelectItem key={model.id} value={model.id} disabled={isDisabled}>
-                <div className="flex w-75 items-center justify-between gap-2">
+                <div className="flex w-70 items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {model.logo}
                     {model.name}

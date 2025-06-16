@@ -39,7 +39,7 @@ export function UserButton({ user }: UserButtonProps) {
         </Avatar>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{user.name}</p>
+        <p className="truncate text-sm">{user.name}</p>
       </div>
     </Link>
   );

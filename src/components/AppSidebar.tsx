@@ -80,8 +80,10 @@ export function AppSidebar({
                     key={thread.id}
                     className={cn(
                       "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
-                      chatId === thread.id && "bg-muted",
-                      newThreads.has(thread.id) && "bg-muted h-9 animate-pulse",
+                      chatId === thread.id &&
+                        "bg-primary/10 hover:bg-primary/10",
+                      newThreads.has(thread.id) &&
+                        "bg-primary/10 h-9 animate-pulse",
                     )}
                     href={`/chat/${thread.id}`}
                   >

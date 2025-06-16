@@ -47,6 +47,7 @@ export function LoginPage() {
                   width={24}
                   height={24}
                   alt="Google Logo"
+                  unoptimized
                 />
                 <span>Continue with Google</span>
               </>
