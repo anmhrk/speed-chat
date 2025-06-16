@@ -54,7 +54,6 @@ export async function createInitialChat(chatId: string, userId: string) {
       messages: [],
       createdAt: new Date(),
     });
-
   } catch (error) {
     console.error("[Create Initial Chat] Error:", error);
     throw error;

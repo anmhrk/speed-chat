@@ -36,6 +36,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
   const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
     null,
   );
+  const [temporaryChat, setTemporaryChat] = useState<boolean>(false);
 
   // Only fetch messages if it's not a new chat
   const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
@@ -195,7 +196,10 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
 
   return (
     <>
-      <Header />
+      <Header
+        temporaryChat={temporaryChat}
+        setTemporaryChat={setTemporaryChat}
+      />
       <AppSidebar
         user={user}
         threads={threadsData || []}

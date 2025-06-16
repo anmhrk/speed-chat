@@ -178,10 +178,7 @@ export function ModelPicker({
         <Tooltip>
           <TooltipTrigger asChild>
             <div>
-              <Toggle
-                variant="outline"
-                className="flex cursor-pointer items-center gap-2"
-              >
+              <Toggle variant="outline" className="flex items-center gap-2">
                 <Globe className="size-4" />
                 <p className="hidden md:block">Search</p>
               </Toggle>

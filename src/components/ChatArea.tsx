@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
-  "Write a funny poem about a cat in space",
+  "Compose a poem about the feeling of love",
   "Is React Native actually better than Flutter?",
   "What is a black hole? Explain like I'm 5",
 ];

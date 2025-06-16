@@ -62,7 +62,7 @@ export function AppSidebar({
       <SidebarContent className="mt-1 px-4">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="size-6 animate-spin" />
+            <Loader2 className="text-muted-foreground size-7 animate-spin" />
           </div>
         ) : (
           <ScrollArea className="h-full">
