@@ -6,19 +6,18 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThreadSearchInput } from "@/components/ThreadSearchInput";
-import { UserButton } from "@/components/UserButton";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { useState } from "react";
-import type { User } from "better-auth";
-import type { Thread } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash, LogIn } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Doc } from "../../convex/_generated/dataModel";
 
 interface AppSidebarProps {
-  user: User | null;
-  threads: Thread[];
+  user: Doc<"users"> | null;
+  threads: Doc<"chats">[] | undefined;
   isLoading: boolean;
   newThreads: Set<string>;
   chatId: string | null;
@@ -70,32 +69,78 @@ export function AppSidebar({
         ) : (
           <ScrollArea className="h-full">
             <div className="space-y-2">
-              {threads
-                .filter((thread) =>
-                  thread.title.toLowerCase().includes(search.toLowerCase()),
-                )
-                .map((thread) => (
-                  <Link
-                    key={thread.id}
-                    className={cn(
-                      "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
-                      chatId === thread.id &&
-                        "bg-primary/10 hover:bg-primary/10",
-                      newThreads.has(thread.id) &&
-                        "bg-primary/10 h-9 animate-pulse",
-                    )}
-                    href={`/chat/${thread.id}`}
-                  >
-                    <span className="truncate">{thread.title}</span>
-                  </Link>
-                ))}
+              {threads &&
+                threads.length > 0 &&
+                threads
+                  .filter((thread) =>
+                    thread.title.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((thread) => (
+                    <Link
+                      key={thread.chatId}
+                      className={cn(
+                        "hover:bg-muted group flex items-center rounded-lg p-2 text-sm",
+                        chatId === thread.chatId &&
+                          "bg-primary/10 hover:bg-primary/10",
+                        newThreads.has(thread.chatId) &&
+                          "bg-primary/10 h-9 animate-pulse",
+                      )}
+                      href={`/chat/${thread.chatId}`}
+                    >
+                      <span className="truncate">{thread.title}</span>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <Trash className="size-4" />
+                      </Button>
+                    </Link>
+                  ))}
             </div>
           </ScrollArea>
         )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <UserButton user={user} />
+        {user ? (
+          <>
+            <Link
+              className="hover:bg-muted flex h-12 w-full items-center space-x-3 rounded-lg p-2 transition-colors"
+              href="/settings"
+            >
+              <div className="flex-shrink-0">
+                <Avatar>
+                  {user.image && (
+                    <AvatarImage
+                      src={user.image}
+                      alt={user.name}
+                      className="h-8 w-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <AvatarFallback>
+                    {user.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{user.name}</p>
+              </div>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              className="hover:bg-muted flex h-12 w-full items-center rounded-lg p-2 transition-colors"
+              href="/login"
+            >
+              <LogIn className="mr-3 size-4" />
+              Login
+            </Link>
+          </>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

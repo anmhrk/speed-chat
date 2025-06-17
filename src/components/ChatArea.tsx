@@ -1,13 +1,13 @@
 "use client";
 
 import { ChatInput } from "@/components/ChatInput";
-import type { User } from "better-auth";
 import { Messages } from "@/components/Messages";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "ai";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { Doc } from "../../convex/_generated/dataModel";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 12 in Rust",
@@ -17,7 +17,7 @@ const PROMPT_SUGGESTIONS = [
 ];
 
 interface ChatAreaProps {
-  user: User | null | undefined;
+  user: Doc<"users"> | null;
   messages: Message[];
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -171,7 +171,7 @@ export function ChatArea({
             <>
               <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
                 {user
-                  ? `How can I help you, ${user.name.split(" ")[0]}?`
+                  ? `How can I help you, ${user.name?.split(" ")[0]}?`
                   : "How can I help you?"}
               </h1>
               <div className="grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2">

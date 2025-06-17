@@ -3,30 +3,28 @@
 import { Header } from "@/components/Header";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
-import type { User } from "better-auth";
-import type { Models, ReasoningEfforts, Providers, Thread } from "@/lib/types";
-import { useState, useEffect } from "react";
+import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
+import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchMessages,
-  fetchThreads,
-  generateThreadTitle,
-  createInitialChat,
-} from "@/lib/actions";
-import { useRouter } from "next/navigation";
 import { useChatContext } from "@/components/providers/ChatProvider";
 import { type Message, createIdGenerator } from "ai";
+import {
+  Preloaded,
+  useMutation,
+  usePreloadedQuery,
+  useQuery,
+  useAction,
+} from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 interface ChatPageProps {
   initialChatId?: string | null;
-  user: User | null;
+  preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
 }
 
-export function ChatPage({ initialChatId, user }: ChatPageProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
+  const user = usePreloadedQuery(preloadedUser);
   const chatContext = useChatContext();
   const [chatId, setChatId] = useState<string | null>(initialChatId || null);
   const [model, setModel] = useState<Models | null>(null);
@@ -40,41 +38,30 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
 
   const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
 
-  const {
-    data: messagesData,
-    isLoading: messagesLoading,
-    isError: isMessagesError,
-    error: messagesError,
-  } = useQuery({
-    queryKey: ["messages", chatId],
-    queryFn: () => fetchMessages(chatId!, user!.id),
-    enabled: !!shouldFetchMessages && !!user?.id && !temporaryChat,
-  });
+  const threadsData = useQuery(api.chat.fetchThreads);
+  const isLoadingThreads = threadsData === undefined;
 
-  const {
-    data: threadsData,
-    isLoading: threadsLoading,
-    isError: isThreadsError,
-    error: threadsError,
-  } = useQuery({
-    queryKey: ["threads", user?.id],
-    queryFn: () => fetchThreads(user!.id),
-    enabled: !!user?.id,
-  });
+  const messagesData = useQuery(
+    api.chat.fetchMessages,
+    shouldFetchMessages && chatId ? { chatId } : "skip",
+  );
+  const isLoadingMessages = Boolean(
+    shouldFetchMessages && messagesData === undefined,
+  );
 
-  useEffect(() => {
-    if (isThreadsError) {
-      toast.error(threadsError?.message || "Error fetching threads");
-      router.push("/");
-    }
-  }, [isThreadsError, threadsError, router]);
+  const initialMessages: Message[] = messagesData
+    ? messagesData.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        createdAt: new Date(message.createdAt),
+      }))
+    : [];
 
-  useEffect(() => {
-    if (isMessagesError) {
-      toast.error(messagesError?.message || "Error fetching messages");
-      router.push("/");
-    }
-  }, [isMessagesError, messagesError, router]);
+  const createInitialChat = useMutation(api.chat.createInitialChat);
+  const generateThreadTitle = useAction(api.chat.generateThreadTitle);
+
+  console.log(messagesData);
 
   const {
     messages,
@@ -89,7 +76,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
     append,
   } = useChat({
     id: chatId || undefined,
-    initialMessages: messagesData || [],
+    initialMessages,
     credentials: "include",
     sendExtraMessageFields: true,
     generateId: createIdGenerator({
@@ -98,7 +85,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
     }),
     body: {
       chatId: chatId || undefined,
-      userId: user?.id || undefined,
+      userId: user?._id || undefined,
       model: model,
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
@@ -158,30 +145,22 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
 
       setChatId(newChatId);
       chatContext.addNewChatId(newChatId);
-      await createInitialChat(newChatId, user.id);
+      await createInitialChat({ chatId: newChatId });
 
       // Add a small delay to ensure the database write is complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Update threads data in the query cache to show new chat in the sidebar immediately
-      queryClient.setQueryData(["threads", user!.id], (old: Thread[] = []) => [
-        {
-          id: newChatId,
-          title: "New Chat",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        ...old,
-      ]);
-
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
       // Start both in parallel
-      const [, generatedTitle] = await Promise.all([
+      await Promise.all([
         handleSubmit(e),
         (async () => {
           try {
-            const title = await generateThreadTitle(newChatId, userMessage);
+            const title = await generateThreadTitle({
+              chatId: newChatId,
+              prompt: userMessage,
+            });
             return title;
           } catch (error) {
             console.error(error);
@@ -190,17 +169,6 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
         })(),
       ]);
 
-      // Update the threads cache with the real title
-      queryClient.setQueryData(["threads", user!.id], (old: Thread[] = []) =>
-        old.map((thread) =>
-          thread.id === newChatId
-            ? { ...thread, title: generatedTitle }
-            : thread,
-        ),
-      );
-
-      // To prevent refetch when the query becomes enabled after removing from new chat set
-      queryClient.setQueryData(["messages", newChatId], messages);
       chatContext.removeNewChatId(newChatId);
     } else {
       handleSubmit(e);
@@ -216,8 +184,8 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
       />
       <AppSidebar
         user={user}
-        threads={threadsData || []}
-        isLoading={threadsLoading}
+        threads={threadsData}
+        isLoading={isLoadingThreads}
         newThreads={chatContext.newChatIds}
         chatId={chatId}
         setChatId={setChatId}
@@ -241,7 +209,7 @@ export function ChatPage({ initialChatId, user }: ChatPageProps) {
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
-          isLoadingChat={messagesLoading}
+          isLoadingChat={isLoadingMessages}
           temporaryChat={temporaryChat}
           append={append}
           setMessages={setMessages}

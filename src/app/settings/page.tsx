@@ -1,13 +1,14 @@
 import SettingsGeneralPage from "@/components/SettingsGeneralPage";
-import { getUser } from "@/lib/auth/get-user";
-import { redirect } from "next/navigation";
+import { preloadQuery } from "convex/nextjs";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { api } from "../../../convex/_generated/api";
 
 export default async function GeneralPage() {
-  const user = await getUser();
+  const preloadedUser = await preloadQuery(
+    api.auth.getCurrentUser,
+    {},
+    { token: await convexAuthNextjsToken() },
+  );
 
-  if (!user) {
-    redirect("/");
-  }
-
-  return <SettingsGeneralPage user={user} />;
+  return <SettingsGeneralPage preloadedUser={preloadedUser} />;
 }

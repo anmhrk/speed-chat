@@ -22,8 +22,8 @@ export function Messages({
 
   return (
     <div className="flex w-full flex-col gap-12">
-      {messages.map((message, index) => (
-        <div key={message.id} className="w-full" data-message-index={index}>
+      {messages.map((message) => (
+        <div key={message.id} className="w-full">
           {message.role === "user" ? (
             <UserMessage
               message={message}

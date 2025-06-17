@@ -10,20 +10,19 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
-import { db } from "@/lib/db";
-import { chat } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import type { Message } from "ai";
 import { format } from "date-fns";
-import { getUser } from "@/lib/auth/get-user";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { fetchMutation } from "convex/nextjs";
+import { api } from "../../../../convex/_generated/api";
 
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
     const { messages, model, apiKeys, chatId, temporaryChat } = body;
 
-    const user = await getUser();
-    if (!user) {
+    const token = await convexAuthNextjsToken();
+    if (!token) {
       throw new Error("Unauthorized");
     }
 
@@ -80,15 +79,17 @@ export async function POST(request: NextRequest) {
                     : String(msg.content),
             }));
 
-          const allMessages: Message[] = [...messages, ...responseMessages];
+          const allMessages = [...messages, ...responseMessages].map((msg) => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            createdAt: msg.createdAt ? msg.createdAt.getTime() : Date.now(),
+          }));
 
-          await db
-            .update(chat)
-            .set({
-              messages: allMessages,
-              updatedAt: new Date(),
-            })
-            .where(eq(chat.id, chatId));
+          await fetchMutation(api.chat.updateChatMessages, {
+            chatId,
+            messages: allMessages,
+          });
         } catch (error) {
           console.error("[Chat API] Database save failed:", error);
         }
@@ -121,21 +122,28 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          const errorMessage: Message = {
+          const errorMessage = {
             id: `error-${crypto.randomUUID()}`,
-            role: "assistant",
+            role: "assistant" as const,
             content: errorContent,
-            createdAt: new Date(),
+            createdAt: Date.now(),
           };
 
-          const messagesWithError: Message[] = [...messages, errorMessage];
+          const messagesWithError = [...messages, errorMessage].map((msg) => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            createdAt: msg.createdAt
+              ? typeof msg.createdAt === "number"
+                ? msg.createdAt
+                : msg.createdAt.getTime()
+              : Date.now(),
+          }));
 
-          db.update(chat)
-            .set({
-              messages: messagesWithError,
-              updatedAt: new Date(),
-            })
-            .where(eq(chat.id, chatId));
+          fetchMutation(api.chat.updateChatMessages, {
+            chatId,
+            messages: messagesWithError,
+          });
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",

@@ -16,36 +16,22 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { User } from "better-auth";
 import { useState } from "react";
-import { signOut } from "@/lib/auth/auth-client";
-import { useRouter } from "next/navigation";
+import { Preloaded, usePreloadedQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useAuthActions } from "@convex-dev/auth/react";
 
 interface SettingsGeneralPageProps {
-  user: User;
+  preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
 }
 
 export default function SettingsGeneralPage({
-  user,
+  preloadedUser,
 }: SettingsGeneralPageProps) {
-  const router = useRouter();
+  const user = usePreloadedQuery(preloadedUser);
+  const { signOut } = useAuthActions();
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            router.push("/");
-          },
-        },
-      });
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     if (
@@ -61,6 +47,11 @@ export default function SettingsGeneralPage({
     alert("Account deletion not yet implemented");
     setIsDeletingAccount(false);
   };
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -83,7 +74,7 @@ export default function SettingsGeneralPage({
                   />
                 )}
                 <AvatarFallback className="text-xl font-semibold">
-                  {user.name.charAt(0).toUpperCase()}
+                  {user.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
@@ -96,13 +87,17 @@ export default function SettingsGeneralPage({
                 <div className="bg-muted inline-flex items-center gap-1.5 rounded-full px-2.5 py-1">
                   <div className="h-2 w-2 rounded-full bg-green-500"></div>
                   <span className="text-xs font-medium">
-                    Member since {new Date(user.createdAt).toLocaleDateString()}
+                    Member since{" "}
+                    {new Date(user._creationTime).toLocaleDateString()}
                   </span>
                 </div>
               </div>
             </div>
             <Button
-              onClick={handleSignOut}
+              onClick={async () => {
+                setIsSigningOut(true);
+                await signOut().finally(() => setIsSigningOut(false));
+              }}
               disabled={isSigningOut}
               className="flex shrink-0 items-center gap-2"
             >

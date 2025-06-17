@@ -1,8 +1,14 @@
 import { ChatPage } from "@/components/ChatPage";
-import { getUser } from "@/lib/auth/get-user";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { preloadQuery } from "convex/nextjs";
+import { api } from "../../../convex/_generated/api";
 
 export default async function Home() {
-  const user = await getUser();
+  const preloadedUser = await preloadQuery(
+    api.auth.getCurrentUser,
+    {},
+    { token: await convexAuthNextjsToken() },
+  );
 
-  return <ChatPage user={user} />;
+  return <ChatPage preloadedUser={preloadedUser} />;
 }
