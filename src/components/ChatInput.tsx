@@ -14,19 +14,19 @@ import {
 // import { Card, CardContent } from "@/components/ui/card";
 // import { useRouter } from "next/navigation";
 // import { getRateLimitStatus } from "@/lib/ratelimit/status";
-import type { User } from "better-auth";
 import type {
   ReasoningEfforts,
   Models,
   Providers,
   // RateLimitInfo,
 } from "@/lib/types";
+import { Doc } from "../../convex/_generated/dataModel";
 
 interface ChatInputProps {
   prompt: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent) => void;
-  user: User | null | undefined;
+  user: Doc<"users"> | null;
   showScrollToBottom: boolean;
   scrollToBottom: () => void;
   status: "error" | "submitted" | "streaming" | "ready";

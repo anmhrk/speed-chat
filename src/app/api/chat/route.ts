@@ -12,7 +12,6 @@ import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import type { Message } from "ai";
 import { format } from "date-fns";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
 
@@ -21,10 +20,8 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest = await request.json();
     const { messages, model, apiKeys, chatId, temporaryChat } = body;
 
-    const token = await convexAuthNextjsToken();
-    if (!token) {
-      throw new Error("Unauthorized");
-    }
+    // TODO: check if user is authenticated
+    // should you pass token to the fetchMutations?
 
     let freeGeminiFlash = false;
     if (
@@ -83,7 +80,13 @@ export async function POST(request: NextRequest) {
             id: msg.id,
             role: msg.role as "user" | "assistant",
             content: msg.content,
-            createdAt: msg.createdAt ? msg.createdAt.getTime() : Date.now(),
+            createdAt: msg.createdAt
+              ? msg.createdAt instanceof Date
+                ? msg.createdAt.getTime()
+                : typeof msg.createdAt === "number"
+                  ? msg.createdAt
+                  : Date.now()
+              : Date.now(),
           }));
 
           await fetchMutation(api.chat.updateChatMessages, {
@@ -134,9 +137,11 @@ export async function POST(request: NextRequest) {
             role: msg.role as "user" | "assistant",
             content: msg.content,
             createdAt: msg.createdAt
-              ? typeof msg.createdAt === "number"
-                ? msg.createdAt
-                : msg.createdAt.getTime()
+              ? msg.createdAt instanceof Date
+                ? msg.createdAt.getTime()
+                : typeof msg.createdAt === "number"
+                  ? msg.createdAt
+                  : Date.now()
               : Date.now(),
           }));
 

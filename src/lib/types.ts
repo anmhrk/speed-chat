@@ -55,7 +55,6 @@ export type ChatRequest = {
   model: Models;
   reasoningEffort: ReasoningEfforts | null;
   apiKeys: Record<Providers, string>;
-  userId: string;
   temporaryChat: boolean;
 };
 

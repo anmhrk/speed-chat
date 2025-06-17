@@ -61,8 +61,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
   const createInitialChat = useMutation(api.chat.createInitialChat);
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
 
-  console.log(messagesData);
-
   const {
     messages,
     input,
@@ -85,7 +83,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }),
     body: {
       chatId: chatId || undefined,
-      userId: user?._id || undefined,
       model: model,
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
