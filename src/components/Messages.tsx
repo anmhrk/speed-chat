@@ -32,7 +32,11 @@ export function Messages({
               allMessages={messages}
             />
           ) : (
-            <AssistantMessage message={message} reload={reload} />
+            <AssistantMessage
+              message={message}
+              reload={reload}
+              isLastMessage={message.id === messages[messages.length - 1]?.id}
+            />
           )}
         </div>
       ))}

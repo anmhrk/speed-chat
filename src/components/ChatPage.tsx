@@ -61,6 +61,8 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
   const createInitialChat = useMutation(api.chat.createInitialChat);
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
 
+  console.log(chatContext.newChatIds);
+
   const {
     messages,
     input,
