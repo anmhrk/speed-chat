@@ -19,7 +19,9 @@ const schema = defineSchema({
         createdAt: v.number(),
       }),
     ),
-  }),
+  })
+    .index("by_user_id", ["userId"])
+    .index("by_chat_id", ["chatId"]),
 });
 
 export default schema;

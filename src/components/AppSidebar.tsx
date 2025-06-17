@@ -9,11 +9,20 @@ import { ThreadSearchInput } from "@/components/ThreadSearchInput";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Loader2, Trash, LogIn } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Doc } from "../../convex/_generated/dataModel";
+import { useRouter } from "next/navigation";
+import { useMobile } from "@/hooks/useMobile";
+import {
+  isToday,
+  isYesterday,
+  isWithinInterval,
+  subDays,
+  startOfDay,
+} from "date-fns";
 
 interface AppSidebarProps {
   user: Doc<"users"> | null;
@@ -24,6 +33,48 @@ interface AppSidebarProps {
   setChatId: (chatId: string | null) => void;
 }
 
+function categorizeThreadsByTime(threads: Doc<"chats">[], search: string) {
+  const now = new Date();
+  const sevenDaysAgo = startOfDay(subDays(now, 7));
+
+  const filteredThreads = threads.filter((thread) =>
+    thread.title.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const todayThreads = filteredThreads
+    .filter((thread) => isToday(new Date(thread.updatedAt)))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const yesterdayThreads = filteredThreads
+    .filter((thread) => isYesterday(new Date(thread.updatedAt)))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const past7DaysThreads = filteredThreads
+    .filter((thread) => {
+      const threadDate = new Date(thread.updatedAt);
+      return (
+        !isToday(threadDate) &&
+        !isYesterday(threadDate) &&
+        isWithinInterval(threadDate, { start: sevenDaysAgo, end: now })
+      );
+    })
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+  const olderThreads = filteredThreads
+    .filter((thread) => {
+      const threadDate = new Date(thread.updatedAt);
+      return !isWithinInterval(threadDate, { start: sevenDaysAgo, end: now });
+    })
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+
+  return {
+    today: todayThreads,
+    yesterday: yesterdayThreads,
+    past7Days: past7DaysThreads,
+    older: olderThreads,
+  };
+}
+
 export function AppSidebar({
   user,
   threads,
@@ -32,7 +83,50 @@ export function AppSidebar({
   chatId,
   setChatId,
 }: AppSidebarProps) {
+  const router = useRouter();
   const [search, setSearch] = useState<string>("");
+  const isMobile = useMobile();
+
+  const categorizedThreads = useMemo(() => {
+    if (!threads) return null;
+    return categorizeThreadsByTime(threads, search);
+  }, [threads, search]);
+
+  const renderThreadSection = (title: string, threads: Doc<"chats">[]) => {
+    if (threads.length === 0) return null;
+
+    return (
+      <div key={title} className="mb-4">
+        <h3 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
+          {title}
+        </h3>
+        <div className="flex flex-col space-y-2">
+          {threads.map((thread) => (
+            <Link
+              key={thread.chatId}
+              href={`/chat/${thread.chatId}`}
+              className={cn(
+                "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
+                chatId === thread.chatId && "bg-primary/10 hover:bg-primary/10",
+                newThreads.has(thread.chatId) &&
+                  "bg-primary/10 h-9 animate-pulse",
+              )}
+            >
+              {/* TODO: Fix this manual width control. probably bad css */}
+              <span
+                className={cn(
+                  "max-w-[205px] truncate",
+                  isMobile && "max-w-[240px]",
+                )}
+              >
+                {thread.title}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Sidebar>
@@ -51,10 +145,12 @@ export function AppSidebar({
         <div className="mt-4">
           <Button
             className="w-full font-semibold"
-            asChild
-            onClick={() => setChatId(null)}
+            onClick={() => {
+              setChatId(null);
+              router.push("/");
+            }}
           >
-            <Link href="/">New Chat</Link>
+            New Chat
           </Button>
 
           <ThreadSearchInput search={search} setSearch={setSearch} />
@@ -68,37 +164,17 @@ export function AppSidebar({
           </div>
         ) : (
           <ScrollArea className="h-full">
-            <div className="space-y-2">
-              {threads &&
-                threads.length > 0 &&
-                threads
-                  .filter((thread) =>
-                    thread.title.toLowerCase().includes(search.toLowerCase()),
-                  )
-                  .map((thread) => (
-                    <Link
-                      key={thread.chatId}
-                      className={cn(
-                        "hover:bg-muted group flex items-center rounded-lg p-2 text-sm",
-                        chatId === thread.chatId &&
-                          "bg-primary/10 hover:bg-primary/10",
-                        newThreads.has(thread.chatId) &&
-                          "bg-primary/10 h-9 animate-pulse",
-                      )}
-                      href={`/chat/${thread.chatId}`}
-                    >
-                      <span className="truncate">{thread.title}</span>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <Trash className="size-4" />
-                      </Button>
-                    </Link>
-                  ))}
-            </div>
+            {categorizedThreads && (
+              <div className="space-y-1">
+                {renderThreadSection("Today", categorizedThreads.today)}
+                {renderThreadSection("Yesterday", categorizedThreads.yesterday)}
+                {renderThreadSection(
+                  "Past 7 days",
+                  categorizedThreads.past7Days,
+                )}
+                {renderThreadSection("Older", categorizedThreads.older)}
+              </div>
+            )}
           </ScrollArea>
         )}
       </SidebarContent>
