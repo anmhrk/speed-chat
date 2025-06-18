@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Doc } from "../../convex/_generated/dataModel";
 
 const PROMPT_SUGGESTIONS = [
-  "Solve Advent of Code 2021 Day 12 in Rust",
+  "Solve Advent of Code 2021 Day 10 in Python",
   "Compose a poem about the feeling of love",
   "Is React Native actually better than Flutter?",
   "What is a black hole? Explain like I'm 5",

@@ -92,21 +92,22 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, [messagesError]);
 
-  const initialMessages: Message[] = messagesData
-    ? messagesData.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        createdAt: new Date(message.createdAt),
-      }))
-    : [];
-
   const { mutate: createInitialChat, isPending: isCreatingInitialChat } =
     useMutation({
       mutationFn: useConvexMutation(api.chat.createInitialChat),
     });
 
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
+
+  const initialMessages: Message[] = messagesData
+    ? messagesData.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        reasoning: message.reasoning,
+        createdAt: new Date(message.createdAt),
+      }))
+    : [];
 
   const {
     messages,
@@ -128,6 +129,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       prefix: "user",
       size: 16,
     }),
+    experimental_throttle: 200,
     body: {
       chatId: chatId || undefined,
       model: model,
@@ -159,8 +161,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       });
     },
   });
-
-  console.log("messages", messages);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

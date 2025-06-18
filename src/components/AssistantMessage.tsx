@@ -33,12 +33,38 @@ import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 
+// Extended Message type to include reasoning
+type ExtendedMessage = Message & {
+  reasoning?: string;
+};
+
 interface AssistantMessageProps {
-  message: Message;
+  message: ExtendedMessage;
   reload: () => void;
   isLastMessage: boolean;
   isStreaming?: boolean;
 }
+
+// Type definitions for streaming content parts
+type StreamingTextPart = {
+  type: "text";
+  text: string;
+};
+
+type StreamingReasoningPart = {
+  type: "reasoning";
+  details?: Array<{ type: "text"; text: string }>;
+  reasoning?: string;
+  text?: string;
+};
+
+type StreamingPart = StreamingTextPart | StreamingReasoningPart;
+
+type MessagePart = {
+  type: "text" | "reasoning";
+  text?: string;
+  reasoning?: string;
+};
 
 const CodeBlock = memo(function CodeBlock({
   children,
@@ -166,20 +192,64 @@ export function AssistantMessage({
   const [copied, setCopied] = useState(false);
   const isError = message.id.startsWith("error-");
 
-  // Handle both old content format and new parts format
-  const getMessageContent = () => {
-    if (message.parts && Array.isArray(message.parts)) {
-      return message.parts;
+  // Parse content to extract reasoning and text parts
+  const getMessageContent = (): MessagePart[] => {
+    // Check if message has parts (streaming format)
+    if ("parts" in message && Array.isArray(message.parts)) {
+      const streamingParts = message.parts as StreamingPart[];
+      const parsedParts: MessagePart[] = [];
+
+      for (const part of streamingParts) {
+        if (part.type === "text") {
+          parsedParts.push({ type: "text", text: part.text || "" });
+        } else if (part.type === "reasoning") {
+          // Handle streaming reasoning format
+          if (part.details && Array.isArray(part.details)) {
+            const reasoningText = part.details
+              .filter((detail) => detail.type === "text")
+              .map((detail) => detail.text)
+              .join("");
+            parsedParts.push({ type: "reasoning", reasoning: reasoningText });
+          } else {
+            // Fallback for direct reasoning text
+            parsedParts.push({
+              type: "reasoning",
+              reasoning: part.reasoning || part.text || "",
+            });
+          }
+        }
+      }
+
+      return parsedParts;
     }
-    // Fallback to old content format
-    return [{ type: "text" as const, text: message.content }];
+
+    // For saved messages, use the reasoning field from the database
+    const parts: MessagePart[] = [];
+
+    // Add reasoning from database if it exists
+    if (message.reasoning && message.reasoning.trim()) {
+      parts.push({
+        type: "reasoning",
+        reasoning: message.reasoning,
+      });
+    }
+
+    // Add the main content as text
+    if (message.content && message.content.trim()) {
+      parts.push({
+        type: "text",
+        text: message.content,
+      });
+    }
+
+    return parts;
   };
 
   const handleCopy = () => {
     const parts = getMessageContent();
     const textParts = parts
       .filter((part) => part.type === "text")
-      .map((part) => ("text" in part ? part.text : ""))
+      .map((part) => part.text || "")
       .join("\n");
     const plainText = removeMarkdown(textParts);
     navigator.clipboard.writeText(plainText);
@@ -306,7 +376,7 @@ export function AssistantMessage({
                         ),
                       }}
                     >
-                      {"text" in part ? part.text : ""}
+                      {part.text || ""}
                     </ReactMarkdown>
                   </div>
                 );
@@ -316,7 +386,7 @@ export function AssistantMessage({
                 return (
                   <ReasoningBlock
                     key={index}
-                    reasoning={"reasoning" in part ? part.reasoning : ""}
+                    reasoning={part.reasoning || ""}
                     isStreaming={isLastMessage && isStreaming}
                   />
                 );

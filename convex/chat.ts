@@ -183,6 +183,7 @@ export const updateChatMessages = mutation({
         id: v.string(),
         role: v.union(v.literal("user"), v.literal("assistant")),
         content: v.string(),
+        reasoning: v.optional(v.string()),
         createdAt: v.number(),
       }),
     ),

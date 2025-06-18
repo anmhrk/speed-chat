@@ -5,6 +5,7 @@ import {
   InvalidPromptError,
   RetryError,
   createIdGenerator,
+  Message,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@ai-sdk/anthropic";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
-import type { Message } from "ai";
 import { format } from "date-fns";
 import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
@@ -112,7 +112,8 @@ export async function POST(request: NextRequest) {
             return;
           }
 
-          const responseMessages: Message[] = response.messages
+          let reasoning = "";
+          const processedResponseMessages: Message[] = response.messages
             .filter((msg) => msg.role !== "tool")
             .map((msg) => ({
               id: msg.id,
@@ -122,30 +123,37 @@ export async function POST(request: NextRequest) {
                 typeof msg.content === "string"
                   ? msg.content
                   : Array.isArray(msg.content)
-                    ? msg.content
-                        .map((part) =>
-                          part.type === "text"
-                            ? part.text
-                            : part.type === "tool-call"
-                              ? `Tool call: ${part.toolName}`
-                              : "Non-text content",
-                        )
-                        .join(" ")
+                    ? (() => {
+                        const textParts: string[] = [];
+
+                        msg.content.forEach((part) => {
+                          if (part.type === "text") {
+                            textParts.push(part.text);
+                          } else if (part.type === "reasoning") {
+                            reasoning = part.text;
+                          }
+                        });
+
+                        return textParts.join(" ");
+                      })()
                     : String(msg.content),
             }));
 
-          const allMessages = [...messages, ...responseMessages].map((msg) => ({
-            id: msg.id,
-            role: msg.role as "user" | "assistant",
-            content: msg.content,
-            createdAt: msg.createdAt
-              ? msg.createdAt instanceof Date
-                ? msg.createdAt.getTime()
-                : typeof msg.createdAt === "number"
-                  ? msg.createdAt
-                  : Date.now()
-              : Date.now(),
-          }));
+          const allMessages = [...messages, ...processedResponseMessages].map(
+            (msg) => ({
+              id: msg.id,
+              role: msg.role as "user" | "assistant",
+              content: msg.content,
+              createdAt: msg.createdAt
+                ? msg.createdAt instanceof Date
+                  ? msg.createdAt.getTime()
+                  : typeof msg.createdAt === "number"
+                    ? msg.createdAt
+                    : Date.now()
+                : Date.now(),
+              reasoning,
+            }),
+          );
 
           await fetchMutation(
             api.chat.updateChatMessages,
@@ -170,8 +178,8 @@ export async function POST(request: NextRequest) {
               4,
           );
 
-          const completionContent = responseMessages
-            .map((msg) => msg.content)
+          const completionContent = processedResponseMessages
+            .flatMap((msg) => msg.content)
             .join(" ");
           const approximateCompletionTokens = Math.ceil(
             completionContent.length / 4,

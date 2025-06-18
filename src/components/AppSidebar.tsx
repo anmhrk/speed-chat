@@ -141,12 +141,10 @@ export function AppSidebar({
         </div>
 
         <div className="mt-4">
-          <Button
-            className="w-full font-semibold"
-            onClick={() => setChatId(null)}
-            asChild
-          >
-            <Link href="/">New Chat</Link>
+          <Button className="w-full font-semibold" asChild>
+            <Link href="/" onClick={() => setChatId(null)}>
+              New Chat
+            </Link>
           </Button>
 
           <ThreadSearchInput search={search} setSearch={setSearch} />
@@ -181,6 +179,7 @@ export function AppSidebar({
             <Link
               className="hover:bg-muted flex h-12 w-full items-center space-x-3 rounded-lg p-2 transition-colors"
               href="/settings"
+              onClick={() => setChatId(null)}
             >
               <div className="flex-shrink-0">
                 <Avatar>
