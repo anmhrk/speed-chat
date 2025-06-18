@@ -18,7 +18,14 @@ import { api } from "../../../../convex/_generated/api";
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { messages, model, apiKeys, chatId, temporaryChat } = body;
+    const {
+      messages,
+      model,
+      apiKeys,
+      chatId,
+      temporaryChat,
+      customizationSettings,
+    } = body;
 
     // TODO: check if user is authenticated
     // should you pass token to the fetchMutations?
@@ -53,6 +60,18 @@ export async function POST(request: NextRequest) {
           - Ensure it is properly formatted using Prettier with a print width of 80 characters
           - Inline code should be wrapped in backticks: \`content\`
           - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
+
+        ${
+          customizationSettings
+            ? `
+            This is some extra settings set by the user:
+            - Name of the user: ${customizationSettings.name}
+            - Profession of the user: ${customizationSettings.whatYouDo}
+            - Specifics on how to respond to the user: ${customizationSettings.howToRespond}
+            - Some additional information about the user: ${customizationSettings.additionalInfo}
+            `
+            : ""
+        }
         `,
       experimental_generateMessageId: createIdGenerator({
         prefix: "assistant",

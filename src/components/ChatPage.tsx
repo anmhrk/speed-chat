@@ -3,8 +3,13 @@
 import { Header } from "@/components/Header";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
-import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
-import { useState } from "react";
+import type {
+  Models,
+  ReasoningEfforts,
+  Providers,
+  CustomizationSettings,
+} from "@/lib/types";
+import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { useChatContext } from "@/components/providers/ChatProvider";
@@ -34,7 +39,17 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
   const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
     null,
   );
+  const [customizationSettings, setCustomizationSettings] =
+    useState<CustomizationSettings | null>(null);
   const [temporaryChat, setTemporaryChat] = useState<boolean>(false);
+
+  useEffect(() => {
+    const savedSettings = localStorage.getItem("customization_settings");
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      setCustomizationSettings(parsed);
+    }
+  }, []);
 
   const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
 
@@ -60,8 +75,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
 
   const createInitialChat = useMutation(api.chat.createInitialChat);
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
-
-  console.log(chatContext.newChatIds);
 
   const {
     messages,
@@ -89,6 +102,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       reasoningEffort: reasoningEffort,
       apiKeys: apiKeys,
       temporaryChat: temporaryChat,
+      customizationSettings: customizationSettings,
     },
     onError: (error) => {
       const errorMessage = {
@@ -145,9 +159,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       setChatId(newChatId);
       chatContext.addNewChatId(newChatId);
       await createInitialChat({ chatId: newChatId });
-
-      // Add a small delay to ensure the database write is complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 

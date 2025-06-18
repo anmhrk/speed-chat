@@ -66,8 +66,8 @@ export function ChatInput({
   // );
 
   useEffect(() => {
-    const savedModel = localStorage.getItem("selectedModel");
-    const savedReasoningEffort = localStorage.getItem("reasoningEffort");
+    const savedModel = localStorage.getItem("selected_model");
+    const savedReasoningEffort = localStorage.getItem("reasoning_effort");
 
     let keys: Record<Providers, string> = {
       openrouter: "",
@@ -131,14 +131,14 @@ export function ChatInput({
 
   const handleModelChange = (newModel: Models) => {
     setModel(newModel);
-    localStorage.setItem("selectedModel", newModel);
+    localStorage.setItem("selected_model", newModel);
   };
 
   const handleReasoningEffortChange = (
     newReasoningEffort: ReasoningEfforts,
   ) => {
     setReasoningEffort(newReasoningEffort);
-    localStorage.setItem("reasoningEffort", newReasoningEffort);
+    localStorage.setItem("reasoning_effort", newReasoningEffort);
   };
 
   // Fetch rate limit info when using Gemini 2.5 Flash without API key

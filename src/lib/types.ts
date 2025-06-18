@@ -56,6 +56,7 @@ export type ChatRequest = {
   reasoningEffort: ReasoningEfforts | null;
   apiKeys: Record<Providers, string>;
   temporaryChat: boolean;
+  customizationSettings: CustomizationSettings | null;
 };
 
 export type Thread = {
