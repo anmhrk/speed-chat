@@ -48,8 +48,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, []);
 
-  const shouldFetchMessages = chatId && !newChatIds.has(chatId);
-
   const {
     data: threadsData,
     isPending: isLoadingThreads,
@@ -59,22 +57,24 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     enabled: Boolean(user),
   });
 
+  const shouldFetchMessages = Boolean(
+    chatId && !newChatIds.has(chatId) && user,
+  );
+
   const messagesQueryResult = useQuery({
     ...convexQuery(api.chat.fetchMessages, {
       chatId: chatId || "",
     }),
-    enabled: Boolean(shouldFetchMessages && !!chatId),
+    enabled: shouldFetchMessages,
   });
 
   const {
     data: messagesData,
     isPending: isLoadingMessages,
     error: messagesError,
-  } = shouldFetchMessages && !!chatId
+  } = shouldFetchMessages
     ? messagesQueryResult
     : { data: undefined, isPending: false, error: null };
-
-  console.log(Boolean(shouldFetchMessages && !!chatId));
 
   useEffect(() => {
     if (threadsError) {
@@ -138,7 +138,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     },
     onError: (error) => {
       const errorMessage = {
-        id: crypto.randomUUID(),
+        id: `error-${crypto.randomUUID()}`,
         role: "assistant",
         content: error.message,
         createdAt: new Date(),
@@ -159,6 +159,8 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       });
     },
   });
+
+  console.log("messages", messages);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

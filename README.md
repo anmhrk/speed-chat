@@ -37,3 +37,4 @@ A fully featured AI chat app built with [Convex](https://www.convex.dev/) and [N
 - [ ] Chat context counter
 - [ ] Add metadata per assistant message like TPS, tokens, model
 - [ ] PWA support
+- [ ] Keyboard shortcuts

@@ -13,16 +13,34 @@ import {
   BarChart3,
   AlertTriangle,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Preloaded, usePreloadedQuery } from "convex/react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "../../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { toast } from "sonner";
 
 interface SettingsGeneralPageProps {
   preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1) + "B";
+  }
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + "M";
+  }
+  if (num >= 1_000) {
+    return (num / 1_000).toFixed(1) + "K";
+  }
+  return num.toString();
 }
 
 export default function SettingsGeneralPage({
@@ -31,7 +49,34 @@ export default function SettingsGeneralPage({
   const user = usePreloadedQuery(preloadedUser);
   const { signOut } = useAuthActions();
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+
+  const { data: usageData, isPending: isLoadingUsage } = useQuery(
+    convexQuery(api.chat.fetchUsage, {}),
+  );
+
+  const { mutate: resetUsage, isPending: isResettingUsage } = useMutation({
+    mutationFn: useConvexMutation(api.chat.resetUsage),
+    onSuccess: () => {
+      toast.success("Usage statistics reset successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to reset usage statistics", {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleResetUsage = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to reset your usage statistics? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    resetUsage({});
+  };
 
   const handleDeleteAccount = async () => {
     if (
@@ -42,10 +87,7 @@ export default function SettingsGeneralPage({
       return;
     }
 
-    setIsDeletingAccount(true);
-    // TODO: Implement account deletion
     alert("Account deletion not yet implemented");
-    setIsDeletingAccount(false);
   };
 
   if (!user) {
@@ -110,28 +152,72 @@ export default function SettingsGeneralPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="size-5" />
-            <span>Usage Statistics</span>
-          </CardTitle>
-          <CardDescription>Your Speed Chat usage overview</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="size-5" />
+                <span>Usage Statistics</span>
+              </CardTitle>
+              <CardDescription>Your Speed Chat usage overview</CardDescription>
+            </div>
+            {usageData &&
+              (usageData.messagesSent > 0 ||
+                usageData.chatsCreated > 0 ||
+                usageData.promptTokens > 0 ||
+                usageData.completionTokens > 0) && (
+                <Button
+                  onClick={handleResetUsage}
+                  disabled={isResettingUsage || isLoadingUsage}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <RotateCcw className="size-4" />
+                  <span>{isResettingUsage ? "Resetting..." : "Reset"}</span>
+                </Button>
+              )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="space-y-1 text-center">
-              <p className="text-2xl font-bold">--</p>
+              {isLoadingUsage ? (
+                <Skeleton className="mx-auto h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {usageData?.messagesSent ?? 0}
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">Messages Sent</p>
             </div>
             <div className="space-y-1 text-center">
-              <p className="text-2xl font-bold">--</p>
+              {isLoadingUsage ? (
+                <Skeleton className="mx-auto h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {usageData?.chatsCreated ?? 0}
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">Chat Threads</p>
             </div>
             <div className="space-y-1 text-center">
-              <p className="text-2xl font-bold">--</p>
+              {isLoadingUsage ? (
+                <Skeleton className="mx-auto h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {formatNumber(usageData?.promptTokens ?? 0)}
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">Tokens In</p>
             </div>
             <div className="space-y-1 text-center">
-              <p className="text-2xl font-bold">--</p>
+              {isLoadingUsage ? (
+                <Skeleton className="mx-auto h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {formatNumber(usageData?.completionTokens ?? 0)}
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">Tokens Out</p>
             </div>
           </div>
@@ -151,12 +237,11 @@ export default function SettingsGeneralPage({
         <CardContent className="space-y-4">
           <Button
             onClick={handleDeleteAccount}
-            disabled={isDeletingAccount}
             variant="destructive"
             className="flex items-center space-x-2"
           >
             <Trash2 className="size-4" />
-            <span>{isDeletingAccount ? "Deleting..." : "Delete Account"}</span>
+            <span>Delete Account</span>
           </Button>
           <p className="text-muted-foreground text-sm">
             <strong>Note: </strong>Once you delete your account, there is no

@@ -13,13 +13,17 @@ export const fetchMessages = query({
       throw new ConvexError("Not authenticated");
     }
 
+    if (!args.chatId || args.chatId.trim() === "") {
+      return [];
+    }
+
     const chat = await ctx.db
       .query("chats")
       .filter((q) => q.eq(q.field("chatId"), args.chatId))
       .first();
 
     if (!chat) {
-      throw new ConvexError("Chat not found");
+      return [];
     }
 
     if (chat.userId !== userId) {
@@ -67,6 +71,25 @@ export const createInitialChat = mutation({
       updatedAt: now,
       messages: [],
     });
+
+    const usage = await ctx.db
+      .query("usage")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!usage) {
+      await ctx.db.insert("usage", {
+        userId: userId,
+        promptTokens: 0,
+        completionTokens: 0,
+        chatsCreated: 1,
+        messagesSent: 0,
+      });
+    } else {
+      await ctx.db.patch(usage._id, {
+        chatsCreated: usage.chatsCreated + 1,
+      });
+    }
   },
 });
 
@@ -177,6 +200,77 @@ export const updateChatMessages = mutation({
     await ctx.db.patch(chat._id, {
       messages: args.messages,
       updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateUsage = mutation({
+  args: {
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Not authenticated");
+    }
+
+    const usage = await ctx.db
+      .query("usage")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!usage) {
+      throw new ConvexError("Usage not found");
+    }
+
+    await ctx.db.patch(usage._id, {
+      promptTokens: usage.promptTokens + args.promptTokens,
+      completionTokens: usage.completionTokens + args.completionTokens,
+      messagesSent: usage.messagesSent + 1,
+    });
+  },
+});
+
+export const fetchUsage = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Not authenticated");
+    }
+
+    const usage = await ctx.db
+      .query("usage")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    return usage;
+  },
+});
+
+export const resetUsage = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Not authenticated");
+    }
+
+    const usage = await ctx.db
+      .query("usage")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!usage) {
+      throw new ConvexError("Usage not found");
+    }
+
+    await ctx.db.patch(usage._id, {
+      promptTokens: 0,
+      completionTokens: 0,
+      chatsCreated: 0,
+      messagesSent: 0,
     });
   },
 });

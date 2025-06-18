@@ -157,7 +157,7 @@ export function AppSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="mt-1 px-4">
+      <SidebarContent className="mt-1">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="text-muted-foreground size-7 animate-spin" />
@@ -165,7 +165,7 @@ export function AppSidebar({
         ) : (
           <ScrollArea className="h-full">
             {categorizedThreads && (
-              <div className="space-y-1">
+              <div className="space-y-1 px-4">
                 {renderThreadSection("Today", categorizedThreads.today)}
                 {renderThreadSection("Yesterday", categorizedThreads.yesterday)}
                 {renderThreadSection(

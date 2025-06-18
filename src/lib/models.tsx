@@ -32,10 +32,9 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       />
     ),
     provider: "openai",
-    attachments: true,
   },
   {
-    id: "claude-sonnet-4",
+    id: "claude-4-sonnet-20250514",
     name: "Claude Sonnet 4",
     logo: (
       <Image
@@ -48,11 +47,9 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       />
     ),
     provider: "anthropic",
-    attachments: true,
-    search: true,
   },
   {
-    id: "claude-opus-4",
+    id: "claude-4-opus-20250514",
     name: "Claude Opus 4",
     logo: (
       <Image
@@ -65,7 +62,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       />
     ),
     provider: "anthropic",
-    attachments: true,
   },
   {
     id: "google/gemini-2.5-flash-preview-05-20",
@@ -81,7 +77,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     ),
     provider: "openrouter",
     default: true,
-    attachments: true,
   },
   {
     id: "google/gemini-2.5-pro-preview",
@@ -97,7 +92,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     ),
     provider: "openrouter",
     reasoning: true,
-    attachments: true,
   },
   {
     id: "o4-mini",
@@ -113,7 +107,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       />
     ),
     provider: "openai",
-    attachments: true,
     reasoning: true,
   },
   {
@@ -130,7 +123,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       />
     ),
     provider: "openai",
-    attachments: true,
     reasoning: true,
   },
 ];

@@ -8,8 +8,8 @@ export type Models =
   | "gpt-4.1-mini"
   | "o3"
   | "o4-mini"
-  | "claude-sonnet-4"
-  | "claude-opus-4";
+  | "claude-4-sonnet-20250514"
+  | "claude-4-opus-20250514";
 
 export type ReasoningEfforts = "low" | "medium" | "high";
 

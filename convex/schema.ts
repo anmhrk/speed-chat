@@ -5,6 +5,14 @@ import { v } from "convex/values";
 const schema = defineSchema({
   ...authTables,
 
+  usage: defineTable({
+    userId: v.id("users"),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    chatsCreated: v.number(),
+    messagesSent: v.number(),
+  }),
+
   chats: defineTable({
     chatId: v.string(),
     title: v.string(),

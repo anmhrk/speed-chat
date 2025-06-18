@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
     const body: ChatRequest = await request.json();
     const {
       messages,
-      model,
-      apiKeys,
       chatId,
+      model,
+      reasoningEffort,
+      apiKeys,
       temporaryChat,
       customizationSettings,
     } = body;
@@ -74,7 +75,15 @@ export async function POST(request: NextRequest) {
         size: 16,
       }),
       messages,
-      onFinish: async ({ response }) => {
+      // providerOptions: {
+      //   openai: {
+      //     reasoningEffort,
+      //   },
+      //   anthropic: {
+      //     thinking: { type: "enabled", budgetTokens: 1000 },
+      //   },
+      // },
+      onFinish: async ({ response, usage }) => {
         try {
           if (temporaryChat) {
             return;
@@ -123,6 +132,47 @@ export async function POST(request: NextRequest) {
             },
             { token },
           );
+
+          // Prompt tokens counts system prompt tokens too!!
+          // Also mesages are always incremented by 1 onFinish, even if
+          // edited message is sent which may or may not have wiped some user messages
+          // TODO: Fix this
+
+          // Calculate token approximations since OpenAI doesn't return usage
+          // Rough approximation: 1 token ≈ 4 characters for English text
+          // Probably move to js-tiktoken later?
+          const approximatePromptTokens = Math.ceil(
+            (JSON.stringify(messages).length +
+              (modelName ? modelName.length * 10 : 100)) /
+              4,
+          );
+
+          const completionContent = responseMessages
+            .map((msg) => msg.content)
+            .join(" ");
+          const approximateCompletionTokens = Math.ceil(
+            completionContent.length / 4,
+          );
+
+          // Use actual usage if available, otherwise use approximations
+          const finalPromptTokens =
+            !isNaN(usage.promptTokens) && usage.promptTokens > 0
+              ? usage.promptTokens
+              : approximatePromptTokens;
+
+          const finalCompletionTokens =
+            !isNaN(usage.completionTokens) && usage.completionTokens > 0
+              ? usage.completionTokens
+              : approximateCompletionTokens;
+
+          await fetchMutation(
+            api.chat.updateUsage,
+            {
+              promptTokens: finalPromptTokens,
+              completionTokens: finalCompletionTokens,
+            },
+            { token },
+          );
         } catch (error) {
           console.error("[Chat API] Database save failed:", error);
         }
@@ -130,6 +180,7 @@ export async function POST(request: NextRequest) {
     });
 
     return chatStream.toDataStreamResponse({
+      sendReasoning: true,
       getErrorMessage: (error) => {
         console.error("[Chat API] Error:", error);
 
