@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { Loader2, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Doc } from "../../convex/_generated/dataModel";
-import { useRouter } from "next/navigation";
 import { useMobile } from "@/hooks/useMobile";
 import {
   isToday,
@@ -83,7 +82,6 @@ export function AppSidebar({
   chatId,
   setChatId,
 }: AppSidebarProps) {
-  const router = useRouter();
   const [search, setSearch] = useState<string>("");
   const isMobile = useMobile();
 
@@ -145,12 +143,10 @@ export function AppSidebar({
         <div className="mt-4">
           <Button
             className="w-full font-semibold"
-            onClick={() => {
-              setChatId(null);
-              router.push("/");
-            }}
+            onClick={() => setChatId(null)}
+            asChild
           >
-            New Chat
+            <Link href="/">New Chat</Link>
           </Button>
 
           <ThreadSearchInput search={search} setSearch={setSearch} />

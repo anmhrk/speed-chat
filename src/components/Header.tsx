@@ -1,12 +1,12 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Share, Ghost, Settings, Key, Palette, Moon, Plus } from "lucide-react";
+import { Ghost, Settings, Key, Palette, Moon, Plus } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Toggle } from "@/components/ui/toggle";
+import Link from "next/link";
 
 export function Header({
   temporaryChat,
@@ -29,7 +30,6 @@ export function Header({
 }) {
   const pathname = usePathname();
   const isChatPage = pathname.includes("/chat");
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -43,13 +43,13 @@ export function Header({
                 variant="outline"
                 size="icon"
                 className="backdrop-blur-md"
-                onClick={() => {
-                  setChatId(null);
-                  router.push("/");
-                }}
+                onClick={() => setChatId(null)}
+                asChild
               >
-                <Plus className="size-5" />
-                <span className="sr-only">New Chat</span>
+                <Link href="/" className="flex items-center gap-2">
+                  <Plus className="size-5" />
+                  <span className="sr-only">New Chat</span>
+                </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent>New Chat</TooltipContent>
@@ -58,12 +58,12 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-1">
-        {isChatPage && (
+        {/* {isChatPage && (
           <Button variant="outline" className="backdrop-blur-md">
             <Share className="size-5" />
             <span className="text-sm">Share</span>
           </Button>
-        )}
+        )} */}
 
         <DropdownMenu>
           <Tooltip>
@@ -82,15 +82,20 @@ export function Header({
             <TooltipContent>Settings</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => router.push("/settings/keys")}>
-              <Key className="mr-2 size-4" />
-              Set API Keys
+            <DropdownMenuItem asChild>
+              <Link href="/settings/keys" className="flex items-center gap-2">
+                <Key className="mr-2 size-4" />
+                Set API Keys
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => router.push("/settings/customization")}
-            >
-              <Palette className="mr-2 size-4" />
-              Set Custom Instructions
+            <DropdownMenuItem asChild>
+              <Link
+                href="/settings/customization"
+                className="flex items-center gap-2"
+              >
+                <Palette className="mr-2 size-4" />
+                Set Custom Instructions
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

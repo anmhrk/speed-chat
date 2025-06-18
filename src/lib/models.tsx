@@ -23,7 +23,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     name: "GPT 4.1",
     logo: (
       <Image
-        src="/logos/OpenAI.svg"
+        src="/OpenAI.svg"
         alt="OpenAI"
         width={16}
         height={16}
@@ -34,71 +34,11 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     provider: "openai",
   },
   {
-    id: "claude-4-sonnet-20250514",
-    name: "Claude Sonnet 4",
-    logo: (
-      <Image
-        src="/logos/Anthropic.svg"
-        alt="Anthropic"
-        width={16}
-        height={16}
-        className="dark:invert"
-        unoptimized
-      />
-    ),
-    provider: "anthropic",
-  },
-  {
-    id: "claude-4-opus-20250514",
-    name: "Claude Opus 4",
-    logo: (
-      <Image
-        src="/logos/Anthropic.svg"
-        alt="Anthropic"
-        width={16}
-        height={16}
-        className="dark:invert"
-        unoptimized
-      />
-    ),
-    provider: "anthropic",
-  },
-  {
-    id: "google/gemini-2.5-flash-preview-05-20",
-    name: "Gemini 2.5 Flash",
-    logo: (
-      <Image
-        src="/logos/Google.svg"
-        alt="Google"
-        width={16}
-        height={16}
-        unoptimized
-      />
-    ),
-    provider: "openrouter",
-    default: true,
-  },
-  {
-    id: "google/gemini-2.5-pro-preview",
-    name: "Gemini 2.5 Pro",
-    logo: (
-      <Image
-        src="/logos/Google.svg"
-        alt="Google"
-        width={16}
-        height={16}
-        unoptimized
-      />
-    ),
-    provider: "openrouter",
-    reasoning: true,
-  },
-  {
     id: "o4-mini",
     name: "o4 Mini",
     logo: (
       <Image
-        src="/logos/OpenAI.svg"
+        src="/OpenAI.svg"
         alt="OpenAI"
         width={16}
         height={16}
@@ -114,7 +54,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     name: "o3",
     logo: (
       <Image
-        src="/logos/OpenAI.svg"
+        src="/OpenAI.svg"
         alt="OpenAI"
         width={16}
         height={16}
@@ -124,5 +64,105 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     ),
     provider: "openai",
     reasoning: true,
+  },
+  {
+    id: "claude-4-sonnet-20250514",
+    name: "Claude Sonnet 4",
+    logo: (
+      <Image
+        src="/Anthropic.svg"
+        alt="Anthropic"
+        width={16}
+        height={16}
+        className="dark:invert"
+        unoptimized
+      />
+    ),
+    provider: "anthropic",
+  },
+  {
+    id: "claude-4-opus-20250514",
+    name: "Claude Opus 4",
+    logo: (
+      <Image
+        src="/Anthropic.svg"
+        alt="Anthropic"
+        width={16}
+        height={16}
+        className="dark:invert"
+        unoptimized
+      />
+    ),
+    provider: "anthropic",
+  },
+  {
+    id: "claude-4-sonnet-20250514-thinking",
+    name: "Claude Sonnet 4 (Thinking)",
+    logo: (
+      <Image
+        src="/Anthropic.svg"
+        alt="Anthropic"
+        width={16}
+        height={16}
+        className="dark:invert"
+        unoptimized
+      />
+    ),
+    provider: "anthropic",
+    reasoning: true,
+  },
+  {
+    id: "claude-4-opus-20250514-thinking",
+    name: "Claude Opus 4 (Thinking)",
+    logo: (
+      <Image
+        src="/Anthropic.svg"
+        alt="Anthropic"
+        width={16}
+        height={16}
+        className="dark:invert"
+        unoptimized
+      />
+    ),
+    provider: "anthropic",
+    reasoning: true,
+  },
+  {
+    id: "google/gemini-2.5-flash-preview-05-20",
+    name: "Gemini 2.5 Flash",
+    logo: (
+      <Image
+        src="/Google.svg"
+        alt="Google"
+        width={16}
+        height={16}
+        unoptimized
+      />
+    ),
+    provider: "openrouter",
+    default: true,
+  },
+  {
+    id: "google/gemini-2.5-pro-preview",
+    name: "Gemini 2.5 Pro",
+    logo: (
+      <Image
+        src="/Google.svg"
+        alt="Google"
+        width={16}
+        height={16}
+        unoptimized
+      />
+    ),
+    provider: "openrouter",
+    reasoning: true,
+  },
+  {
+    id: "meta-llama/llama-4-maverick",
+    name: "Llama 4 Maverick",
+    logo: (
+      <Image src="/Meta.svg" alt="Meta" width={16} height={16} unoptimized />
+    ),
+    provider: "openrouter",
   },
 ];

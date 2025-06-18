@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  User as UserIcon,
+  User,
   LogOut,
   BarChart3,
   AlertTriangle,
@@ -25,6 +25,7 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "../../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface SettingsGeneralPageProps {
   preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
@@ -47,6 +48,7 @@ export default function SettingsGeneralPage({
   preloadedUser,
 }: SettingsGeneralPageProps) {
   const user = usePreloadedQuery(preloadedUser);
+  const router = useRouter();
   const { signOut } = useAuthActions();
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
 
@@ -99,7 +101,7 @@ export default function SettingsGeneralPage({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <UserIcon className="size-5" />
+            <User className="size-5" />
             <span>Profile</span>
           </CardTitle>
           <CardDescription>Your account information</CardDescription>
@@ -138,8 +140,13 @@ export default function SettingsGeneralPage({
             <Button
               onClick={async () => {
                 setIsSigningOut(true);
-                await signOut().finally(() => setIsSigningOut(false));
+                await signOut().finally(() => {
+                  setIsSigningOut(false);
+                  router.push("/");
+                });
               }}
+              variant="outline"
+              size="sm"
               disabled={isSigningOut}
               className="flex shrink-0 items-center gap-2"
             >
@@ -153,7 +160,7 @@ export default function SettingsGeneralPage({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex flex-col gap-2">
               <CardTitle className="flex items-center space-x-2">
                 <BarChart3 className="size-5" />
                 <span>Usage Statistics</span>
@@ -170,7 +177,7 @@ export default function SettingsGeneralPage({
                   disabled={isResettingUsage || isLoadingUsage}
                   variant="outline"
                   size="sm"
-                  className="flex items-center space-x-2"
+                  className="flex shrink-0 items-center gap-2"
                 >
                   <RotateCcw className="size-4" />
                   <span>{isResettingUsage ? "Resetting..." : "Reset"}</span>
@@ -198,7 +205,7 @@ export default function SettingsGeneralPage({
                   {usageData?.chatsCreated ?? 0}
                 </p>
               )}
-              <p className="text-muted-foreground text-sm">Chat Threads</p>
+              <p className="text-muted-foreground text-sm">Chats Created</p>
             </div>
             <div className="space-y-1 text-center">
               {isLoadingUsage ? (

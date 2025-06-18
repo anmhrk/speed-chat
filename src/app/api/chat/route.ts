@@ -7,7 +7,10 @@ import {
   createIdGenerator,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import {
+  createAnthropic,
+  type AnthropicProviderOptions,
+} from "@ai-sdk/anthropic";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import type { Message } from "ai";
@@ -36,9 +39,24 @@ export async function POST(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const aiModel = createAIProvider(model, apiKeys);
+    let modelId = model;
+    if (model.includes("thinking")) {
+      modelId = model.replace("-thinking", "") as Models;
+    }
+
+    const aiModel = createAIProvider(modelId, apiKeys);
 
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
+
+    const isReasoningModel =
+      AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning === true;
+
+    const anthropicThinkingBudget = () => {
+      if (reasoningEffort === "low") return 15000 / 4;
+      if (reasoningEffort === "medium") return 15000 / 2;
+      if (reasoningEffort === "high") return 15000;
+      return 15000 / 4;
+    };
 
     const chatStream = streamText({
       model: aiModel,
@@ -75,14 +93,19 @@ export async function POST(request: NextRequest) {
         size: 16,
       }),
       messages,
-      // providerOptions: {
-      //   openai: {
-      //     reasoningEffort,
-      //   },
-      //   anthropic: {
-      //     thinking: { type: "enabled", budgetTokens: 1000 },
-      //   },
-      // },
+      ...(isReasoningModel && {
+        providerOptions: {
+          openai: {
+            reasoningEffort: reasoningEffort || "low",
+          },
+          anthropic: {
+            thinking: {
+              type: "enabled",
+              budgetTokens: anthropicThinkingBudget(),
+            },
+          } satisfies AnthropicProviderOptions,
+        },
+      }),
       onFinish: async ({ response, usage }) => {
         try {
           if (temporaryChat) {

@@ -1,5 +1,12 @@
 import type { Message } from "ai";
-import { Check, Copy, RotateCcw } from "lucide-react";
+import {
+  Check,
+  Copy,
+  RotateCcw,
+  Loader2,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo, useMemo, useCallback } from "react";
 import {
@@ -7,6 +14,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -25,6 +37,7 @@ interface AssistantMessageProps {
   message: Message;
   reload: () => void;
   isLastMessage: boolean;
+  isStreaming?: boolean;
 }
 
 const CodeBlock = memo(function CodeBlock({
@@ -100,10 +113,47 @@ const CodeBlock = memo(function CodeBlock({
       </SyntaxHighlighter>
     </div>
   ) : (
-    // Inline code
+    // Inline
     <code className="bg-muted rounded px-1 py-0.5 font-mono text-sm">
       {children}
     </code>
+  );
+});
+
+const ReasoningBlock = memo(function ReasoningBlock({
+  reasoning,
+  isStreaming,
+}: {
+  reasoning: string;
+  isStreaming: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="bg-muted mb-8 overflow-hidden rounded-lg"
+    >
+      <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between p-3 text-left text-sm font-medium transition-colors">
+        <span className="select-none">View reasoning</span>
+        <div className="flex items-center gap-2">
+          {isStreaming && reasoning && (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          )}
+          <span className="text-xs">
+            {isOpen ? (
+              <ChevronDown className="size-4" />
+            ) : (
+              <ChevronRight className="size-4" />
+            )}
+          </span>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-x-auto p-3 text-sm whitespace-pre-wrap">
+        {reasoning}
+      </CollapsibleContent>
+    </Collapsible>
   );
 });
 
@@ -111,17 +161,34 @@ export function AssistantMessage({
   message,
   reload,
   isLastMessage,
+  isStreaming = false,
 }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
   const isError = message.id.startsWith("error-");
 
+  // Handle both old content format and new parts format
+  const getMessageContent = () => {
+    if (message.parts && Array.isArray(message.parts)) {
+      return message.parts;
+    }
+    // Fallback to old content format
+    return [{ type: "text" as const, text: message.content }];
+  };
+
   const handleCopy = () => {
-    const plainText = removeMarkdown(message.content);
+    const parts = getMessageContent();
+    const textParts = parts
+      .filter((part) => part.type === "text")
+      .map((part) => ("text" in part ? part.text : ""))
+      .join("\n");
+    const plainText = removeMarkdown(textParts);
     navigator.clipboard.writeText(plainText);
     toast.success("Copied to clipboard");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const messageParts = getMessageContent();
 
   return (
     <div className="flex justify-start text-[15px]">
@@ -136,91 +203,127 @@ export function AssistantMessage({
           </div>
         ) : (
           <div className="text-foreground">
-            <ReactMarkdown
-              remarkPlugins={[remarkMath, remarkGfm]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                code: ({ children, className }) => (
-                  <CodeBlock className={className}>{children}</CodeBlock>
-                ),
+            {messageParts.map((part, index) => {
+              if (part.type === "text") {
+                return (
+                  <div key={index}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        code: ({ children, className }) => (
+                          <CodeBlock className={className}>
+                            {children}
+                          </CodeBlock>
+                        ),
 
-                hr: () => <hr className="border-border my-10" />,
+                        hr: () => <hr className="border-border my-10" />,
 
-                p: ({ children }) => (
-                  <p className="my-4 whitespace-pre-wrap last:mb-0">
-                    {children}
-                  </p>
-                ),
+                        p: ({ children }) => (
+                          <p className="my-4 whitespace-pre-wrap last:mb-0">
+                            {children}
+                          </p>
+                        ),
 
-                ul: ({ children }) => (
-                  <ul className="mb-4 list-disc pl-5">{children}</ul>
-                ),
+                        ul: ({ children }) => (
+                          <ul className="mb-4 list-disc pl-5">{children}</ul>
+                        ),
 
-                ol: ({ children }) => (
-                  <ol className="mb-4 list-decimal pl-5">{children}</ol>
-                ),
+                        ol: ({ children }) => (
+                          <ol className="mb-4 list-decimal pl-5">{children}</ol>
+                        ),
 
-                li: ({ children }) => <li className="mb-1 pl-2">{children}</li>,
+                        li: ({ children }) => (
+                          <li className="mb-1 pl-2">{children}</li>
+                        ),
 
-                h1: ({ children }) => (
-                  <h1 className="mt-6 mb-4 text-2xl font-bold">{children}</h1>
-                ),
+                        h1: ({ children }) => (
+                          <h1 className="mt-6 mb-4 text-2xl font-bold">
+                            {children}
+                          </h1>
+                        ),
 
-                h2: ({ children }) => (
-                  <h2 className="mt-5 mb-3 text-xl font-bold">{children}</h2>
-                ),
+                        h2: ({ children }) => (
+                          <h2 className="mt-5 mb-3 text-xl font-bold">
+                            {children}
+                          </h2>
+                        ),
 
-                h3: ({ children }) => (
-                  <h3 className="mt-4 mb-3 text-lg font-bold">{children}</h3>
-                ),
+                        h3: ({ children }) => (
+                          <h3 className="mt-4 mb-3 text-lg font-bold">
+                            {children}
+                          </h3>
+                        ),
 
-                h4: ({ children }) => (
-                  <h4 className="mt-3 mb-2 text-base font-bold">{children}</h4>
-                ),
+                        h4: ({ children }) => (
+                          <h4 className="mt-3 mb-2 text-base font-bold">
+                            {children}
+                          </h4>
+                        ),
 
-                h5: ({ children }) => (
-                  <h5 className="mt-3 mb-2 text-sm font-bold">{children}</h5>
-                ),
+                        h5: ({ children }) => (
+                          <h5 className="mt-3 mb-2 text-sm font-bold">
+                            {children}
+                          </h5>
+                        ),
 
-                h6: ({ children }) => (
-                  <h6 className="mt-3 mb-2 text-xs font-bold">{children}</h6>
-                ),
+                        h6: ({ children }) => (
+                          <h6 className="mt-3 mb-2 text-xs font-bold">
+                            {children}
+                          </h6>
+                        ),
 
-                blockquote: ({ children }) => (
-                  <blockquote className="border-primary bg-muted my-6 border-l-4 py-2 pl-4 italic">
-                    {children}
-                  </blockquote>
-                ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-primary bg-muted my-6 border-l-4 py-2 pl-4 italic">
+                            {children}
+                          </blockquote>
+                        ),
 
-                table: ({ children }) => (
-                  <div className="border-border my-6 overflow-hidden rounded-lg border last:mb-0">
-                    <table className="min-w-full border-collapse">
-                      {children}
-                    </table>
+                        table: ({ children }) => (
+                          <div className="border-border my-6 overflow-hidden rounded-lg border last:mb-0">
+                            <table className="min-w-full border-collapse">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+
+                        thead: ({ children }) => (
+                          <thead className="bg-muted/50">{children}</thead>
+                        ),
+
+                        tbody: ({ children }) => <tbody>{children}</tbody>,
+
+                        th: ({ children }) => (
+                          <th className="border-border border-r border-b px-4 py-2 text-left font-semibold last:border-r-0">
+                            {children}
+                          </th>
+                        ),
+
+                        td: ({ children }) => (
+                          <td className="border-border border-r border-b px-4 py-2 last:border-r-0 [tr:last-child>&]:border-b-0">
+                            {children}
+                          </td>
+                        ),
+                      }}
+                    >
+                      {"text" in part ? part.text : ""}
+                    </ReactMarkdown>
                   </div>
-                ),
+                );
+              }
 
-                thead: ({ children }) => (
-                  <thead className="bg-muted/50">{children}</thead>
-                ),
+              if (part.type === "reasoning") {
+                return (
+                  <ReasoningBlock
+                    key={index}
+                    reasoning={"reasoning" in part ? part.reasoning : ""}
+                    isStreaming={isLastMessage && isStreaming}
+                  />
+                );
+              }
 
-                tbody: ({ children }) => <tbody>{children}</tbody>,
-
-                th: ({ children }) => (
-                  <th className="border-border border-r border-b px-4 py-2 text-left font-semibold last:border-r-0">
-                    {children}
-                  </th>
-                ),
-
-                td: ({ children }) => (
-                  <td className="border-border border-r border-b px-4 py-2 last:border-r-0 [tr:last-child>&]:border-b-0">
-                    {children}
-                  </td>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+              return null;
+            })}
           </div>
         )}
 

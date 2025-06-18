@@ -9,7 +9,10 @@ export type Models =
   | "o3"
   | "o4-mini"
   | "claude-4-sonnet-20250514"
-  | "claude-4-opus-20250514";
+  | "claude-4-opus-20250514"
+  | "claude-4-sonnet-20250514-thinking"
+  | "claude-4-opus-20250514-thinking"
+  | "meta-llama/llama-4-maverick";
 
 export type ReasoningEfforts = "low" | "medium" | "high";
 

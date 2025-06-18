@@ -20,6 +20,8 @@ export function Messages({
   const showLoading =
     status === "submitted" && messages[messages.length - 1].role === "user";
 
+  const isStreaming = status === "streaming";
+
   return (
     <div className="flex w-full flex-col gap-12">
       {messages.map((message) => (
@@ -36,6 +38,7 @@ export function Messages({
               message={message}
               reload={reload}
               isLastMessage={message.id === messages[messages.length - 1]?.id}
+              isStreaming={isStreaming}
             />
           )}
         </div>

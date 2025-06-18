@@ -1,8 +1,8 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -13,12 +13,24 @@ interface SettingsWrapperProps {
 
 export function SettingsWrapper({ children }: SettingsWrapperProps) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const getActiveTab = () => {
     if (pathname === "/settings/keys") return "keys";
     if (pathname === "/settings/customization") return "customization";
     return "general";
   };
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        router.push("/");
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [router]);
 
   return (
     <>
