@@ -4,7 +4,6 @@ import "./globals.css";
 
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { ChatProvider } from "@/components/providers/ChatProvider";
 import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
 import { Toaster } from "sonner";
 
@@ -40,10 +39,8 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ConvexClientProvider>
-              <ChatProvider>
-                <Toaster />
-                {children}
-              </ChatProvider>
+              <Toaster />
+              {children}
             </ConvexClientProvider>
           </ThemeProvider>
         </body>

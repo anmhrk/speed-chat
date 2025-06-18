@@ -18,15 +18,13 @@ A fully featured AI chat app built with [Convex](https://www.convex.dev/) and [N
    - `AUTH_GOOGLE_ID` (required for Google OAuth)
    - `AUTH_GOOGLE_SECRET` (required for Google OAuth)
 
-6. Run `cp .env.example .env` and set your API keys. This step can be skipped if you don't want to rate limit or send headers to OpenRouter.
+6. Run `bun dev` to start the development server
 
-7. Run `bun dev` to start the development server
+7. Open [http://localhost:3000](http://localhost:3000) in your browser to see the live web app.
 
-8. Open [http://localhost:3000](http://localhost:3000) in your browser to see the live web app.
+8. After logging in, navigate to [http://localhost:3000/settings/keys](http://localhost:3000/settings/keys) to set your API keys.
 
-9. After logging in, navigate to [http://localhost:3000/settings/keys](http://localhost:3000/settings/keys) to set your API keys.
-
-10. Start chatting!
+9. Start chatting!
 
 ## 📝 Todos
 

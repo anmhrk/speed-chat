@@ -12,8 +12,9 @@ import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import type { Message } from "ai";
 import { format } from "date-fns";
-import { fetchMutation } from "convex/nextjs";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,19 +28,14 @@ export async function POST(request: NextRequest) {
       customizationSettings,
     } = body;
 
-    // TODO: check if user is authenticated
-    // should you pass token to the fetchMutations?
+    const token = await convexAuthNextjsToken();
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
-    let freeGeminiFlash = false;
-    if (
-      model === "google/gemini-2.5-flash-preview-05-20" &&
-      !apiKeys.openrouter
-    ) {
-      // TODO: check rate limit here and return error if exceeded
-      freeGeminiFlash = true;
+    if (!user) {
+      return new Response("Unauthorized", { status: 401 });
     }
 
-    const aiModel = createAIProvider(model, apiKeys, freeGeminiFlash);
+    const aiModel = createAIProvider(model, apiKeys);
 
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
 
@@ -85,7 +81,7 @@ export async function POST(request: NextRequest) {
           }
 
           const responseMessages: Message[] = response.messages
-            .filter((msg) => msg.role !== "tool") // Filter out tool messages
+            .filter((msg) => msg.role !== "tool")
             .map((msg) => ({
               id: msg.id,
               role: msg.role as "assistant",
@@ -119,10 +115,14 @@ export async function POST(request: NextRequest) {
               : Date.now(),
           }));
 
-          await fetchMutation(api.chat.updateChatMessages, {
-            chatId,
-            messages: allMessages,
-          });
+          await fetchMutation(
+            api.chat.updateChatMessages,
+            {
+              chatId,
+              messages: allMessages,
+            },
+            { token },
+          );
         } catch (error) {
           console.error("[Chat API] Database save failed:", error);
         }
@@ -175,10 +175,14 @@ export async function POST(request: NextRequest) {
               : Date.now(),
           }));
 
-          fetchMutation(api.chat.updateChatMessages, {
-            chatId,
-            messages: messagesWithError,
-          });
+          fetchMutation(
+            api.chat.updateChatMessages,
+            {
+              chatId,
+              messages: messagesWithError,
+            },
+            { token },
+          );
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
@@ -195,11 +199,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function createAIProvider(
-  model: Models,
-  apiKeys: Record<Providers, string>,
-  freeGeminiFlash: boolean,
-) {
+function createAIProvider(model: Models, apiKeys: Record<Providers, string>) {
   const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
 
   switch (modelConfig?.provider) {
@@ -221,9 +221,7 @@ function createAIProvider(
 
       const openrouter = createOpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: freeGeminiFlash
-          ? process.env.OPENROUTER_API_KEY
-          : apiKeys.openrouter,
+        apiKey: apiKeys.openrouter,
         ...(headers && { headers }),
       });
       return openrouter(modelConfig.id);

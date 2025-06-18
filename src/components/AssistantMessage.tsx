@@ -147,7 +147,9 @@ export function AssistantMessage({
                 hr: () => <hr className="border-border my-10" />,
 
                 p: ({ children }) => (
-                  <p className="my-4 whitespace-pre-wrap">{children}</p>
+                  <p className="my-4 whitespace-pre-wrap last:mb-0">
+                    {children}
+                  </p>
                 ),
 
                 ul: ({ children }) => (
@@ -191,7 +193,7 @@ export function AssistantMessage({
                 ),
 
                 table: ({ children }) => (
-                  <div className="border-border my-6 overflow-hidden rounded-lg border">
+                  <div className="border-border my-6 overflow-hidden rounded-lg border last:mb-0">
                     <table className="min-w-full border-collapse">
                       {children}
                     </table>

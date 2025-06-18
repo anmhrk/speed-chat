@@ -12,7 +12,6 @@ import type {
 import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
-import { useChatContext } from "@/components/providers/ChatProvider";
 import { type Message, createIdGenerator } from "ai";
 import {
   Preloaded,
@@ -22,6 +21,7 @@ import {
   useAction,
 } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useRouter } from "next/navigation";
 
 interface ChatPageProps {
   initialChatId?: string | null;
@@ -29,8 +29,8 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
+  const router = useRouter();
   const user = usePreloadedQuery(preloadedUser);
-  const chatContext = useChatContext();
   const [chatId, setChatId] = useState<string | null>(initialChatId || null);
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
@@ -42,6 +42,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
   const [customizationSettings, setCustomizationSettings] =
     useState<CustomizationSettings | null>(null);
   const [temporaryChat, setTemporaryChat] = useState<boolean>(false);
+  const [newChatIds, setNewChatIds] = useState(new Set<string>());
 
   useEffect(() => {
     const savedSettings = localStorage.getItem("customization_settings");
@@ -51,7 +52,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, []);
 
-  const shouldFetchMessages = chatId && !chatContext.isNewChat(chatId);
+  const shouldFetchMessages = chatId && !newChatIds.has(chatId);
 
   const threadsData = useQuery(api.chat.fetchThreads);
   const isLoadingThreads = threadsData === undefined;
@@ -136,10 +137,19 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       return;
     }
 
-    const canSubmit =
-      hasApiKeys || model === "google/gemini-2.5-flash-preview-05-20";
+    if (!hasApiKeys) {
+      toast("Please add API keys to chat", {
+        action: {
+          label: "Add keys",
+          onClick: () => {
+            router.push("/settings/keys");
+          },
+        },
+      });
+      return;
+    }
 
-    if (!canSubmit || !input.trim()) {
+    if (!input.trim()) {
       return;
     }
 
@@ -157,7 +167,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       const userMessage = input.trim();
 
       setChatId(newChatId);
-      chatContext.addNewChatId(newChatId);
+      setNewChatIds((prev) => new Set([...prev, newChatId]));
       await createInitialChat({ chatId: newChatId });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
@@ -179,7 +189,11 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
         })(),
       ]);
 
-      chatContext.removeNewChatId(newChatId);
+      setNewChatIds((prev) => {
+        const next = new Set(prev);
+        next.delete(newChatId);
+        return next;
+      });
     } else {
       handleSubmit(e);
     }
@@ -196,7 +210,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
         user={user}
         threads={threadsData}
         isLoading={isLoadingThreads}
-        newThreads={chatContext.newChatIds}
+        newThreads={newChatIds}
         chatId={chatId}
         setChatId={setChatId}
       />

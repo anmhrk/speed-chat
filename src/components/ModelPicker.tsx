@@ -54,10 +54,7 @@ export function ModelPicker({
             // If both or neither are default, sort by name
             return a.name.localeCompare(b.name);
           }).map((model) => {
-            // Always allow Gemini 2.5 Flash (free usage), disable others without API keys
-            const isDisabled =
-              model.id !== "google/gemini-2.5-flash-preview-05-20" &&
-              !hasApiKey(model.provider);
+            const isDisabled = !hasApiKey(model.provider);
             const selectItem = (
               <SelectItem key={model.id} value={model.id} disabled={isDisabled}>
                 <div className="flex w-70 items-center justify-between gap-2">
@@ -95,7 +92,7 @@ export function ModelPicker({
                           <Paperclip className="size-4 text-green-400" />
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
-                          Supports images and PDFs
+                          Supports image attachments
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -111,9 +108,7 @@ export function ModelPicker({
                     <div className="w-full">{selectItem}</div>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs">
-                    {model.id === "google/gemini-2.5-flash-preview-05-20"
-                      ? "Available for free usage (rate limited)"
-                      : "API key not set for provider"}
+                    API key not set for provider
                   </TooltipContent>
                 </Tooltip>
               );

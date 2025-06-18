@@ -1,26 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ModelPicker } from "@/components/ModelPicker";
+import { ArrowDown, ArrowUp, Square } from "lucide-react";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
-import {
-  ArrowUp,
-  // AlertTriangle,
-  ArrowDown,
-  Square,
-} from "lucide-react";
-// import { Card, CardContent } from "@/components/ui/card";
-// import { useRouter } from "next/navigation";
-// import { getRateLimitStatus } from "@/lib/ratelimit/status";
-import type {
-  ReasoningEfforts,
-  Models,
-  Providers,
-  // RateLimitInfo,
-} from "@/lib/types";
-import { Doc } from "../../convex/_generated/dataModel";
+import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
+import { ModelPicker } from "@/components/ModelPicker";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 interface ChatInputProps {
   prompt: string;
@@ -59,11 +46,7 @@ export function ChatInput({
   hasApiKeys,
   setHasApiKeys,
 }: ChatInputProps) {
-  // const router = useRouter();
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  // const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(
-  //   null,
-  // );
 
   useEffect(() => {
     const savedModel = localStorage.getItem("selected_model");
@@ -82,28 +65,21 @@ export function ChatInput({
     setHasApiKeys(hasAnyKey);
     setApiKeys(keys);
 
-    // Helper function to check if a provider has an API key
     const hasApiKey = (provider: Providers) => {
       return keys[provider] && keys[provider].trim() !== "";
     };
 
-    // Find available models with API keys + always include Gemini 2.5 Flash for free usage
-    const availableModels = AVAILABLE_MODELS.filter(
-      (model) =>
-        model.id === "google/gemini-2.5-flash-preview-05-20" ||
-        hasApiKey(model.provider),
+    // Find available models with API keys
+    const availableModels = AVAILABLE_MODELS.filter((model) =>
+      hasApiKey(model.provider),
     );
 
     // Set model with fallback logic
     let selectedModel = null;
     if (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)) {
       const savedModelData = AVAILABLE_MODELS.find((m) => m.id === savedModel);
-      // Check if the saved model's provider has an API key OR if it's Gemini 2.5 Flash (free)
-      if (
-        savedModelData &&
-        (savedModelData.id === "google/gemini-2.5-flash-preview-05-20" ||
-          hasApiKey(savedModelData.provider))
-      ) {
+      // Check if the saved model's provider has an API key
+      if (savedModelData && hasApiKey(savedModelData.provider)) {
         selectedModel = savedModel;
       }
     }
@@ -115,7 +91,8 @@ export function ChatInput({
       selectedModel = defaultModel ? defaultModel.id : availableModels[0].id;
     }
 
-    // Final fallback to any model (for cases where no API keys are set)
+    // Final fallback to default Gemini 2.5 Flash model
+    // It won't work without an API key, just a fallback to show something in the select box
     if (!selectedModel) {
       selectedModel =
         AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
@@ -127,7 +104,7 @@ export function ChatInput({
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
         REASONING_EFFORTS[0].id,
     );
-  }, []);
+  }, [setModel, setReasoningEffort, setHasApiKeys, setApiKeys]);
 
   const handleModelChange = (newModel: Models) => {
     setModel(newModel);
@@ -141,57 +118,11 @@ export function ChatInput({
     localStorage.setItem("reasoning_effort", newReasoningEffort);
   };
 
-  // Fetch rate limit info when using Gemini 2.5 Flash without API key
-  // const fetchRateLimitInfo = async () => {
-  //   if (
-  //     user &&
-  //     model === "google/gemini-2.5-flash-preview-05-20" &&
-  //     !apiKeys?.openrouter
-  //   ) {
-  //     try {
-  //       const data = await getRateLimitStatus();
-  //       setRateLimitInfo(data ?? null);
-  //     } catch (error) {
-  //       console.error("Failed to fetch rate limit info:", error);
-  //     }
-  //   } else {
-  //     setRateLimitInfo(null);
-  //   }
-  // };
-
   useEffect(() => {
     if (promptRef.current) {
       promptRef.current.focus();
     }
   }, []);
-
-  // Listen for storage changes to update API keys in real-time
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const savedKeys = localStorage.getItem("api_keys");
-        const keys = savedKeys ? JSON.parse(savedKeys) : {};
-        const hasAnyKey = Object.values(keys).some(
-          (key) => key && key.toString().trim() !== "",
-        );
-        setHasApiKeys(hasAnyKey);
-        setApiKeys(keys);
-      } catch {
-        setHasApiKeys(false);
-      }
-    };
-
-    // Listen for storage events (when localStorage is changed in another tab)
-    window.addEventListener("storage", handleStorageChange);
-
-    // Also listen for focus events to check when user returns to tab
-    window.addEventListener("focus", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("focus", handleStorageChange);
-    };
-  });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -206,32 +137,6 @@ export function ChatInput({
 
   return (
     <div className="relative w-full space-y-3">
-      {/* {user &&
-        model === "google/gemini-2.5-flash-preview-05-20" &&
-        !apiKeys?.openrouter &&
-        rateLimitInfo && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="flex items-center justify-between px-3">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm text-blue-800 dark:text-blue-200">
-                  Free Gemini 2.5 Flash: {rateLimitInfo.remaining} messages
-                  remaining today. Add API keys for extended usage.
-                </span>
-              </div>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="hover:bg-zinc-800"
-                onClick={() => router.push("/settings/keys")}
-              >
-                Add Keys
-              </Button>
-            </CardContent>
-          </Card>
-        )} */}
-
       {showScrollToBottom && (
         <Button
           onClick={scrollToBottom}
@@ -278,12 +183,7 @@ export function ChatInput({
                 type="button"
                 size="icon"
                 onClick={handleSubmit}
-                disabled={
-                  !user ||
-                  !prompt.trim() ||
-                  (!hasApiKeys &&
-                    model !== "google/gemini-2.5-flash-preview-05-20")
-                }
+                disabled={!user || !prompt.trim() || !hasApiKeys}
               >
                 <ArrowUp className="size-6" />
               </Button>
