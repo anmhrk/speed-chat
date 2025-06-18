@@ -3,7 +3,7 @@
 import { ChatInput } from "@/components/ChatInput";
 import { Messages } from "@/components/Messages";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Message } from "ai";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 import { Loader2 } from "lucide-react";
@@ -38,6 +38,7 @@ interface ChatAreaProps {
   temporaryChat: boolean;
   append: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
+  isCreatingInitialChat: boolean;
 }
 
 export function ChatArea({
@@ -62,6 +63,7 @@ export function ChatArea({
   temporaryChat,
   append,
   setMessages,
+  isCreatingInitialChat,
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -74,7 +76,7 @@ export function ChatArea({
       '[data-slot="scroll-area-viewport"]',
     ) as HTMLDivElement | null;
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     const viewport = getViewport();
     if (viewport) {
       viewport.scrollTo({
@@ -82,7 +84,7 @@ export function ChatArea({
         behavior: "instant",
       });
     }
-  };
+  }, []);
 
   // Scroll to bottom on page load once chat is loaded
   useEffect(() => {
@@ -90,7 +92,7 @@ export function ChatArea({
       scrollToBottom();
       hasScrolledOnLoad.current = true;
     }
-  }, [isLoadingChat, messages.length]);
+  }, [isLoadingChat, messages.length, scrollToBottom]);
 
   const scrollToShowUserMessage = () => {
     const viewport = getViewport();
@@ -222,6 +224,7 @@ export function ChatArea({
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
+          isCreatingInitialChat={isCreatingInitialChat}
         />
       </div>
     </div>

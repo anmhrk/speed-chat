@@ -26,6 +26,7 @@ interface ChatInputProps {
   setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
   hasApiKeys: boolean;
   setHasApiKeys: (hasApiKeys: boolean) => void;
+  isCreatingInitialChat: boolean;
 }
 
 export function ChatInput({
@@ -45,6 +46,7 @@ export function ChatInput({
   setApiKeys,
   hasApiKeys,
   setHasApiKeys,
+  isCreatingInitialChat,
 }: ChatInputProps) {
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
@@ -169,11 +171,14 @@ export function ChatInput({
             ) : (
               <div className="flex-1" />
             )}
-            {status === "submitted" || status === "streaming" ? (
+            {status === "submitted" ||
+            status === "streaming" ||
+            isCreatingInitialChat ? (
               <Button
                 type="button"
                 size="icon"
                 onClick={stop}
+                disabled={isCreatingInitialChat}
                 className="bg-muted-foreground hover:bg-muted-foreground/80"
               >
                 <Square className="size-6" />

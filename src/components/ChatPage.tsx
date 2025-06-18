@@ -13,13 +13,9 @@ import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { type Message, createIdGenerator } from "ai";
-import {
-  Preloaded,
-  useMutation,
-  usePreloadedQuery,
-  useQuery,
-  useAction,
-} from "convex/react";
+import { Preloaded, usePreloadedQuery, useAction } from "convex/react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { api } from "../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 
@@ -54,16 +50,47 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
 
   const shouldFetchMessages = chatId && !newChatIds.has(chatId);
 
-  const threadsData = useQuery(api.chat.fetchThreads);
-  const isLoadingThreads = threadsData === undefined;
+  const {
+    data: threadsData,
+    isPending: isLoadingThreads,
+    error: threadsError,
+  } = useQuery({
+    ...convexQuery(api.chat.fetchThreads, {}),
+    enabled: Boolean(user),
+  });
 
-  const messagesData = useQuery(
-    api.chat.fetchMessages,
-    shouldFetchMessages && chatId ? { chatId } : "skip",
-  );
-  const isLoadingMessages = Boolean(
-    shouldFetchMessages && messagesData === undefined,
-  );
+  const messagesQueryResult = useQuery({
+    ...convexQuery(api.chat.fetchMessages, {
+      chatId: chatId || "",
+    }),
+    enabled: Boolean(shouldFetchMessages && !!chatId),
+  });
+
+  const {
+    data: messagesData,
+    isPending: isLoadingMessages,
+    error: messagesError,
+  } = shouldFetchMessages && !!chatId
+    ? messagesQueryResult
+    : { data: undefined, isPending: false, error: null };
+
+  console.log(Boolean(shouldFetchMessages && !!chatId));
+
+  useEffect(() => {
+    if (threadsError) {
+      toast.error("Error fetching threads", {
+        description: threadsError.message,
+      });
+    }
+  }, [threadsError]);
+
+  useEffect(() => {
+    if (messagesError) {
+      toast.error("Error fetching messages", {
+        description: messagesError.message,
+      });
+    }
+  }, [messagesError]);
 
   const initialMessages: Message[] = messagesData
     ? messagesData.map((message) => ({
@@ -74,7 +101,11 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       }))
     : [];
 
-  const createInitialChat = useMutation(api.chat.createInitialChat);
+  const { mutate: createInitialChat, isPending: isCreatingInitialChat } =
+    useMutation({
+      mutationFn: useConvexMutation(api.chat.createInitialChat),
+    });
+
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
 
   const {
@@ -168,7 +199,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
 
       setChatId(newChatId);
       setNewChatIds((prev) => new Set([...prev, newChatId]));
-      await createInitialChat({ chatId: newChatId });
+      createInitialChat({ chatId: newChatId });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
@@ -187,12 +218,12 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
             return "New Chat"; // Fallback title
           }
         })(),
-      ]);
-
-      setNewChatIds((prev) => {
-        const next = new Set(prev);
-        next.delete(newChatId);
-        return next;
+      ]).then(() => {
+        setNewChatIds((prev) => {
+          const next = new Set(prev);
+          next.delete(newChatId);
+          return next;
+        });
       });
     } else {
       handleSubmit(e);
@@ -237,6 +268,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
           temporaryChat={temporaryChat}
           append={append}
           setMessages={setMessages}
+          isCreatingInitialChat={isCreatingInitialChat}
         />
       </main>
     </>
