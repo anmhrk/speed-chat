@@ -64,7 +64,11 @@ function categorizeThreadsByTime(threads: Doc<"chats">[], search: string) {
   const olderThreads = filteredThreads
     .filter((thread) => {
       const threadDate = new Date(thread.updatedAt);
-      return !isWithinInterval(threadDate, { start: sevenDaysAgo, end: now });
+      return (
+        !isToday(threadDate) &&
+        !isYesterday(threadDate) &&
+        !isWithinInterval(threadDate, { start: sevenDaysAgo, end: now })
+      );
     })
     .sort((a, b) => b.updatedAt - a.updatedAt);
 
