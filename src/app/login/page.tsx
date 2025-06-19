@@ -42,7 +42,7 @@ export default function Login() {
             ) : (
               <>
                 <Image
-                  src="/logos/Google.svg"
+                  src="/Google.svg"
                   width={24}
                   height={24}
                   alt="Google Logo"
