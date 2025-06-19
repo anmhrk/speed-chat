@@ -61,7 +61,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
 
   const isLoadingThreads = Boolean(user && threadsData === undefined);
   const isLoadingMessages = Boolean(
-    user && chatId && messagesData === undefined,
+    user && chatId && !newChatIds.has(chatId) && messagesData === undefined,
   );
 
   const createInitialChat = useMutation(api.chat.createInitialChat);
@@ -143,8 +143,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       });
     },
   });
-
-  console.log(messages);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

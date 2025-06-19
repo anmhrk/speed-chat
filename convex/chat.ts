@@ -1,4 +1,4 @@
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 import { query, mutation, action, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -47,7 +47,7 @@ export const createInitialChat = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     await ctx.db.insert("chats", {
@@ -86,7 +86,7 @@ export const generateThreadTitle = action({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     try {
@@ -149,7 +149,7 @@ export const updateChatTitle = internalMutation({
       .first();
 
     if (!chat) {
-      throw new ConvexError("Chat not found");
+      throw new Error("Chat not found");
     }
 
     await ctx.db.patch(chat._id, {
@@ -187,7 +187,7 @@ export const updateChatMessages = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     const messages = await ctx.db
@@ -239,7 +239,7 @@ export const updateUsage = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     const usage = await ctx.db
@@ -248,7 +248,7 @@ export const updateUsage = mutation({
       .first();
 
     if (!usage) {
-      throw new ConvexError("Usage not found");
+      throw new Error("Usage not found");
     }
 
     await ctx.db.patch(usage._id, {
@@ -264,7 +264,7 @@ export const fetchUsage = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     const usage = await ctx.db
@@ -281,7 +281,7 @@ export const resetUsage = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
-      throw new ConvexError("Not authenticated");
+      throw new Error("Not authenticated");
     }
 
     const usage = await ctx.db
@@ -290,7 +290,7 @@ export const resetUsage = mutation({
       .first();
 
     if (!usage) {
-      throw new ConvexError("Usage not found");
+      throw new Error("Usage not found");
     }
 
     await ctx.db.patch(usage._id, {
