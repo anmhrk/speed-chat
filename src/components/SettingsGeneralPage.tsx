@@ -19,12 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Preloaded, usePreloadedQuery } from "convex/react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import {
+  Preloaded,
+  usePreloadedQuery,
+  useQuery,
+  useMutation,
+} from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 interface SettingsGeneralPageProps {
@@ -51,22 +53,12 @@ export default function SettingsGeneralPage({
   const router = useRouter();
   const { signOut } = useAuthActions();
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
+  const [isResettingUsage, setIsResettingUsage] = useState<boolean>(false);
 
-  const { data: usageData, isPending: isLoadingUsage } = useQuery(
-    convexQuery(api.chat.fetchUsage, {}),
-  );
+  const usageData = useQuery(api.chat.fetchUsage, {});
+  const isLoadingUsage = usageData === undefined;
 
-  const { mutate: resetUsage, isPending: isResettingUsage } = useMutation({
-    mutationFn: useConvexMutation(api.chat.resetUsage),
-    onSuccess: () => {
-      toast.success("Usage statistics reset successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to reset usage statistics", {
-        description: error.message,
-      });
-    },
-  });
+  const resetUsage = useMutation(api.chat.resetUsage);
 
   const handleResetUsage = async () => {
     if (
@@ -77,7 +69,17 @@ export default function SettingsGeneralPage({
       return;
     }
 
-    resetUsage({});
+    setIsResettingUsage(true);
+    try {
+      await resetUsage({});
+    } catch (error) {
+      // toast.error("Failed to reset usage statistics", {
+      //   description: error.message,
+      // });
+      console.error(error); // TODO: Add error handling
+    } finally {
+      setIsResettingUsage(false);
+    }
   };
 
   const handleDeleteAccount = async () => {

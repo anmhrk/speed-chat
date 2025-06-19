@@ -1,9 +1,7 @@
-import type { Message } from "ai";
 import {
   Check,
   Copy,
   RotateCcw,
-  Loader2,
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
@@ -32,39 +30,13 @@ import {
 import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
-
-// Extended Message type to include reasoning
-type ExtendedMessage = Message & {
-  reasoning?: string;
-};
+import type { Message } from "ai";
 
 interface AssistantMessageProps {
-  message: ExtendedMessage;
+  message: Message;
   reload: () => void;
   isLastMessage: boolean;
-  isStreaming?: boolean;
 }
-
-// Type definitions for streaming content parts
-type StreamingTextPart = {
-  type: "text";
-  text: string;
-};
-
-type StreamingReasoningPart = {
-  type: "reasoning";
-  details?: Array<{ type: "text"; text: string }>;
-  reasoning?: string;
-  text?: string;
-};
-
-type StreamingPart = StreamingTextPart | StreamingReasoningPart;
-
-type MessagePart = {
-  type: "text" | "reasoning";
-  text?: string;
-  reasoning?: string;
-};
 
 const CodeBlock = memo(function CodeBlock({
   children,
@@ -148,10 +120,8 @@ const CodeBlock = memo(function CodeBlock({
 
 const ReasoningBlock = memo(function ReasoningBlock({
   reasoning,
-  isStreaming,
 }: {
   reasoning: string;
-  isStreaming: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -164,9 +134,6 @@ const ReasoningBlock = memo(function ReasoningBlock({
       <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between p-3 text-left text-sm font-medium transition-colors">
         <span className="select-none">View reasoning</span>
         <div className="flex items-center gap-2">
-          {isStreaming && reasoning && (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          )}
           <span className="text-xs">
             {isOpen ? (
               <ChevronDown className="size-4" />
@@ -187,78 +154,17 @@ export function AssistantMessage({
   message,
   reload,
   isLastMessage,
-  isStreaming = false,
 }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
   const isError = message.id.startsWith("error-");
 
-  // Parse content to extract reasoning and text parts
-  const getMessageContent = (): MessagePart[] => {
-    // Check if message has parts (streaming format)
-    if ("parts" in message && Array.isArray(message.parts)) {
-      const streamingParts = message.parts as StreamingPart[];
-      const parsedParts: MessagePart[] = [];
-
-      for (const part of streamingParts) {
-        if (part.type === "text") {
-          parsedParts.push({ type: "text", text: part.text || "" });
-        } else if (part.type === "reasoning") {
-          // Handle streaming reasoning format
-          if (part.details && Array.isArray(part.details)) {
-            const reasoningText = part.details
-              .filter((detail) => detail.type === "text")
-              .map((detail) => detail.text)
-              .join("");
-            parsedParts.push({ type: "reasoning", reasoning: reasoningText });
-          } else {
-            // Fallback for direct reasoning text
-            parsedParts.push({
-              type: "reasoning",
-              reasoning: part.reasoning || part.text || "",
-            });
-          }
-        }
-      }
-
-      return parsedParts;
-    }
-
-    // For saved messages, use the reasoning field from the database
-    const parts: MessagePart[] = [];
-
-    // Add reasoning from database if it exists
-    if (message.reasoning && message.reasoning.trim()) {
-      parts.push({
-        type: "reasoning",
-        reasoning: message.reasoning,
-      });
-    }
-
-    // Add the main content as text
-    if (message.content && message.content.trim()) {
-      parts.push({
-        type: "text",
-        text: message.content,
-      });
-    }
-
-    return parts;
-  };
-
   const handleCopy = () => {
-    const parts = getMessageContent();
-    const textParts = parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text || "")
-      .join("\n");
-    const plainText = removeMarkdown(textParts);
+    const plainText = removeMarkdown(message.content);
     navigator.clipboard.writeText(plainText);
     toast.success("Copied to clipboard");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const messageParts = getMessageContent();
 
   return (
     <div className="flex justify-start text-[15px]">
@@ -273,10 +179,19 @@ export function AssistantMessage({
           </div>
         ) : (
           <div className="text-foreground">
-            {messageParts.map((part, index) => {
+            {message.parts?.map((part, partIndex) => {
+              if (part.type === "reasoning") {
+                return (
+                  <ReasoningBlock
+                    key={partIndex}
+                    reasoning={part.reasoning || ""}
+                  />
+                );
+              }
+
               if (part.type === "text") {
                 return (
-                  <div key={index}>
+                  <div key={partIndex}>
                     <ReactMarkdown
                       remarkPlugins={[remarkMath, remarkGfm]}
                       rehypePlugins={[rehypeKatex]}
@@ -379,16 +294,6 @@ export function AssistantMessage({
                       {part.text || ""}
                     </ReactMarkdown>
                   </div>
-                );
-              }
-
-              if (part.type === "reasoning") {
-                return (
-                  <ReasoningBlock
-                    key={index}
-                    reasoning={part.reasoning || ""}
-                    isStreaming={isLastMessage && isStreaming}
-                  />
                 );
               }
 

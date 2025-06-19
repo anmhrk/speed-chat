@@ -13,9 +13,13 @@ import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { type Message, createIdGenerator } from "ai";
-import { Preloaded, usePreloadedQuery, useAction } from "convex/react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import {
+  Preloaded,
+  usePreloadedQuery,
+  useQuery,
+  useMutation,
+  useAction,
+} from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 
@@ -48,55 +52,15 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, []);
 
-  const {
-    data: threadsData,
-    isPending: isLoadingThreads,
-    error: threadsError,
-  } = useQuery({
-    ...convexQuery(api.chat.fetchThreads, {}),
-    enabled: Boolean(user),
+  const threadsData = useQuery(api.chat.fetchThreads, {});
+  const messagesData = useQuery(api.chat.fetchMessages, {
+    chatId: chatId || "",
   });
 
-  const shouldFetchMessages = Boolean(
-    chatId && !newChatIds.has(chatId) && user,
-  );
+  const isLoadingThreads = threadsData === undefined;
+  const isLoadingMessages = messagesData === undefined;
 
-  const messagesQueryResult = useQuery({
-    ...convexQuery(api.chat.fetchMessages, {
-      chatId: chatId || "",
-    }),
-    enabled: shouldFetchMessages,
-  });
-
-  const {
-    data: messagesData,
-    isPending: isLoadingMessages,
-    error: messagesError,
-  } = shouldFetchMessages
-    ? messagesQueryResult
-    : { data: undefined, isPending: false, error: null };
-
-  useEffect(() => {
-    if (threadsError) {
-      toast.error("Error fetching threads", {
-        description: threadsError.message,
-      });
-    }
-  }, [threadsError]);
-
-  useEffect(() => {
-    if (messagesError) {
-      toast.error("Error fetching messages", {
-        description: messagesError.message,
-      });
-    }
-  }, [messagesError]);
-
-  const { mutate: createInitialChat, isPending: isCreatingInitialChat } =
-    useMutation({
-      mutationFn: useConvexMutation(api.chat.createInitialChat),
-    });
-
+  const createInitialChat = useMutation(api.chat.createInitialChat);
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);
 
   const initialMessages: Message[] = messagesData
@@ -104,8 +68,22 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
         id: message.id,
         role: message.role,
         content: message.content,
-        reasoning: message.reasoning,
         createdAt: new Date(message.createdAt),
+        parts: message.parts.map((part) => {
+          if (part.type === "reasoning") {
+            return {
+              type: "reasoning",
+              reasoning: part.reasoning,
+              details: [
+                {
+                  type: "text" as const,
+                  text: message.content,
+                },
+              ],
+            };
+          }
+          return part;
+        }),
       }))
     : [];
 
@@ -161,6 +139,8 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       });
     },
   });
+
+  console.log(messages);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +250,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
           temporaryChat={temporaryChat}
           append={append}
           setMessages={setMessages}
-          isCreatingInitialChat={isCreatingInitialChat}
         />
       </main>
     </>

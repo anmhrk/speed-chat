@@ -5,13 +5,14 @@ import {
   InvalidPromptError,
   RetryError,
   createIdGenerator,
-  Message,
+  smoothStream,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   createAnthropic,
   type AnthropicProviderOptions,
 } from "@ai-sdk/anthropic";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     const isReasoningModel =
       AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning === true;
 
-    const anthropicThinkingBudget = () => {
+    const calculateThinkingBudget = () => {
       if (reasoningEffort === "low") return 15000 / 4;
       if (reasoningEffort === "medium") return 15000 / 2;
       if (reasoningEffort === "high") return 15000;
@@ -62,96 +63,123 @@ export async function POST(request: NextRequest) {
       model: aiModel,
       system: `
         You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful, respectful, and engaging.
-        - If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
-        - The current date and time is ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}.
+        If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
+        The current date and time is ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}.
 
-        - Always use LaTeX for mathematical expressions:
-          - Inline math should be wrapped in single dollar signs: $content$
-          - Display math should be wrapped in double dollar signs: $$content$$
-          - Use proper LaTeX syntax within the delimiters.
-          - DO NOT output LaTeX as a code block.
+        *Instructions for when generating mathematical expressions:*
+        - Always use LaTeX
+        - Inline math should be wrapped in single dollar signs: $content$
+        - Display math should be wrapped in double dollar signs: $$content$$
+        - Use proper LaTeX syntax within the delimiters.
+        - DO NOT output LaTeX as a code block.
           
-        - When generating code:
-          - Ensure it is properly formatted using Prettier with a print width of 80 characters
-          - Inline code should be wrapped in backticks: \`content\`
-          - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
+        *Instructions for when generating code:*
+        - Ensure it is properly formatted using Prettier with a print width of 80 characters
+        - Inline code should be wrapped in backticks: \`content\`
+        - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
 
         ${
-          customizationSettings
-            ? `
-            This is some extra settings set by the user:
-            - Name of the user: ${customizationSettings.name}
-            - Profession of the user: ${customizationSettings.whatYouDo}
-            - Specifics on how to respond to the user: ${customizationSettings.howToRespond}
-            - Some additional information about the user: ${customizationSettings.additionalInfo}
+          customizationSettings &&
+          `
+            This is some extra customization settings set by the user:
+            ${customizationSettings.name && `- Name of the user: ${customizationSettings.name}`}
+            ${customizationSettings.whatYouDo && `- Profession of the user: ${customizationSettings.whatYouDo}`}
+            ${customizationSettings.howToRespond && `- Specifics on how to respond to the user: ${customizationSettings.howToRespond}`}
+            ${customizationSettings.additionalInfo && `- Some additional information about the user: ${customizationSettings.additionalInfo}`}
             `
-            : ""
         }
         `,
-      experimental_generateMessageId: createIdGenerator({
-        prefix: "assistant",
-        size: 16,
-      }),
+      experimental_transform: [
+        smoothStream({
+          chunking: "word",
+        }),
+      ],
       messages,
       ...(isReasoningModel && {
         providerOptions: {
           openai: {
             reasoningEffort: reasoningEffort || "low",
           },
+          openrouter: {
+            reasoning: {
+              max_tokens: calculateThinkingBudget(),
+            },
+          },
           anthropic: {
             thinking: {
               type: "enabled",
-              budgetTokens: anthropicThinkingBudget(),
+              budgetTokens: calculateThinkingBudget(),
             },
           } satisfies AnthropicProviderOptions,
         },
       }),
-      onFinish: async ({ response, usage }) => {
+      onFinish: async ({ text, reasoning, usage, response }) => {
         try {
           if (temporaryChat) {
             return;
           }
 
-          let reasoning = "";
-          const processedResponseMessages: Message[] = response.messages
-            .filter((msg) => msg.role !== "tool")
-            .map((msg) => ({
-              id: msg.id,
-              role: msg.role as "assistant",
-              createdAt: new Date(),
-              content:
-                typeof msg.content === "string"
-                  ? msg.content
-                  : Array.isArray(msg.content)
-                    ? (() => {
-                        const textParts: string[] = [];
-
-                        msg.content.forEach((part) => {
-                          if (part.type === "text") {
-                            textParts.push(part.text);
-                          } else if (part.type === "reasoning") {
-                            reasoning = part.text;
-                          }
-                        });
-
-                        return textParts.join(" ");
-                      })()
-                    : String(msg.content),
-            }));
-
-          const allMessages = [...messages, ...processedResponseMessages].map(
-            (msg) => ({
-              id: msg.id,
-              role: msg.role as "user" | "assistant",
-              content: msg.content,
-              createdAt: msg.createdAt
-                ? msg.createdAt instanceof Date
-                  ? msg.createdAt.getTime()
-                  : typeof msg.createdAt === "number"
-                    ? msg.createdAt
+          const messageIds = messages.slice(0, -1).map((m) => m.id);
+          const latestUserMessage = messages[messages.length - 1];
+          const assistantMessage = {
+            id: createIdGenerator({
+              prefix: "assistant",
+              size: 16,
+            })(),
+            role: "assistant" as const,
+            content: text,
+            createdAt: response.timestamp?.getTime() ?? Date.now(),
+            parts: [
+              ...(reasoning
+                ? [
+                    {
+                      type: "reasoning" as const,
+                      reasoning,
+                    },
+                  ]
+                : []),
+              {
+                type: "text" as const,
+                text,
+              },
+            ],
+          };
+          const newMessages = [latestUserMessage, assistantMessage].map(
+            (m) => ({
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              createdAt: m.createdAt
+                ? m.createdAt instanceof Date
+                  ? m.createdAt.getTime()
+                  : typeof m.createdAt === "number"
+                    ? m.createdAt
                     : Date.now()
                 : Date.now(),
-              reasoning,
+              parts:
+                m.parts
+                  ?.map((part) => {
+                    if (part.type === "text") {
+                      return {
+                        type: "text" as const,
+                        text: part.text || "",
+                      };
+                    } else if (part.type === "reasoning") {
+                      return {
+                        type: "reasoning" as const,
+                        reasoning: part.reasoning || "",
+                      };
+                    }
+                    return null;
+                  })
+                  .filter(
+                    (
+                      part,
+                    ): part is
+                      | { type: "text"; text: string }
+                      | { type: "reasoning"; reasoning: string } =>
+                      part !== null,
+                  ) || [],
             }),
           );
 
@@ -159,9 +187,12 @@ export async function POST(request: NextRequest) {
             api.chat.updateChatMessages,
             {
               chatId,
-              messages: allMessages,
+              messageIds,
+              newMessages,
             },
-            { token },
+            {
+              token,
+            },
           );
 
           // Prompt tokens counts system prompt tokens too!!
@@ -178,12 +209,7 @@ export async function POST(request: NextRequest) {
               4,
           );
 
-          const completionContent = processedResponseMessages
-            .flatMap((msg) => msg.content)
-            .join(" ");
-          const approximateCompletionTokens = Math.ceil(
-            completionContent.length / 4,
-          );
+          const approximateCompletionTokens = Math.ceil(text.length / 4);
 
           // Use actual usage if available, otherwise use approximations
           const finalPromptTokens =
@@ -237,33 +263,60 @@ export async function POST(request: NextRequest) {
         }
 
         try {
+          const messageIds = messages.slice(0, -1).map((m) => m.id);
+          const latestUserMessage = messages[messages.length - 1];
           const errorMessage = {
-            id: `error-${crypto.randomUUID()}`,
+            id: createIdGenerator({
+              prefix: "error",
+              size: 16,
+            })(),
             role: "assistant" as const,
             content: errorContent,
             createdAt: Date.now(),
+            parts: [{ type: "text" as const, text: errorContent }],
           };
-
-          const messagesWithError = [...messages, errorMessage].map((msg) => ({
-            id: msg.id,
-            role: msg.role as "user" | "assistant",
-            content: msg.content,
-            createdAt: msg.createdAt
-              ? msg.createdAt instanceof Date
-                ? msg.createdAt.getTime()
-                : typeof msg.createdAt === "number"
-                  ? msg.createdAt
+          const newMessages = [latestUserMessage, errorMessage].map((m) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            createdAt: m.createdAt
+              ? m.createdAt instanceof Date
+                ? m.createdAt.getTime()
+                : typeof m.createdAt === "number"
+                  ? m.createdAt
                   : Date.now()
               : Date.now(),
+            parts: m.parts
+              ?.filter(
+                (part) => part.type === "text" || part.type === "reasoning",
+              )
+              .map((part) => {
+                if (part.type === "text") {
+                  return {
+                    type: "text" as const,
+                    text: (part as { type: "text"; text: string }).text,
+                  };
+                } else {
+                  return {
+                    type: "reasoning" as const,
+                    reasoning: (
+                      part as { type: "reasoning"; reasoning: string }
+                    ).reasoning,
+                  };
+                }
+              }) || [{ type: "text" as const, text: m.content }],
           }));
 
           fetchMutation(
             api.chat.updateChatMessages,
             {
               chatId,
-              messages: messagesWithError,
+              messageIds,
+              newMessages,
             },
-            { token },
+            {
+              token,
+            },
           );
         } catch (dbError) {
           console.error(
@@ -283,6 +336,7 @@ export async function POST(request: NextRequest) {
 
 function createAIProvider(model: Models, apiKeys: Record<Providers, string>) {
   const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
+  const isReasoningModel = modelConfig?.reasoning === true;
 
   switch (modelConfig?.provider) {
     case "openai":
@@ -301,12 +355,16 @@ function createAIProvider(model: Models, apiKeys: Record<Providers, string>) {
             }
           : undefined;
 
-      const openrouter = createOpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
+      const openrouter = createOpenRouter({
         apiKey: apiKeys.openrouter,
+        ...(isReasoningModel && {
+          extraBody: {
+            include_reasoning: true,
+          },
+        }),
         ...(headers && { headers }),
       });
-      return openrouter(modelConfig.id);
+      return openrouter.chat(modelConfig.id);
 
     default:
       throw new Error(`Unsupported provider: ${modelConfig?.provider}`);

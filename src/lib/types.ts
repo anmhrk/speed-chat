@@ -5,7 +5,6 @@ export type Models =
   | "google/gemini-2.5-flash-preview-05-20"
   | "google/gemini-2.5-pro-preview"
   | "gpt-4.1"
-  | "gpt-4.1-mini"
   | "o3"
   | "o4-mini"
   | "claude-4-sonnet-20250514"

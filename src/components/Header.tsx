@@ -1,3 +1,5 @@
+"use client";
+
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Ghost, Settings, Key, Palette, Moon, Plus } from "lucide-react";

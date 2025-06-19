@@ -3,7 +3,7 @@ import { query, mutation, action, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 export const fetchMessages = query({
   args: { chatId: v.string() },
@@ -17,20 +17,13 @@ export const fetchMessages = query({
       return [];
     }
 
-    const chat = await ctx.db
-      .query("chats")
-      .filter((q) => q.eq(q.field("chatId"), args.chatId))
-      .first();
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat_id", (q) => q.eq("chatId", args.chatId))
+      .order("asc")
+      .collect();
 
-    if (!chat) {
-      return [];
-    }
-
-    if (chat.userId !== userId) {
-      throw new ConvexError("Unauthorized");
-    }
-
-    return chat.messages;
+    return messages;
   },
 });
 
@@ -42,13 +35,13 @@ export const fetchThreads = query({
       return [];
     }
 
-    const chats = await ctx.db
+    const threads = await ctx.db
       .query("chats")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
 
-    return chats;
+    return threads;
   },
 });
 
@@ -62,19 +55,16 @@ export const createInitialChat = mutation({
       throw new ConvexError("Not authenticated");
     }
 
-    const now = Date.now();
     await ctx.db.insert("chats", {
       chatId: args.chatId,
       title: "New Chat",
       userId: userId,
-      createdAt: now,
-      updatedAt: now,
-      messages: [],
+      updatedAt: Date.now(),
     });
 
     const usage = await ctx.db
       .query("usage")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .first();
 
     if (!usage) {
@@ -105,8 +95,7 @@ export const generateThreadTitle = action({
     }
 
     try {
-      const openrouter = createOpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
+      const openrouter = createOpenRouter({
         apiKey: process.env.OPENROUTER_API_KEY,
       });
 
@@ -161,7 +150,7 @@ export const updateChatTitle = internalMutation({
   handler: async (ctx, args) => {
     const chat = await ctx.db
       .query("chats")
-      .filter((q) => q.eq(q.field("chatId"), args.chatId))
+      .withIndex("by_chat_id", (q) => q.eq("chatId", args.chatId))
       .first();
 
     if (!chat) {
@@ -178,30 +167,72 @@ export const updateChatTitle = internalMutation({
 export const updateChatMessages = mutation({
   args: {
     chatId: v.string(),
-    messages: v.array(
+    messageIds: v.array(v.string()),
+    newMessages: v.array(
       v.object({
         id: v.string(),
         role: v.union(v.literal("user"), v.literal("assistant")),
         content: v.string(),
-        reasoning: v.optional(v.string()),
         createdAt: v.number(),
+        parts: v.array(
+          v.union(
+            v.object({
+              type: v.literal("text"),
+              text: v.string(),
+            }),
+            v.object({
+              type: v.literal("reasoning"),
+              reasoning: v.string(),
+            }),
+          ),
+        ),
       }),
     ),
   },
   handler: async (ctx, args) => {
-    const chat = await ctx.db
-      .query("chats")
-      .filter((q) => q.eq(q.field("chatId"), args.chatId))
-      .first();
-
-    if (!chat) {
-      throw new ConvexError("Chat not found");
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("Not authenticated");
     }
 
-    await ctx.db.patch(chat._id, {
-      messages: args.messages,
-      updatedAt: Date.now(),
-    });
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat_id", (q) => q.eq("chatId", args.chatId))
+      .collect();
+
+    const desiredIds = new Set<string>([
+      ...args.messageIds,
+      ...args.newMessages.map((m) => m.id),
+    ]);
+
+    // Delete messages that exist in the DB but are no longer present on the client
+    // Need to keep client and db in sync
+    for (const dbMsg of messages) {
+      if (!desiredIds.has(dbMsg.id)) {
+        await ctx.db.delete(dbMsg._id);
+      }
+    }
+
+    // Upsert the new / edited messages coming from the client
+    for (const newMsg of args.newMessages) {
+      const existing = messages.find((m) => m.id === newMsg.id);
+
+      if (existing) {
+        // Update message if content or reasoning changed
+        await ctx.db.patch(existing._id, {
+          content: newMsg.content,
+          parts: newMsg.parts,
+          createdAt: newMsg.createdAt,
+          role: newMsg.role,
+        });
+      } else {
+        // Insert brand-new message
+        await ctx.db.insert("messages", {
+          chatId: args.chatId,
+          ...newMsg,
+        });
+      }
+    }
   },
 });
 
@@ -218,7 +249,7 @@ export const updateUsage = mutation({
 
     const usage = await ctx.db
       .query("usage")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .first();
 
     if (!usage) {
@@ -243,7 +274,7 @@ export const fetchUsage = query({
 
     const usage = await ctx.db
       .query("usage")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .first();
 
     return usage;
@@ -260,7 +291,7 @@ export const resetUsage = mutation({
 
     const usage = await ctx.db
       .query("usage")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .first();
 
     if (!usage) {

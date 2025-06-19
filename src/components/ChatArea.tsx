@@ -38,7 +38,6 @@ interface ChatAreaProps {
   temporaryChat: boolean;
   append: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
-  isCreatingInitialChat: boolean;
 }
 
 export function ChatArea({
@@ -63,11 +62,9 @@ export function ChatArea({
   temporaryChat,
   append,
   setMessages,
-  isCreatingInitialChat,
 }: ChatAreaProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const previousMessagesLength = useRef(messages.length);
   const hasScrolledOnLoad = useRef(false);
 
   // Helper to grab the Radix ScrollArea viewport element
@@ -93,45 +90,6 @@ export function ChatArea({
       hasScrolledOnLoad.current = true;
     }
   }, [isLoadingChat, messages.length, scrollToBottom]);
-
-  const scrollToShowUserMessage = () => {
-    const viewport = getViewport();
-    if (!viewport || messages.length === 0) return;
-
-    const lastUserMessageIndex = messages.length - 1;
-    const messageElements = viewport.querySelectorAll("[data-message-index]");
-    const lastUserElement = messageElements[lastUserMessageIndex] as
-      | HTMLElement
-      | undefined;
-
-    if (lastUserElement) {
-      const elementTop = lastUserElement.offsetTop;
-      const containerPadding = 72;
-
-      viewport.scrollTo({
-        top: elementTop - containerPadding,
-        behavior: "instant",
-      });
-    }
-  };
-
-  // Handle scroll behavior when new user message comes in
-  useEffect(() => {
-    const currentLength = messages.length;
-    const previousLength = previousMessagesLength.current;
-
-    if (currentLength > previousLength && hasScrolledOnLoad.current) {
-      const isUserMessage = messages[currentLength - 1]?.role === "user";
-
-      if (isUserMessage) {
-        setTimeout(() => {
-          scrollToShowUserMessage();
-        }, 50);
-      }
-    }
-
-    previousMessagesLength.current = currentLength;
-  }, [messages.length]);
 
   // Scroll event listener to show/hide scroll to bottom button
   useEffect(() => {
@@ -224,7 +182,6 @@ export function ChatArea({
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
-          isCreatingInitialChat={isCreatingInitialChat}
         />
       </div>
     </div>
