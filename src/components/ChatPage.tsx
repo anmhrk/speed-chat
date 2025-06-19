@@ -52,13 +52,17 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, []);
 
-  const threadsData = useQuery(api.chat.fetchThreads, {});
-  const messagesData = useQuery(api.chat.fetchMessages, {
-    chatId: chatId || "",
-  });
+  const threadsData = useQuery(api.chat.fetchThreads, user ? {} : "skip");
 
-  const isLoadingThreads = threadsData === undefined;
-  const isLoadingMessages = messagesData === undefined;
+  const messagesData = useQuery(
+    api.chat.fetchMessages,
+    user && chatId ? { chatId } : "skip",
+  );
+
+  const isLoadingThreads = Boolean(user && threadsData === undefined);
+  const isLoadingMessages = Boolean(
+    user && chatId && messagesData === undefined,
+  );
 
   const createInitialChat = useMutation(api.chat.createInitialChat);
   const generateThreadTitle = useAction(api.chat.generateThreadTitle);

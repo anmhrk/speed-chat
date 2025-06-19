@@ -28,6 +28,7 @@ import {
 import { api } from "../../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface SettingsGeneralPageProps {
   preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
@@ -55,7 +56,7 @@ export default function SettingsGeneralPage({
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const [isResettingUsage, setIsResettingUsage] = useState<boolean>(false);
 
-  const usageData = useQuery(api.chat.fetchUsage, {});
+  const usageData = useQuery(api.chat.fetchUsage, user ? {} : "skip");
   const isLoadingUsage = usageData === undefined;
 
   const resetUsage = useMutation(api.chat.resetUsage);
@@ -73,10 +74,11 @@ export default function SettingsGeneralPage({
     try {
       await resetUsage({});
     } catch (error) {
-      // toast.error("Failed to reset usage statistics", {
-      //   description: error.message,
-      // });
-      console.error(error); // TODO: Add error handling
+      console.error(error);
+      toast.error("Failed to reset usage statistics", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
     } finally {
       setIsResettingUsage(false);
     }

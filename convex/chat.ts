@@ -8,12 +8,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 export const fetchMessages = query({
   args: { chatId: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    if (!args.chatId || args.chatId.trim() === "") {
+    if (!args.chatId || ctx.auth.getUserIdentity() === null) {
       return [];
     }
 
