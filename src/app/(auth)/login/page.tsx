@@ -4,20 +4,20 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { signIn } from "@/lib/auth/auth-client";
+import Link from "next/link";
 
 export default function Login() {
-  const router = useRouter();
-  const { signIn } = useAuthActions();
   const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div className="relative min-h-screen">
       <div className="absolute top-8 left-8 z-10">
-        <Button variant="ghost" onClick={() => router.push("/")}>
-          <ArrowLeft className="mr-1 !h-5 !w-5" />
-          Back to chat
+        <Button variant="ghost" asChild>
+          <Link href="/">
+            <ArrowLeft className="mr-1 !h-5 !w-5" />
+            Back to chat
+          </Link>
         </Button>
       </div>
 
@@ -26,11 +26,11 @@ export default function Login() {
           <Button
             onClick={() => {
               setIsLoading(true);
-              signIn("google", {
-                redirectTo: "/",
-              }).finally(() => {
-                setIsLoading(false);
-              });
+              signIn
+                .social({ provider: "google", callbackURL: "/" })
+                .finally(() => {
+                  setIsLoading(false);
+                });
             }}
             variant="outline"
             size="lg"

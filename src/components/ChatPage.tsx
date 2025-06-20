@@ -13,24 +13,16 @@ import { useState, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { toast } from "sonner";
 import { type Message, createIdGenerator } from "ai";
-import {
-  Preloaded,
-  usePreloadedQuery,
-  useQuery,
-  useMutation,
-  useAction,
-} from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { useRouter } from "next/navigation";
+import type { User } from "better-auth";
 
 interface ChatPageProps {
   initialChatId?: string | null;
-  preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
+  user: User | null;
 }
 
-export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
+export function ChatPage({ initialChatId, user }: ChatPageProps) {
   const router = useRouter();
-  const user = usePreloadedQuery(preloadedUser);
   const [chatId, setChatId] = useState<string | null>(initialChatId || null);
   const [model, setModel] = useState<Models | null>(null);
   const [reasoningEffort, setReasoningEffort] =
@@ -52,45 +44,6 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     }
   }, []);
 
-  const threadsData = useQuery(api.chat.fetchThreads, user ? {} : "skip");
-
-  const messagesData = useQuery(
-    api.chat.fetchMessages,
-    user && chatId ? { chatId } : "skip",
-  );
-
-  const isLoadingThreads = Boolean(user && threadsData === undefined);
-  const isLoadingMessages = Boolean(
-    user && chatId && !newChatIds.has(chatId) && messagesData === undefined,
-  );
-
-  const createInitialChat = useMutation(api.chat.createInitialChat);
-  const generateThreadTitle = useAction(api.chat.generateThreadTitle);
-
-  const initialMessages: Message[] = messagesData
-    ? messagesData.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        createdAt: new Date(message.createdAt),
-        parts: message.parts.map((part) => {
-          if (part.type === "reasoning") {
-            return {
-              type: "reasoning",
-              reasoning: part.reasoning,
-              details: [
-                {
-                  type: "text" as const,
-                  text: message.content,
-                },
-              ],
-            };
-          }
-          return part;
-        }),
-      }))
-    : [];
-
   const {
     messages,
     input,
@@ -104,7 +57,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
     append,
   } = useChat({
     id: chatId || undefined,
-    initialMessages,
+    // initialMessages,
     credentials: "include",
     sendExtraMessageFields: true,
     generateId: createIdGenerator({
@@ -179,11 +132,11 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
 
     if (!chatId) {
       const newChatId = crypto.randomUUID();
-      const userMessage = input.trim();
+      // const userMessage = input.trim();
 
       setChatId(newChatId);
       setNewChatIds((prev) => new Set([...prev, newChatId]));
-      createInitialChat({ chatId: newChatId });
+      // createInitialChat({ chatId: newChatId });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
@@ -192,11 +145,11 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
         handleSubmit(e),
         (async () => {
           try {
-            const title = await generateThreadTitle({
-              chatId: newChatId,
-              prompt: userMessage,
-            });
-            return title;
+            // const title = await generateThreadTitle({
+            //   chatId: newChatId,
+            //   prompt: userMessage,
+            // });
+            // return title;
           } catch (error) {
             console.error(error);
             return "New Chat"; // Fallback title
@@ -223,8 +176,8 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
       />
       <AppSidebar
         user={user}
-        threads={threadsData}
-        isLoading={isLoadingThreads}
+        threads={[]}
+        isLoading={false}
         newThreads={newChatIds}
         chatId={chatId}
         setChatId={setChatId}
@@ -248,7 +201,7 @@ export function ChatPage({ initialChatId, preloadedUser }: ChatPageProps) {
           setApiKeys={setApiKeys}
           hasApiKeys={hasApiKeys}
           setHasApiKeys={setHasApiKeys}
-          isLoadingChat={isLoadingMessages}
+          isLoadingChat={false}
           temporaryChat={temporaryChat}
           append={append}
           setMessages={setMessages}

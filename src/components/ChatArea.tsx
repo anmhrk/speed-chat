@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { Message } from "ai";
 import type { Models, ReasoningEfforts, Providers } from "@/lib/types";
 import { Loader2 } from "lucide-react";
-import { Doc } from "../../convex/_generated/dataModel";
+import type { User } from "better-auth";
 
 const PROMPT_SUGGESTIONS = [
   "Solve Advent of Code 2021 Day 10 in Python",
@@ -17,7 +17,7 @@ const PROMPT_SUGGESTIONS = [
 ];
 
 interface ChatAreaProps {
-  user: Doc<"users"> | null;
+  user: User | null;
   messages: Message[];
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;

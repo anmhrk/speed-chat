@@ -7,13 +7,13 @@ import { ArrowDown, ArrowUp, Square } from "lucide-react";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
 import { ModelPicker } from "@/components/ModelPicker";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { User } from "better-auth";
 
 interface ChatInputProps {
   prompt: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent) => void;
-  user: Doc<"users"> | null;
+  user: User | null;
   showScrollToBottom: boolean;
   scrollToBottom: () => void;
   status: "error" | "submitted" | "streaming" | "ready";

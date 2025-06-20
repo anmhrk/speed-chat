@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  User,
+  User as UserIcon,
   LogOut,
   BarChart3,
   AlertTriangle,
@@ -19,19 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import {
-  Preloaded,
-  usePreloadedQuery,
-  useQuery,
-  useMutation,
-} from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import type { User } from "better-auth";
+import { signOut } from "@/lib/auth/auth-client";
 
 interface SettingsGeneralPageProps {
-  preloadedUser: Preloaded<typeof api.auth.getCurrentUser>;
+  user: User;
 }
 
 function formatNumber(num: number): string {
@@ -48,18 +42,11 @@ function formatNumber(num: number): string {
 }
 
 export default function SettingsGeneralPage({
-  preloadedUser,
+  user,
 }: SettingsGeneralPageProps) {
-  const user = usePreloadedQuery(preloadedUser);
   const router = useRouter();
-  const { signOut } = useAuthActions();
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const [isResettingUsage, setIsResettingUsage] = useState<boolean>(false);
-
-  const usageData = useQuery(api.chat.fetchUsage, user ? {} : "skip");
-  const isLoadingUsage = usageData === undefined;
-
-  const resetUsage = useMutation(api.chat.resetUsage);
 
   const handleResetUsage = async () => {
     if (
@@ -72,7 +59,7 @@ export default function SettingsGeneralPage({
 
     setIsResettingUsage(true);
     try {
-      await resetUsage({});
+      // TODO: Implement usage reset
     } catch (error) {
       console.error(error);
       toast.error("Failed to reset usage statistics", {
@@ -105,7 +92,7 @@ export default function SettingsGeneralPage({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <User className="size-5" />
+            <UserIcon className="size-5" />
             <span>Profile</span>
           </CardTitle>
           <CardDescription>Your account information</CardDescription>
@@ -136,7 +123,7 @@ export default function SettingsGeneralPage({
                   <div className="h-2 w-2 rounded-full bg-green-500"></div>
                   <span className="text-xs font-medium">
                     Member since{" "}
-                    {new Date(user._creationTime).toLocaleDateString()}
+                    {new Date(user.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -161,7 +148,7 @@ export default function SettingsGeneralPage({
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-2">
@@ -233,7 +220,7 @@ export default function SettingsGeneralPage({
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card className="border-destructive">
         <CardHeader>
