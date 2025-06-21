@@ -31,10 +31,10 @@ import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import type { Message } from "ai";
+import { useChatContext } from "@/hooks/useChatContext";
 
 interface AssistantMessageProps {
   message: Message;
-  reload: () => void;
   isLastMessage: boolean;
 }
 
@@ -152,9 +152,9 @@ const ReasoningBlock = memo(function ReasoningBlock({
 
 export function AssistantMessage({
   message,
-  reload,
   isLastMessage,
 }: AssistantMessageProps) {
+  const { reload } = useChatContext();
   const [copied, setCopied] = useState(false);
   const isError = message.id.startsWith("error-");
 

@@ -15,7 +15,6 @@ import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Loader2, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Doc } from "../../convex/_generated/dataModel";
 import { useMobile } from "@/hooks/useMobile";
 import {
   isToday,
@@ -24,96 +23,103 @@ import {
   subDays,
   startOfDay,
 } from "date-fns";
+import { useChatContext } from "@/hooks/useChatContext";
+import type { User } from "better-auth";
+import { chat } from "@/lib/db/schema";
+import { useCallback } from "react";
 
 interface AppSidebarProps {
-  user: Doc<"users"> | null;
-  threads: Doc<"chats">[] | undefined;
-  isLoading: boolean;
-  newThreads: Set<string>;
-  chatId: string | null;
-  setChatId: (chatId: string | null) => void;
+  user: User | null;
 }
 
-function categorizeThreadsByTime(threads: Doc<"chats">[], search: string) {
-  const now = new Date();
-  const sevenDaysAgo = startOfDay(subDays(now, 7));
-
-  const filteredThreads = threads.filter((thread) =>
-    thread.title.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const todayThreads = filteredThreads
-    .filter((thread) => isToday(new Date(thread.updatedAt)))
-    .sort((a, b) => b.updatedAt - a.updatedAt);
-
-  const yesterdayThreads = filteredThreads
-    .filter((thread) => isYesterday(new Date(thread.updatedAt)))
-    .sort((a, b) => b.updatedAt - a.updatedAt);
-
-  const past7DaysThreads = filteredThreads
-    .filter((thread) => {
-      const threadDate = new Date(thread.updatedAt);
-      return (
-        !isToday(threadDate) &&
-        !isYesterday(threadDate) &&
-        isWithinInterval(threadDate, { start: sevenDaysAgo, end: now })
-      );
-    })
-    .sort((a, b) => b.updatedAt - a.updatedAt);
-
-  const olderThreads = filteredThreads
-    .filter((thread) => {
-      const threadDate = new Date(thread.updatedAt);
-      return (
-        !isToday(threadDate) &&
-        !isYesterday(threadDate) &&
-        !isWithinInterval(threadDate, { start: sevenDaysAgo, end: now })
-      );
-    })
-    .sort((a, b) => b.updatedAt - a.updatedAt);
-
-  return {
-    today: todayThreads,
-    yesterday: yesterdayThreads,
-    past7Days: past7DaysThreads,
-    older: olderThreads,
-  };
-}
-
-export function AppSidebar({
-  user,
-  threads,
-  isLoading,
-  newThreads,
-  chatId,
-  setChatId,
-}: AppSidebarProps) {
+export function AppSidebar({ user }: AppSidebarProps) {
+  const { chatId, setChatId, newChatIds, chats, isLoadingChats } =
+    useChatContext();
   const [search, setSearch] = useState<string>("");
   const isMobile = useMobile();
 
-  const categorizedThreads = useMemo(() => {
-    if (!threads) return null;
-    return categorizeThreadsByTime(threads, search);
-  }, [threads, search]);
+  const categorizeChatsByTime = useCallback(() => {
+    const now = new Date();
+    const sevenDaysAgo = startOfDay(subDays(now, 7));
 
-  const renderThreadSection = (title: string, threads: Doc<"chats">[]) => {
-    if (threads.length === 0) return null;
+    if (!chats) return null;
+
+    const filteredChats = chats.filter((chat) =>
+      chat.title.toLowerCase().includes(search.toLowerCase()),
+    );
+
+    const todayChats = filteredChats
+      .filter((chat) => isToday(chat.updatedAt))
+      .sort((a, b) => {
+        if (!a.updatedAt || !b.updatedAt) return 0;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+
+    const yesterdayChats = filteredChats
+      .filter((chat) => isYesterday(chat.updatedAt))
+      .sort((a, b) => {
+        if (!a.updatedAt || !b.updatedAt) return 0;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+
+    const past7DaysChats = filteredChats
+      .filter((chat) => {
+        return (
+          !isToday(chat.updatedAt) &&
+          !isYesterday(chat.updatedAt) &&
+          isWithinInterval(chat.updatedAt, { start: sevenDaysAgo, end: now })
+        );
+      })
+      .sort((a, b) => {
+        if (!a.updatedAt || !b.updatedAt) return 0;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+
+    const olderChats = filteredChats
+      .filter((chat) => {
+        return (
+          !isToday(chat.updatedAt) &&
+          !isYesterday(chat.updatedAt) &&
+          !isWithinInterval(chat.updatedAt, { start: sevenDaysAgo, end: now })
+        );
+      })
+      .sort((a, b) => {
+        if (!a.updatedAt || !b.updatedAt) return 0;
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+
+    return {
+      today: todayChats,
+      yesterday: yesterdayChats,
+      past7Days: past7DaysChats,
+      older: olderChats,
+    };
+  }, [chats, search]);
+
+  const categorizedChats = useMemo(() => {
+    return categorizeChatsByTime();
+  }, [categorizeChatsByTime]);
+
+  const renderChatSection = (
+    sectionTitle: string,
+    chats: (typeof chat.$inferSelect)[],
+  ) => {
+    if (chats.length === 0) return null;
 
     return (
-      <div key={title} className="mb-4">
+      <div key={sectionTitle} className="mb-4">
         <h3 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
-          {title}
+          {sectionTitle}
         </h3>
         <div className="flex flex-col space-y-2">
-          {threads.map((thread) => (
+          {chats.map((chat) => (
             <Link
-              key={thread.chatId}
-              href={`/chat/${thread.chatId}`}
+              key={chat.id}
+              href={`/chat/${chat.id}`}
               className={cn(
                 "hover:bg-muted flex items-center rounded-lg p-2 text-sm",
-                chatId === thread.chatId && "bg-primary/10 hover:bg-primary/10",
-                newThreads.has(thread.chatId) &&
-                  "bg-primary/10 h-9 animate-pulse",
+                chatId === chat.id && "bg-primary/10 hover:bg-primary/10",
+                newChatIds.has(chat.id) && "bg-primary/10 h-9 animate-pulse",
               )}
             >
               {/* TODO: Fix this manual width control. probably bad css */}
@@ -123,7 +129,7 @@ export function AppSidebar({
                   isMobile && "max-w-[240px]",
                 )}
               >
-                {thread.title}
+                {chat.title}
               </span>
             </Link>
           ))}
@@ -158,21 +164,18 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent className="mt-1">
-        {isLoading ? (
+        {isLoadingChats ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="text-muted-foreground size-7 animate-spin" />
           </div>
         ) : (
           <ScrollArea className="h-full">
-            {categorizedThreads && (
+            {categorizedChats && (
               <div className="space-y-1 px-4">
-                {renderThreadSection("Today", categorizedThreads.today)}
-                {renderThreadSection("Yesterday", categorizedThreads.yesterday)}
-                {renderThreadSection(
-                  "Past 7 days",
-                  categorizedThreads.past7Days,
-                )}
-                {renderThreadSection("Older", categorizedThreads.older)}
+                {renderChatSection("Today", categorizedChats.today)}
+                {renderChatSection("Yesterday", categorizedChats.yesterday)}
+                {renderChatSection("Past 7 days", categorizedChats.past7Days)}
+                {renderChatSection("Older", categorizedChats.older)}
               </div>
             )}
           </ScrollArea>

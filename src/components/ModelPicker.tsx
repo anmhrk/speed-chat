@@ -9,37 +9,34 @@ import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { Globe, Paperclip, Brain } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import type { Models, ReasoningEfforts } from "@/lib/types";
+import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
+import { useChatContext } from "@/hooks/useChatContext";
 
 interface ModelPickerProps {
-  selectedModel: Models;
   onModelChange: (modelId: Models) => void;
-  reasoningEffort: ReasoningEfforts;
   onReasoningEffortChange: (reasoningEffort: ReasoningEfforts) => void;
-  availableApiKeys?: Record<string, string> | null;
 }
 
 export function ModelPicker({
-  selectedModel,
   onModelChange,
-  reasoningEffort,
   onReasoningEffortChange,
-  availableApiKeys,
 }: ModelPickerProps) {
+  const { model, reasoningEffort, apiKeys } = useChatContext();
+
   // Check if a provider has an API key configured
-  const hasApiKey = (provider: string) => {
-    return (
-      availableApiKeys?.[provider] && availableApiKeys[provider].trim() !== ""
-    );
+  const hasApiKey = (provider: Providers) => {
+    return apiKeys?.[provider] && apiKeys[provider].trim() !== "";
   };
+
+  if (!model || !reasoningEffort) return null;
 
   return (
     <div className="flex items-center gap-3">
-      <Select value={selectedModel} onValueChange={onModelChange}>
+      <Select value={model} onValueChange={onModelChange}>
         <SelectTrigger className="h-8 w-auto min-w-[100px] text-sm">
           <div className="flex items-center gap-2">
-            {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.logo}
-            {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.name}
+            {AVAILABLE_MODELS.find((m) => m.id === model)?.logo}
+            {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -119,7 +116,7 @@ export function ModelPicker({
         </SelectContent>
       </Select>
 
-      {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.reasoning && (
+      {AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning && (
         <Select value={reasoningEffort} onValueChange={onReasoningEffortChange}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -136,8 +133,8 @@ export function ModelPicker({
                     return null;
                   })()}
                   <span className="hidden md:block">
-                    {reasoningEffort.charAt(0).toUpperCase() +
-                      reasoningEffort.slice(1)}
+                    {reasoningEffort?.charAt(0).toUpperCase() +
+                      reasoningEffort?.slice(1)}
                   </span>
                 </div>
               </SelectTrigger>
@@ -157,7 +154,7 @@ export function ModelPicker({
         </Select>
       )}
 
-      {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.attachments && (
+      {AVAILABLE_MODELS.find((m) => m.id === model)?.attachments && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="outline" className="flex items-center gap-2">
@@ -169,7 +166,7 @@ export function ModelPicker({
         </Tooltip>
       )}
 
-      {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.search && (
+      {AVAILABLE_MODELS.find((m) => m.id === model)?.search && (
         <Tooltip>
           <TooltipTrigger asChild>
             <div>

@@ -8,44 +8,34 @@ import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
 import { ModelPicker } from "@/components/ModelPicker";
 import type { User } from "better-auth";
+import { useChatContext } from "@/hooks/useChatContext";
 
 interface ChatInputProps {
-  prompt: string;
-  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  handleSubmit: (e: React.FormEvent) => void;
   user: User | null;
   showScrollToBottom: boolean;
   scrollToBottom: () => void;
-  status: "error" | "submitted" | "streaming" | "ready";
-  stop: () => void;
-  model: Models | null;
-  reasoningEffort: ReasoningEfforts | null;
-  apiKeys: Record<Providers, string> | null;
-  setModel: (model: Models) => void;
-  setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
-  hasApiKeys: boolean;
-  setHasApiKeys: (hasApiKeys: boolean) => void;
 }
 
 export function ChatInput({
-  prompt,
-  handleInputChange,
-  handleSubmit,
   user,
   showScrollToBottom,
   scrollToBottom,
-  status,
-  stop,
-  model,
-  reasoningEffort,
-  apiKeys,
-  setModel,
-  setReasoningEffort,
-  setApiKeys,
-  hasApiKeys,
-  setHasApiKeys,
 }: ChatInputProps) {
+  const {
+    input,
+    handleInputChange,
+    handleChatSubmit,
+    status,
+    stop,
+    model,
+    reasoningEffort,
+    setModel,
+    setReasoningEffort,
+    setApiKeys,
+    hasApiKeys,
+    setHasApiKeys,
+  } = useChatContext();
+
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -127,7 +117,7 @@ export function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleChatSubmit(e);
     }
 
     if (e.key === "Escape") {
@@ -147,11 +137,11 @@ export function ChatInput({
         </Button>
       )}
 
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleChatSubmit} className="relative">
         <div className="relative rounded-t-2xl border border-b-0">
           <Textarea
             ref={promptRef}
-            value={prompt}
+            value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
@@ -160,11 +150,8 @@ export function ChatInput({
           <div className="flex items-center justify-between px-4 py-3">
             {model && reasoningEffort ? (
               <ModelPicker
-                selectedModel={model}
                 onModelChange={handleModelChange}
-                reasoningEffort={reasoningEffort}
                 onReasoningEffortChange={handleReasoningEffortChange}
-                availableApiKeys={apiKeys}
               />
             ) : (
               <div className="flex-1" />
@@ -182,8 +169,8 @@ export function ChatInput({
               <Button
                 type="button"
                 size="icon"
-                onClick={handleSubmit}
-                disabled={!user || !prompt.trim() || !hasApiKeys}
+                onClick={handleChatSubmit}
+                disabled={!user || !input.trim() || !hasApiKeys}
               >
                 <ArrowUp className="size-6" />
               </Button>

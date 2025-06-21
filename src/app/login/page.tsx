@@ -32,15 +32,15 @@ export default function Login() {
                   setIsLoading(false);
                 });
             }}
-            variant="outline"
             size="lg"
+            variant="outline"
             disabled={isLoading}
             className="h-12 w-full space-x-2 rounded-lg text-lg font-semibold"
           >
-            {isLoading ? (
-              <Loader2 className="!h-6 !w-6 animate-spin" />
-            ) : (
-              <>
+            <>
+              {isLoading ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : (
                 <Image
                   src="/Google.svg"
                   width={24}
@@ -48,9 +48,9 @@ export default function Login() {
                   alt="Google Logo"
                   unoptimized
                 />
-                <span>Continue with Google</span>
-              </>
-            )}
+              )}
+              <span>Continue with Google</span>
+            </>
           </Button>
         </div>
       </div>

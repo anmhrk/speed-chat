@@ -20,16 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Toggle } from "@/components/ui/toggle";
 import Link from "next/link";
+import { useChatContext } from "@/hooks/useChatContext";
 
-export function Header({
-  temporaryChat,
-  setTemporaryChat,
-  setChatId,
-}: {
-  temporaryChat: boolean;
-  setTemporaryChat: (temporaryChat: boolean) => void;
-  setChatId: (chatId: string | null) => void;
-}) {
+export function Header() {
+  const { temporaryChat, setTemporaryChat, setChatId } = useChatContext();
   const pathname = usePathname();
   const isChatPage = pathname.includes("/chat");
   const { theme, setTheme } = useTheme();

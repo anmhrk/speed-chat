@@ -1,22 +1,10 @@
-import type { Message } from "ai";
 import { AssistantMessage } from "@/components/AssistantMessage";
 import { UserMessage } from "@/components/UserMessage";
+import { useChatContext } from "@/hooks/useChatContext";
 
-interface MessagesProps {
-  messages: Message[];
-  reload: () => void;
-  status: "error" | "submitted" | "streaming" | "ready";
-  append: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
-}
+export function Messages() {
+  const { messages, status } = useChatContext();
 
-export function Messages({
-  messages,
-  reload,
-  status,
-  append,
-  setMessages,
-}: MessagesProps) {
   const showLoading =
     status === "submitted" && messages[messages.length - 1].role === "user";
 
@@ -25,16 +13,10 @@ export function Messages({
       {messages.map((message) => (
         <div key={message.id} className="w-full">
           {message.role === "user" ? (
-            <UserMessage
-              message={message}
-              append={append}
-              setMessages={setMessages}
-              allMessages={messages}
-            />
+            <UserMessage message={message} />
           ) : (
             <AssistantMessage
               message={message}
-              reload={reload}
               isLastMessage={message.id === messages[messages.length - 1]?.id}
             />
           )}

@@ -6,6 +6,8 @@ import {
   RetryError,
   createIdGenerator,
   smoothStream,
+  appendResponseMessages,
+  type Message,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -16,9 +18,8 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ChatRequest, Models, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
-import { fetchMutation, fetchQuery } from "convex/nextjs";
-import { api } from "../../../../convex/_generated/api";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { getUser } from "@/lib/auth/get-user";
+import { updateChatMessages, updateUsage } from "@/lib/actions";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,11 +34,10 @@ export async function POST(request: NextRequest) {
       customizationSettings,
     } = body;
 
-    const token = await convexAuthNextjsToken();
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    const user = await getUser();
 
     if (!user) {
-      return new Response("Unauthorized", { status: 401 });
+      throw new Error("Unauthorized");
     }
 
     let modelId = model;
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
           } satisfies AnthropicProviderOptions,
         },
       }),
-      onFinish: async ({ text, reasoning, usage, response }) => {
+      onFinish: async ({ text, usage, response }) => {
         try {
           if (temporaryChat) {
             return;
@@ -121,79 +121,23 @@ export async function POST(request: NextRequest) {
 
           const messageIds = messages.slice(0, -1).map((m) => m.id);
           const latestUserMessage = messages[messages.length - 1];
-          const assistantMessage = {
-            id: createIdGenerator({
-              prefix: "assistant",
-              size: 16,
-            })(),
-            role: "assistant" as const,
-            content: text,
-            createdAt: response.timestamp?.getTime() ?? Date.now(),
-            parts: [
-              ...(reasoning
-                ? [
-                    {
-                      type: "reasoning" as const,
-                      reasoning,
-                    },
-                  ]
-                : []),
-              {
-                type: "text" as const,
-                text,
-              },
-            ],
-          };
-          const newMessages = [latestUserMessage, assistantMessage].map(
-            (m) => ({
-              id: m.id,
-              role: m.role as "user" | "assistant",
-              content: m.content,
-              createdAt: m.createdAt
-                ? m.createdAt instanceof Date
-                  ? m.createdAt.getTime()
-                  : typeof m.createdAt === "number"
-                    ? m.createdAt
-                    : Date.now()
-                : Date.now(),
-              parts:
-                m.parts
-                  ?.map((part) => {
-                    if (part.type === "text") {
-                      return {
-                        type: "text" as const,
-                        text: part.text || "",
-                      };
-                    } else if (part.type === "reasoning") {
-                      return {
-                        type: "reasoning" as const,
-                        reasoning: part.reasoning || "",
-                      };
-                    }
-                    return null;
-                  })
-                  .filter(
-                    (
-                      part,
-                    ): part is
-                      | { type: "text"; text: string }
-                      | { type: "reasoning"; reasoning: string } =>
-                      part !== null,
-                  ) || [],
-            }),
-          );
 
-          await fetchMutation(
-            api.chat.updateChatMessages,
-            {
-              chatId,
-              messageIds,
-              newMessages,
-            },
-            {
-              token,
-            },
-          );
+          const newMessages = appendResponseMessages({
+            messages: [latestUserMessage],
+            responseMessages: response.messages,
+          }).map((m) => ({
+            ...m,
+            // Override id if for consistency because different providers send different id formats
+            id:
+              m.role === "assistant"
+                ? createIdGenerator({
+                    prefix: "assistant",
+                    size: 16,
+                  })()
+                : m.id,
+          }));
+
+          await updateChatMessages(chatId, messageIds, newMessages);
 
           // Prompt tokens counts system prompt tokens too!!
           // Also mesages are always incremented by 1 onFinish, even if
@@ -222,19 +166,14 @@ export async function POST(request: NextRequest) {
               ? usage.completionTokens
               : approximateCompletionTokens;
 
-          await fetchMutation(
-            api.chat.updateUsage,
-            {
-              promptTokens: finalPromptTokens,
-              completionTokens: finalCompletionTokens,
-            },
-            { token },
-          );
+          await updateUsage(user.id, finalPromptTokens, finalCompletionTokens);
         } catch (error) {
           console.error("[Chat API] Database save failed:", error);
         }
       },
     });
+
+    // chatStream.consumeStream();
 
     return chatStream.toDataStreamResponse({
       sendReasoning: true,
@@ -272,52 +211,12 @@ export async function POST(request: NextRequest) {
             })(),
             role: "assistant" as const,
             content: errorContent,
-            createdAt: Date.now(),
+            createdAt: new Date(),
             parts: [{ type: "text" as const, text: errorContent }],
-          };
-          const newMessages = [latestUserMessage, errorMessage].map((m) => ({
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            createdAt: m.createdAt
-              ? m.createdAt instanceof Date
-                ? m.createdAt.getTime()
-                : typeof m.createdAt === "number"
-                  ? m.createdAt
-                  : Date.now()
-              : Date.now(),
-            parts: m.parts
-              ?.filter(
-                (part) => part.type === "text" || part.type === "reasoning",
-              )
-              .map((part) => {
-                if (part.type === "text") {
-                  return {
-                    type: "text" as const,
-                    text: (part as { type: "text"; text: string }).text,
-                  };
-                } else {
-                  return {
-                    type: "reasoning" as const,
-                    reasoning: (
-                      part as { type: "reasoning"; reasoning: string }
-                    ).reasoning,
-                  };
-                }
-              }) || [{ type: "text" as const, text: m.content }],
-          }));
+          } as Message;
 
-          fetchMutation(
-            api.chat.updateChatMessages,
-            {
-              chatId,
-              messageIds,
-              newMessages,
-            },
-            {
-              token,
-            },
-          );
+          const newMessages = [latestUserMessage, errorMessage];
+          updateChatMessages(chatId, messageIds, newMessages);
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",

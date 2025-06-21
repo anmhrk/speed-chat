@@ -10,20 +10,14 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Textarea } from "./ui/textarea";
+import { useChatContext } from "@/hooks/useChatContext";
 
 interface UserMessageProps {
   message: Message;
-  append: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
-  allMessages: Message[];
 }
 
-export function UserMessage({
-  message,
-  append,
-  setMessages,
-  allMessages,
-}: UserMessageProps) {
+export function UserMessage({ message }: UserMessageProps) {
+  const { append, setMessages, messages } = useChatContext();
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState(message.content);
@@ -51,14 +45,12 @@ export function UserMessage({
   const handleEdit = () => {
     setIsEditing(false);
 
-    const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id,
-    );
+    const editedMessageIndex = messages.findIndex((m) => m.id === message.id);
 
     // Remove all messages after the edited message including the edited message
-    allMessages.splice(editedMessageIndex);
+    messages.splice(editedMessageIndex);
 
-    setMessages(allMessages);
+    setMessages(messages);
     append({
       id: message.id,
       role: "user",
