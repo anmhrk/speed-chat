@@ -11,6 +11,9 @@ import { useRef, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
+import { Messages } from "./messages";
+import { createChat, generateChatTitle } from "@/lib/actions";
+import { Loader2 } from "lucide-react";
 
 const promptSuggestions = [
   "Write a creative story about space exploration",
@@ -20,24 +23,36 @@ const promptSuggestions = [
 ];
 
 interface ChatPageProps {
-  greeting?: string;
   user: User | null;
+  error?: string;
   initialMessages?: Message[];
+  isLoading?: boolean;
 }
 
-export function ChatPage({ user, greeting, initialMessages }: ChatPageProps) {
+export function ChatPage({
+  user,
+  error,
+  initialMessages,
+  isLoading,
+}: ChatPageProps) {
   return (
     <SettingsProvider>
       <ChatPageInner
         user={user}
-        greeting={greeting}
         initialMessages={initialMessages}
+        error={error}
+        isLoading={isLoading}
       />
     </SettingsProvider>
   );
 }
 
-function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
+function ChatPageInner({
+  user,
+  error,
+  initialMessages,
+  isLoading,
+}: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customInstructions, hasApiKeys } =
     useSettingsContext();
   const router = useRouter();
@@ -58,13 +73,12 @@ function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
     }
   }, [chatId]);
 
-  console.log(
-    model,
-    reasoningEffort,
-    apiKeys,
-    temporaryChat,
-    customInstructions
-  );
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      router.push("/");
+    }
+  }, [error, router]);
 
   const {
     messages,
@@ -125,9 +139,9 @@ function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
 
     if (!dynamicChatId) {
       const newChatId = crypto.randomUUID();
-      // const userMessage = input.trim();
+      const userMessage = input.trim();
 
-      // createChat({ chatId: newChatId });
+      createChat(newChatId); // Don't await this to not block the UI
 
       setDynamicChatId(newChatId);
       // Not using router.push cos it will cause a rerender and message state will be lost
@@ -138,13 +152,12 @@ function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
         handleSubmit(e),
         (async () => {
           try {
-            // await generateChatTitle({
-            //   chatId: newChatId,
-            //   prompt: userMessage,
-            // });
+            const title = await generateChatTitle(newChatId, userMessage);
+            return title;
+            // TODO: Update the title in the sidebar once returned
           } catch (error) {
             console.error(error);
-            // Fallback title is already set in generateChatTitle action
+            // Fallback title is already set when chat is created
           }
         })(),
       ]);
@@ -156,19 +169,22 @@ function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
   return (
     <>
       <AppSidebar user={user} />
-
       <SidebarInset>
         <div className="flex flex-col h-full p-3">
           <Header />
-
           <div className="flex-1 flex flex-col">
-            {/* {messages.length > 0 && (
-            <ScrollArea className="h-full">
-              
-            </ScrollArea>
-          )} */}
-
-            {messages.length === 0 && (
+            {isLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="size-5 animate-spin" />
+                  <span className="text-muted-foreground text-sm">
+                    Loading messages..
+                  </span>
+                </div>
+              </div>
+            ) : messages.length > 0 ? (
+              <Messages messages={messages} />
+            ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
                   {temporaryChat ? (
@@ -184,7 +200,9 @@ function ChatPageInner({ greeting, user, initialMessages }: ChatPageProps) {
                   ) : (
                     <>
                       <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        {greeting}
+                        {user
+                          ? `How can I help you, ${user.name.split(" ")[0]}?`
+                          : "How can I help you?"}
                       </h1>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 w-full">
                         {promptSuggestions.map((suggestion, index) => (

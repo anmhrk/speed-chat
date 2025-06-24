@@ -16,6 +16,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   devIndicators: false,
+  experimental: {
+    ppr: true,
+  },
 };
 
 export default nextConfig;

@@ -25,7 +25,7 @@ interface SettingsContextType {
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [reasoningEffort, setReasoningEffort] =
     useState<ReasoningEfforts | null>(null);
   const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
-    null
+    null,
   );
   const [hasApiKeys, setHasApiKeys] = useState(false);
   const [customInstructions, setCustomInstructions] =
@@ -54,7 +54,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const savedKeys = localStorage.getItem(API_KEYS_KEY);
     keys = savedKeys ? JSON.parse(savedKeys) : keys;
     const hasAnyKey = Object.values(keys).some(
-      (key) => key && key.toString().trim() !== ""
+      (key) => key && key.toString().trim() !== "",
     );
     setHasApiKeys(hasAnyKey);
     setApiKeys(keys);
@@ -67,7 +67,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const savedReasoningEffort = localStorage.getItem(REASONING_EFFORT_KEY);
 
     const availableModels = AVAILABLE_MODELS.filter((model) =>
-      hasApiKey(model.provider)
+      hasApiKey(model.provider),
     );
 
     let selectedModel = null;
@@ -96,7 +96,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setReasoningEffort(
       (savedReasoningEffort &&
         REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
-        REASONING_EFFORTS[0].id
+        REASONING_EFFORTS[0].id,
     );
   }, []);
 
@@ -106,30 +106,30 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleReasoningEffortChange = (
-    newReasoningEffort: ReasoningEfforts
+    newReasoningEffort: ReasoningEfforts,
   ) => {
     setReasoningEffort(newReasoningEffort);
     localStorage.setItem(REASONING_EFFORT_KEY, newReasoningEffort);
   };
 
   const handleApiKeysChange = (
-    newApiKeys: Record<Providers, string> | null
+    newApiKeys: Record<Providers, string> | null,
   ) => {
     setApiKeys(newApiKeys);
     localStorage.setItem(API_KEYS_KEY, JSON.stringify(newApiKeys));
     const hasAnyKey = Object.values(newApiKeys || {}).some(
-      (key) => key && key.toString().trim() !== ""
+      (key) => key && key.toString().trim() !== "",
     );
     setHasApiKeys(hasAnyKey);
   };
 
   const handleCustomInstructionsChange = (
-    newInstructions: CustomInstructions | null
+    newInstructions: CustomInstructions | null,
   ) => {
     setCustomInstructions(newInstructions);
     localStorage.setItem(
       CUSTOM_INSTRUCTIONS_KEY,
-      JSON.stringify(newInstructions)
+      JSON.stringify(newInstructions),
     );
   };
 
@@ -152,7 +152,7 @@ export function useSettingsContext() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
     throw new Error(
-      "useSettingsContext must be used within a SettingsProvider"
+      "useSettingsContext must be used within a SettingsProvider",
     );
   }
   return context;

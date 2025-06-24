@@ -14,7 +14,6 @@ import {
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
 import {
-  Images,
   Key,
   Palette,
   Plus,
@@ -34,17 +33,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 const menuItems = [
   {
     label: "API Keys",
     icon: Key,
     href: "/api-keys",
-  },
-  {
-    label: "Library",
-    icon: Images,
-    href: "/library",
   },
   {
     label: "Custom Instructions",
@@ -59,13 +54,14 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const { state } = useSidebar();
+  const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
 
   const handleDeleteUser = async () => {
     if (
       confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
+        "Are you sure you want to delete your account? This action cannot be undone.",
       )
     ) {
       await deleteUser();
@@ -141,7 +137,17 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem
+                  onClick={() =>
+                    signOut({
+                      fetchOptions: {
+                        onSuccess: () => {
+                          router.push("/");
+                        },
+                      },
+                    })
+                  }
+                >
                   <LogOut className="mr-2 size-4" />
                   Logout
                 </DropdownMenuItem>

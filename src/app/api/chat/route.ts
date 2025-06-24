@@ -7,6 +7,7 @@ import {
   createIdGenerator,
   smoothStream,
   appendResponseMessages,
+  type Message,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -18,6 +19,7 @@ import type { Models, Providers, ChatRequest } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
+import { saveMessages } from "@/lib/actions";
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest) {
             messages: [latestUserMessage],
             responseMessages: response.messages,
           }).map((m) => ({
+            ...m,
             // Override id for consistency because different providers send different id formats
             id:
               m.role === "assistant"
@@ -132,13 +135,9 @@ export async function POST(request: NextRequest) {
                     size: 16,
                   })()
                 : m.id,
-            role: m.role,
-            content: m.content,
-            createdAt: toTimestamp(m.createdAt),
-            parts: m.parts,
           }));
 
-          // TODO: Save to database
+          await saveMessages(chatId, messageIds, newMessages);
         } catch (error) {
           console.error("[Chat API] Database save failed:", error);
         }
@@ -187,19 +186,13 @@ export async function POST(request: NextRequest) {
             parts: [{ type: "text" as const, text: errorContent }],
           };
 
-          const newMessages = [latestUserMessage, errorMessage].map((m) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            createdAt: toTimestamp(m.createdAt),
-            parts: m.parts,
-          }));
+          const newMessages = [latestUserMessage, errorMessage] as Message[];
 
-          // TODO: Save to database
+          saveMessages(chatId, messageIds, newMessages);
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError
+            dbError,
           );
         }
 
@@ -247,17 +240,4 @@ function createAIProvider(model: Models, apiKeys: Record<Providers, string>) {
     default:
       throw new Error(`Unsupported provider: ${modelConfig?.provider}`);
   }
-}
-
-function toTimestamp(createdAt: unknown): number {
-  if (createdAt instanceof Date) {
-    return createdAt.getTime();
-  }
-  if (typeof createdAt === "string") {
-    return new Date(createdAt).getTime();
-  }
-  if (typeof createdAt === "number") {
-    return createdAt;
-  }
-  return Date.now();
 }
