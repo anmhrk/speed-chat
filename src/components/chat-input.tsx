@@ -48,7 +48,7 @@ export function ChatInput({
   };
 
   const hasApiKey = (provider: Providers) => {
-    return apiKeys[provider] && apiKeys[provider].trim() !== "";
+    return apiKeys?.[provider] && apiKeys[provider].trim() !== "";
   };
 
   return (
@@ -66,91 +66,98 @@ export function ChatInput({
       />
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
-          <Select value={model} onValueChange={setModel}>
-            <SelectTrigger className="w-auto min-w-[100px] p-2 text-sm rounded-xl">
-              {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
-            </SelectTrigger>
-            <SelectContent>
-              {AVAILABLE_MODELS.sort((a, b) => {
-                if (a.provider !== b.provider) {
-                  return a.provider.localeCompare(b.provider);
-                }
-                return a.name.localeCompare(b.name);
-              }).map((model) => {
-                const isDisabled = !hasApiKey(model.provider);
-                const selectItem = (
-                  <SelectItem
-                    key={model.id}
-                    value={model.id}
-                    disabled={isDisabled}
-                  >
-                    <div className="flex w-70 items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <model.icon className="size-4" />
-                        {model.name}
-                        <div className="text-xs">({model.provider})</div>
-                      </div>
-                    </div>
-                  </SelectItem>
-                );
+          {model && reasoningEffort && (
+            <>
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger className="w-auto min-w-[100px] p-2 text-sm rounded-xl">
+                  {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_MODELS.sort((a, b) => {
+                    if (a.provider !== b.provider) {
+                      return a.provider.localeCompare(b.provider);
+                    }
+                    return a.name.localeCompare(b.name);
+                  }).map((model) => {
+                    const isDisabled = !hasApiKey(model.provider);
+                    const selectItem = (
+                      <SelectItem
+                        key={model.id}
+                        value={model.id}
+                        disabled={isDisabled}
+                      >
+                        <div className="flex w-70 items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <model.icon className="size-4" />
+                            {model.name}
+                            <div className="text-xs">({model.provider})</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    );
 
-                if (isDisabled) {
-                  return (
-                    <Tooltip key={model.id}>
-                      <TooltipTrigger asChild>
-                        <div className="w-full">{selectItem}</div>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">
-                        API key not set for provider
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                }
-
-                return selectItem;
-              })}
-            </SelectContent>
-          </Select>
-
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning && (
-            <Select value={reasoningEffort} onValueChange={setReasoningEffort}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SelectTrigger
-                    className="w-auto rounded-full text-sm flex"
-                    hideChevron
-                  >
-                    {(() => {
-                      const effort = REASONING_EFFORTS.find(
-                        (e) => e.id === reasoningEffort,
+                    if (isDisabled) {
+                      return (
+                        <Tooltip key={model.id}>
+                          <TooltipTrigger asChild>
+                            <div className="w-full">{selectItem}</div>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs">
+                            API key not set for provider
+                          </TooltipContent>
+                        </Tooltip>
                       );
-                      if (effort) {
-                        const IconComponent = effort.icon;
-                        return <IconComponent className="size-4" />;
-                      }
-                      return null;
-                    })()}
-                    <span className="hidden md:block">
-                      {reasoningEffort.charAt(0).toUpperCase() +
-                        reasoningEffort.slice(1)}
-                    </span>
-                  </SelectTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Set reasoning effort</TooltipContent>
-              </Tooltip>
-              <SelectContent>
-                {REASONING_EFFORTS.map((effort) => (
-                  <SelectItem
-                    key={effort.id}
-                    value={effort.id}
-                    className="flex items-center gap-2"
-                  >
-                    <effort.icon className="size-4" />
-                    {effort.id.charAt(0).toUpperCase() + effort.id.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    }
+
+                    return selectItem;
+                  })}
+                </SelectContent>
+              </Select>
+
+              {AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning && (
+                <Select
+                  value={reasoningEffort}
+                  onValueChange={setReasoningEffort}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SelectTrigger
+                        className="w-auto rounded-full text-sm flex"
+                        hideChevron
+                      >
+                        {(() => {
+                          const effort = REASONING_EFFORTS.find(
+                            (e) => e.id === reasoningEffort
+                          );
+                          if (effort) {
+                            const IconComponent = effort.icon;
+                            return <IconComponent className="size-4" />;
+                          }
+                          return null;
+                        })()}
+                        <span className="hidden md:block">
+                          {reasoningEffort!.charAt(0).toUpperCase() +
+                            reasoningEffort!.slice(1)}
+                        </span>
+                      </SelectTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Set reasoning effort</TooltipContent>
+                  </Tooltip>
+                  <SelectContent>
+                    {REASONING_EFFORTS.map((effort) => (
+                      <SelectItem
+                        key={effort.id}
+                        value={effort.id}
+                        className="flex items-center gap-2"
+                      >
+                        <effort.icon className="size-4" />
+                        {effort.id.charAt(0).toUpperCase() + effort.id.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
 
           <Tooltip>

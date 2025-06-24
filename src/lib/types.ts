@@ -1,3 +1,4 @@
+import type { Message } from "ai";
 import type { LucideIcon } from "lucide-react";
 import type { IconType } from "react-icons";
 
@@ -33,4 +34,14 @@ export type CustomInstructions = {
   whatYouDo: string;
   howToRespond: string;
   additionalInfo: string;
+};
+
+export type ChatRequest = {
+  messages: Message[];
+  chatId: string;
+  model: Models;
+  reasoningEffort: ReasoningEfforts;
+  apiKeys: Record<Providers, string>;
+  temporaryChat: boolean;
+  customInstructions: CustomInstructions;
 };

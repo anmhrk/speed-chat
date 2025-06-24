@@ -1,7 +1,7 @@
 import { ChatPage } from "@/components/chat-page";
 import { getUser } from "@/lib/auth/get-user";
 
-const GREETING_MESSAGES = [
+const greetingMessages = [
   "How can I help you?",
   "What can I do for you?",
   "What's on your mind today?",
@@ -11,7 +11,7 @@ const GREETING_MESSAGES = [
 
 export default async function Home() {
   const greeting =
-    GREETING_MESSAGES[Math.floor(Math.random() * GREETING_MESSAGES.length)];
+    greetingMessages[Math.floor(Math.random() * greetingMessages.length)];
 
   const user = await getUser();
 

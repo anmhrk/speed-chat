@@ -1,6 +1,4 @@
-"use client";
-
-import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import type {
   Models,
@@ -14,119 +12,93 @@ const API_KEYS_KEY = "api_keys";
 const SELECTED_MODEL_KEY = "selected_model";
 const REASONING_EFFORT_KEY = "reasoning_effort";
 
-const DEFAULT_MODEL =
-  AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
-const DEFAULT_REASONING_EFFORT: ReasoningEfforts = "low";
-const DEFAULT_API_KEYS: Record<Providers, string> = {
-  openrouter: "",
-  openai: "",
-  anthropic: "",
-};
-const DEFAULT_CUSTOM_INSTRUCTIONS: CustomInstructions = {
-  name: "",
-  whatYouDo: "",
-  howToRespond: "",
-  additionalInfo: "",
-};
-
 interface SettingsContextType {
-  model: Models;
+  model: Models | null;
   setModel: (model: Models) => void;
-  reasoningEffort: ReasoningEfforts;
+  reasoningEffort: ReasoningEfforts | null;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  apiKeys: Record<Providers, string>;
-  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  apiKeys: Record<Providers, string> | null;
+  setApiKeys: (apiKeys: Record<Providers, string> | null) => void;
   hasApiKeys: boolean;
-  customInstructions: CustomInstructions;
-  setCustomInstructions: (instructions: CustomInstructions) => void;
+  customInstructions: CustomInstructions | null;
+  setCustomInstructions: (instructions: CustomInstructions | null) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined,
+  undefined
 );
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [model, setModel] = useState<Models>(DEFAULT_MODEL as Models);
-  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEfforts>(
-    DEFAULT_REASONING_EFFORT,
+  const [model, setModel] = useState<Models | null>(null);
+  const [reasoningEffort, setReasoningEffort] =
+    useState<ReasoningEfforts | null>(null);
+  const [apiKeys, setApiKeys] = useState<Record<Providers, string> | null>(
+    null
   );
-  const [apiKeys, setApiKeys] =
-    useState<Record<Providers, string>>(DEFAULT_API_KEYS);
+  const [hasApiKeys, setHasApiKeys] = useState(false);
   const [customInstructions, setCustomInstructions] =
-    useState<CustomInstructions>(DEFAULT_CUSTOM_INSTRUCTIONS);
-
-  const hasApiKeys = useMemo(() => {
-    return Object.values(apiKeys).some((key) => key && key.trim() !== "");
-  }, [apiKeys]);
+    useState<CustomInstructions | null>(null);
 
   useEffect(() => {
-    try {
-      const savedInstructions = localStorage.getItem(CUSTOM_INSTRUCTIONS_KEY);
-      if (savedInstructions) {
-        const parsed = JSON.parse(savedInstructions);
-        setCustomInstructions({ ...DEFAULT_CUSTOM_INSTRUCTIONS, ...parsed });
-      }
-    } catch (error) {
-      console.warn("Failed to parse saved custom instructions:", error);
+    const savedInstructions = localStorage.getItem(CUSTOM_INSTRUCTIONS_KEY);
+    if (savedInstructions) {
+      const parsed = JSON.parse(savedInstructions);
+      setCustomInstructions(parsed);
     }
 
-    try {
-      const savedKeys = localStorage.getItem(API_KEYS_KEY);
-      if (savedKeys) {
-        const parsed = JSON.parse(savedKeys);
-        setApiKeys({ ...DEFAULT_API_KEYS, ...parsed });
-      }
-    } catch (error) {
-      console.warn("Failed to parse saved API keys:", error);
-    }
+    let keys: Record<Providers, string> = {
+      openrouter: "",
+      openai: "",
+      anthropic: "",
+    };
+    const savedKeys = localStorage.getItem(API_KEYS_KEY);
+    keys = savedKeys ? JSON.parse(savedKeys) : keys;
+    const hasAnyKey = Object.values(keys).some(
+      (key) => key && key.toString().trim() !== ""
+    );
+    setHasApiKeys(hasAnyKey);
+    setApiKeys(keys);
 
-    try {
-      const savedReasoningEffort = localStorage.getItem(REASONING_EFFORT_KEY);
-      if (
-        savedReasoningEffort &&
-        REASONING_EFFORTS.includes(savedReasoningEffort as ReasoningEfforts)
-      ) {
-        setReasoningEffort(savedReasoningEffort as ReasoningEfforts);
-      }
-    } catch (error) {
-      console.warn("Failed to parse saved reasoning effort:", error);
-    }
-
-    try {
-      const savedModel = localStorage.getItem(SELECTED_MODEL_KEY);
-      if (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)) {
-        setModel(savedModel as Models);
-      }
-    } catch (error) {
-      console.warn("Failed to parse saved model:", error);
-    }
-  }, []);
-
-  useEffect(() => {
     const hasApiKey = (provider: Providers) => {
-      return apiKeys[provider] && apiKeys[provider].trim() !== "";
+      return keys[provider] && keys[provider].trim() !== "";
     };
 
+    const savedModel = localStorage.getItem(SELECTED_MODEL_KEY);
+    const savedReasoningEffort = localStorage.getItem(REASONING_EFFORT_KEY);
+
     const availableModels = AVAILABLE_MODELS.filter((model) =>
-      hasApiKey(model.provider),
+      hasApiKey(model.provider)
     );
 
-    // Check if current model is still valid (has API key)
-    const currentModelData = AVAILABLE_MODELS.find((m) => m.id === model);
-    if (currentModelData && !hasApiKey(currentModelData.provider)) {
-      // Current model is no longer valid, find a new one
-      if (availableModels.length > 0) {
-        const defaultModel = availableModels.find((m) => m.default);
-        const newModel = defaultModel ? defaultModel.id : availableModels[0].id;
-        setModel(newModel as Models);
-        localStorage.setItem(SELECTED_MODEL_KEY, newModel);
-      } else {
-        // No models with API keys, fall back to default
-        setModel(DEFAULT_MODEL as Models);
-        localStorage.setItem(SELECTED_MODEL_KEY, DEFAULT_MODEL);
+    let selectedModel = null;
+    if (savedModel && AVAILABLE_MODELS.find((m) => m.id === savedModel)) {
+      const savedModelData = AVAILABLE_MODELS.find((m) => m.id === savedModel);
+      // Check if the saved model's provider has an API key
+      if (savedModelData && hasApiKey(savedModelData.provider)) {
+        selectedModel = savedModel;
       }
     }
-  }, [apiKeys, model]);
+
+    // If no valid saved model, find the first available model with API key
+    if (!selectedModel && availableModels.length > 0) {
+      // Try to find a default model first
+      const defaultModel = availableModels.find((m) => m.default);
+      selectedModel = defaultModel ? defaultModel.id : availableModels[0].id;
+    }
+
+    // Final fallback to default model
+    if (!selectedModel) {
+      selectedModel =
+        AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
+    }
+
+    setModel(selectedModel as Models);
+    setReasoningEffort(
+      (savedReasoningEffort &&
+        REASONING_EFFORTS.find((r) => r.id === savedReasoningEffort)?.id) ||
+        REASONING_EFFORTS[0].id
+    );
+  }, []);
 
   const handleModelChange = (newModel: Models) => {
     setModel(newModel);
@@ -134,24 +106,30 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleReasoningEffortChange = (
-    newReasoningEffort: ReasoningEfforts,
+    newReasoningEffort: ReasoningEfforts
   ) => {
     setReasoningEffort(newReasoningEffort);
     localStorage.setItem(REASONING_EFFORT_KEY, newReasoningEffort);
   };
 
-  const handleApiKeysChange = (newApiKeys: Record<Providers, string>) => {
+  const handleApiKeysChange = (
+    newApiKeys: Record<Providers, string> | null
+  ) => {
     setApiKeys(newApiKeys);
     localStorage.setItem(API_KEYS_KEY, JSON.stringify(newApiKeys));
+    const hasAnyKey = Object.values(newApiKeys || {}).some(
+      (key) => key && key.toString().trim() !== ""
+    );
+    setHasApiKeys(hasAnyKey);
   };
 
   const handleCustomInstructionsChange = (
-    newInstructions: CustomInstructions,
+    newInstructions: CustomInstructions | null
   ) => {
     setCustomInstructions(newInstructions);
     localStorage.setItem(
       CUSTOM_INSTRUCTIONS_KEY,
-      JSON.stringify(newInstructions),
+      JSON.stringify(newInstructions)
     );
   };
 
@@ -174,7 +152,7 @@ export function useSettingsContext() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
     throw new Error(
-      "useSettingsContext must be used within a SettingsProvider",
+      "useSettingsContext must be used within a SettingsProvider"
     );
   }
   return context;
