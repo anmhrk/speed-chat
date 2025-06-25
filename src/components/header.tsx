@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Moon, Sun } from "lucide-react";
+import { Ghost, Moon, Sun } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -9,9 +9,12 @@ import {
 } from "@/components/ui/tooltip";
 import { useTheme } from "next-themes";
 import { SidebarTrigger } from "./ui/sidebar";
+import { useRouter } from "next/navigation";
+import { Toggle } from "./ui/toggle";
 
-export function Header() {
+export function Header({ temporaryChat }: { temporaryChat: boolean }) {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   return (
     <div className="sticky top-0 z-10 flex items-center justify-between h-10">
@@ -22,25 +25,46 @@ export function Header() {
         <TooltipContent side="right">Toggle Sidebar</TooltipContent>
       </Tooltip>
 
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
+      <div className="flex items-center gap-1.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              <Moon className="size-6 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+              <Sun className="absolute size-6 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+              <span className="sr-only">Toggle Theme</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Toggle
                 size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                pressed={temporaryChat}
+                onPressedChange={() => {
+                  if (temporaryChat) {
+                    router.push("/");
+                  } else {
+                    router.push("/?temporary=true");
+                  }
+                }}
               >
-                <Moon className="size-6 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-                <Sun className="absolute size-6 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-                <span className="sr-only">Toggle Theme</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {theme === "dark" ? "Light Mode" : "Dark Mode"}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+                <Ghost className="size-6" />
+                <span className="sr-only">Temporary Chat</span>
+              </Toggle>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {temporaryChat ? "Disable Temporary Chat" : "Enable Temporary Chat"}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

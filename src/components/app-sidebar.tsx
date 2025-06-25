@@ -13,20 +13,11 @@ import {
   SidebarFooter,
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
-import {
-  Key,
-  Palette,
-  Plus,
-  LogIn,
-  Loader2,
-  Trash,
-  LogOut,
-  Search,
-} from "lucide-react";
+import { PenBox, LogIn, Loader2, LogOut, Search, Settings } from "lucide-react";
 import { useSidebar } from "./ui/sidebar";
 import { useState } from "react";
 import type { User } from "better-auth";
-import { deleteUser, signIn, signOut } from "@/lib/auth/auth-client";
+import { signIn, signOut } from "@/lib/auth/auth-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,19 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useRouter } from "next/navigation";
-
-const menuItems = [
-  {
-    label: "API Keys",
-    icon: Key,
-    href: "/api-keys",
-  },
-  {
-    label: "Custom Instructions",
-    icon: Palette,
-    href: "/custom-instructions",
-  },
-];
+import { SettingsDialog } from "./settings-dialog";
 
 interface AppSidebarProps {
   user: User | null;
@@ -57,18 +36,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
-
-  const handleDeleteUser = async () => {
-    if (
-      confirm(
-        "Are you sure you want to delete your account? This action cannot be undone.",
-      )
-    ) {
-      await deleteUser();
-      // delete db stuff for user
-      // router.push("/");
-    }
-  };
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   return (
     <Sidebar
@@ -80,42 +48,40 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <Image src="/logo.svg" alt="Logo" width={32} height={32} />
           <span className="text-lg font-semibold">SpeedChat</span>
         </Link>
-
-        <Button
-          className="w-full rounded-xl flex items-center justify-center"
-          variant="outline"
-          asChild
-        >
-          <Link href="/">
-            <Plus className="size-5" />
-            New Chat
-          </Link>
-        </Button>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton className="cursor-pointer">
-                <Search className="size-5" />
-                Search Chats
+              <SidebarMenuButton asChild>
+                <Link href="/">
+                  <PenBox />
+                  New chat
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton>
+                <Search />
+                Search chats
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild>
-                  <Link href={item.href}>
-                    <item.icon className="size-5" />
-                    {item.label}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)}>
+                <Settings />
+                Settings
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
+      <SettingsDialog
+        open={settingsDialogOpen}
+        onOpenChange={setSettingsDialogOpen}
+      />
 
       <SidebarFooter>
         {isSignedIn ? (
@@ -133,10 +99,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     height={32}
                     className="rounded-full object-cover cursor-pointer"
                   />
-                  <span className="text-sm">{user?.name}</span>
+                  <span className="text-sm truncate font-normal">
+                    {user?.name}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent className="w-56">
                 <DropdownMenuItem
                   onClick={() =>
                     signOut({
@@ -150,13 +118,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 >
                   <LogOut className="mr-2 size-4" />
                   Logout
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={handleDeleteUser}
-                >
-                  <Trash className="mr-2 size-4" />
-                  Delete Account
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

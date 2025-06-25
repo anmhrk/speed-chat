@@ -29,6 +29,13 @@ export type ReasoningEffortConfig = {
   icon: LucideIcon;
 };
 
+export type ProviderConfig = {
+  id: Providers;
+  name: string;
+  placeholder: string;
+  url: string;
+};
+
 export type CustomInstructions = {
   name: string;
   whatYouDo: string;

@@ -75,7 +75,7 @@ export async function generateChatTitle(chatId: string, prompt: string) {
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[]
+  newMessages: Message[],
 ) {
   try {
     await db.transaction(async (tx) => {

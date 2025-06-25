@@ -127,7 +127,7 @@ export function ChatInput({
                       >
                         {(() => {
                           const effort = REASONING_EFFORTS.find(
-                            (e) => e.id === reasoningEffort,
+                            (e) => e.id === reasoningEffort
                           );
                           if (effort) {
                             const IconComponent = effort.icon;

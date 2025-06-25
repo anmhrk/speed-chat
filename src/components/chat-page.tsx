@@ -16,7 +16,7 @@ import { createChat, generateChatTitle } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 
 const promptSuggestions = [
-  "Write a creative story about space exploration",
+  "Suggest a quick and healthy dinner recipe",
   "Explain quantum computing in simple terms",
   "Help me plan a weekend trip to Paris",
   "Create a workout routine for beginners",
@@ -171,7 +171,7 @@ function ChatPageInner({
       <AppSidebar user={user} />
       <SidebarInset>
         <div className="flex flex-col h-full p-3">
-          <Header />
+          <Header temporaryChat={temporaryChat} />
           <div className="flex-1 flex flex-col">
             {isLoading ? (
               <div className="flex-1 flex items-center justify-center">
