@@ -1,5 +1,5 @@
 import { Sparkle, Sparkles, WandSparkles } from "lucide-react";
-import { FaGoogle } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import { SiOpenai, SiAnthropic } from "react-icons/si";
 import { ModelConfig, ReasoningEffortConfig } from "./types";
 
@@ -22,14 +22,14 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "google/gemini-2.5-flash-preview-05-20",
     name: "Gemini 2.5 Flash",
-    icon: FaGoogle,
+    icon: FcGoogle,
     provider: "openrouter",
     default: true,
   },
   {
     id: "google/gemini-2.5-pro-preview",
     name: "Gemini 2.5 Pro",
-    icon: FaGoogle,
+    icon: FcGoogle,
     provider: "openrouter",
     reasoning: true,
   },

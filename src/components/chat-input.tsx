@@ -54,7 +54,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-2xl border p-2 max-w-3xl w-full mx-auto"
+      className="rounded-t-xl dark:bg-input/30 border p-2 max-w-3xl w-full mx-auto"
     >
       <Textarea
         ref={inputRef}
@@ -62,14 +62,17 @@ export function ChatInput({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder="Ask anything..."
-        className="placeholder:text-muted-foreground !bg-background max-h-[250px] min-h-[90px] w-full resize-none rounded-t-2xl border-0 !text-[15px] shadow-none focus-visible:ring-0"
+        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[90px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
       />
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
           {model && reasoningEffort && (
             <>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger className="w-auto min-w-[100px] p-2 text-sm rounded-xl">
+                <SelectTrigger
+                  variant="ghost"
+                  className="w-auto min-w-[100px] p-2 text-sm"
+                >
                   {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
                 </SelectTrigger>
                 <SelectContent>
@@ -90,7 +93,9 @@ export function ChatInput({
                           <div className="flex items-center gap-2">
                             <model.icon className="size-4" />
                             {model.name}
-                            <div className="text-xs">({model.provider})</div>
+                            <div className="text-xs text-muted-foreground">
+                              ({model.provider})
+                            </div>
                           </div>
                         </div>
                       </SelectItem>

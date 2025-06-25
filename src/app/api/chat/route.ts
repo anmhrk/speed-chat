@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     const chatStream = streamText({
       model: aiModel,
       system: `
-        You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful, respectful, and engaging.
+        You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful and respectful.
         If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
-        The current date and time is ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}.
+        The current date and time including timezone for the user is ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}.
 
         *Instructions for when generating mathematical expressions:*
         - Always use LaTeX
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         ${
           customInstructions &&
           `
-            This is some extra customization settings set by the user:
+            This is some extra customization settings set by the user. You may use these to tailor your response:
             ${customInstructions.name && `- Name of the user: ${customInstructions.name}`}
             ${customInstructions.whatYouDo && `- Profession of the user: ${customInstructions.whatYouDo}`}
             ${customInstructions.howToRespond && `- Specifics on how to respond to the user: ${customInstructions.howToRespond}`}
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
             responseMessages: response.messages,
           }).map((m) => ({
             ...m,
-            // Override id for consistency because different providers send different id formats
+            // Overriding id for consistency because different providers send different id formats
             id:
               m.role === "assistant"
                 ? createIdGenerator({
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
             })(),
             role: "assistant" as const,
             content: errorContent,
-            createdAt: Date.now(),
+            createdAt: new Date(),
             parts: [{ type: "text" as const, text: errorContent }],
           };
 
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError,
+            dbError
           );
         }
 

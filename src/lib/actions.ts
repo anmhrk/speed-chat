@@ -75,7 +75,7 @@ export async function generateChatTitle(chatId: string, prompt: string) {
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[],
+  newMessages: Message[]
 ) {
   try {
     await db.transaction(async (tx) => {
@@ -108,7 +108,13 @@ export async function saveMessages(
         } else {
           await tx.insert(messages).values({
             chatId,
-            ...newMessage,
+            id: newMessage.id,
+            content: newMessage.content,
+            role: newMessage.role,
+            parts: newMessage.parts,
+            createdAt: newMessage.createdAt
+              ? new Date(newMessage.createdAt)
+              : new Date(),
           });
         }
       }

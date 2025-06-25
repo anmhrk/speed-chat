@@ -14,6 +14,7 @@ import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { createChat, generateChatTitle } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
+import { ScrollArea } from "./ui/scroll-area";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -55,16 +56,17 @@ function ChatPageInner({
 }: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customInstructions, hasApiKeys } =
     useSettingsContext();
+
   const router = useRouter();
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-
-  const chatId = typeof params.chatId === "string" ? params.chatId : null;
+  const chatId = typeof params.id === "string" ? params.id : null;
   const temporaryChat = searchParams.get("temporary") === "true";
-
-  // Track the last chatId to detect URL changes after window.history.replaceState
   const lastChatIdRef = useRef<string | null>(chatId);
   const [dynamicChatId, setDynamicChatId] = useState<string | null>(chatId);
+
+  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatId !== lastChatIdRef.current) {
@@ -88,6 +90,9 @@ function ChatPageInner({
     handleSubmit,
     stop,
     status,
+    reload,
+    append,
+    setMessages,
   } = useChat({
     id: dynamicChatId || undefined,
     initialMessages,
@@ -106,7 +111,65 @@ function ChatPageInner({
       temporaryChat,
       customInstructions,
     },
+    onError: (error) => {
+      const errorMessage = {
+        id: `error-${crypto.randomUUID()}`,
+        role: "assistant",
+        content: error.message,
+        createdAt: new Date(),
+        parts: [{ type: "text", text: error.message }],
+      } as Message;
+
+      setMessages((prev) => {
+        // On error an empty assistant message is created, so we replace it with the error message
+        const lastMessage = prev[prev.length - 1];
+        if (
+          lastMessage?.role === "assistant" &&
+          (!lastMessage.content || lastMessage.content.trim() === "")
+        ) {
+          return [...prev.slice(0, -1), errorMessage];
+        } else {
+          // Fallback
+          return [...prev, errorMessage];
+        }
+      });
+    },
   });
+
+  // TODO: fix save messages action
+  // TODO: T3 chat behavior when new message is sent
+  // TODO: Clean up client component and move to server components and use zustand to make stuff more performant
+
+  const getViewport = () =>
+    scrollAreaRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]'
+    ) as HTMLDivElement | null;
+
+  useEffect(() => {
+    const scrollViewport = getViewport();
+    if (!scrollViewport) return;
+
+    scrollViewport.scrollTo({
+      top: scrollViewport.scrollHeight,
+      behavior: "instant",
+    });
+  }, []);
+
+  useEffect(() => {
+    const scrollViewport = getViewport();
+    if (!scrollViewport) return;
+
+    const handleScroll = () => {
+      setIsScrolled(scrollViewport.scrollTop > 0);
+    };
+
+    scrollViewport.addEventListener("scroll", handleScroll);
+    return () => scrollViewport.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    
+  })
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,10 +204,9 @@ function ChatPageInner({
       const newChatId = crypto.randomUUID();
       const userMessage = input.trim();
 
+      setDynamicChatId(newChatId);
       createChat(newChatId); // Don't await this to not block the UI
 
-      setDynamicChatId(newChatId);
-      // Not using router.push cos it will cause a rerender and message state will be lost
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
       // Start both in parallel
@@ -170,11 +232,13 @@ function ChatPageInner({
     <>
       <AppSidebar user={user} />
       <SidebarInset>
-        <div className="flex flex-col h-full p-3">
-          <Header temporaryChat={temporaryChat} />
-          <div className="flex-1 flex flex-col">
+        <div className="flex flex-col h-screen">
+          <div className="shrink-0">
+            <Header temporaryChat={temporaryChat} isScrolled={isScrolled} />
+          </div>
+          <div className="flex-1 min-h-0">
             {isLoading ? (
-              <div className="flex-1 flex items-center justify-center">
+              <div className="h-full flex items-center justify-center">
                 <div className="flex items-center gap-2">
                   <Loader2 className="size-5 animate-spin" />
                   <span className="text-muted-foreground text-sm">
@@ -183,9 +247,17 @@ function ChatPageInner({
                 </div>
               </div>
             ) : messages.length > 0 ? (
-              <Messages messages={messages} />
+              <ScrollArea className="h-full px-3" ref={scrollAreaRef}>
+                <Messages
+                  allMessages={messages}
+                  status={status}
+                  reload={reload}
+                  append={append}
+                  setMessages={setMessages}
+                />
+              </ScrollArea>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
+              <div className="h-full flex items-center justify-center px-3">
                 <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
                   {temporaryChat ? (
                     <>
@@ -224,13 +296,15 @@ function ChatPageInner({
             )}
           </div>
 
-          <ChatInput
-            input={input}
-            handleInputChange={handleInputChange}
-            handleSubmit={handleChatSubmit}
-            stop={stop}
-            status={status}
-          />
+          <div className="shrink-0 px-3">
+            <ChatInput
+              input={input}
+              handleInputChange={handleInputChange}
+              handleSubmit={handleChatSubmit}
+              stop={stop}
+              status={status}
+            />
+          </div>
         </div>
       </SidebarInset>
     </>

@@ -85,7 +85,5 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   role: text("role").notNull(),
   parts: jsonb("parts"),
-  createdAt: timestamp("created_at")
-    .notNull()
-    .$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").notNull(),
 });

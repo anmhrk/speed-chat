@@ -12,12 +12,20 @@ import { SidebarTrigger } from "./ui/sidebar";
 import { useRouter } from "next/navigation";
 import { Toggle } from "./ui/toggle";
 
-export function Header({ temporaryChat }: { temporaryChat: boolean }) {
+export function Header({
+  temporaryChat,
+  isScrolled,
+}: {
+  temporaryChat: boolean;
+  isScrolled: boolean;
+}) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between h-10">
+    <div
+      className={`sticky top-0 z-10 flex items-center justify-between h-12 p-3 transition-shadow duration-200 ${isScrolled && "shadow-sm dark:shadow-md border-b border-border/10 dark:border-border"}`}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <SidebarTrigger className="size-6" />

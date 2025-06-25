@@ -14,7 +14,6 @@ import {
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
 import { PenBox, LogIn, Loader2, LogOut, Search, Settings } from "lucide-react";
-import { useSidebar } from "./ui/sidebar";
 import { useState } from "react";
 import type { User } from "better-auth";
 import { signIn, signOut } from "@/lib/auth/auth-client";
@@ -32,17 +31,13 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ user }: AppSidebarProps) {
-  const { state } = useSidebar();
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
   return (
-    <Sidebar
-      variant={state === "expanded" ? "inset" : "sidebar"}
-      className="border-r-0"
-    >
+    <Sidebar className="border-r-0">
       <SidebarHeader className="flex items-center flex-col gap-6 justify-center py-4">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Logo" width={32} height={32} />

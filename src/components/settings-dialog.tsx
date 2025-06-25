@@ -57,7 +57,7 @@ const sidebarItems = [
     icon: Key,
   },
   {
-    label: "Custom Instructions",
+    label: "Custom Prompt",
     icon: Palette,
   },
   {
@@ -71,22 +71,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]">
+      <DialogContent className="overflow-hidden p-0 h-full w-full max-h-[90vh] md:max-h-[600px] md:max-w-[700px] lg:max-w-[800px]">
         <DialogTitle className="sr-only">Settings</DialogTitle>
         <DialogDescription className="sr-only">
           Customize your settings here.
         </DialogDescription>
-        <SidebarProvider className="items-start">
-          <Sidebar collapsible="none" className="hidden md:flex w-1/4">
-            <SidebarContent>
+
+        <SidebarProvider className="md:items-start flex flex-col md:flex-row">
+          <Sidebar
+            collapsible="none"
+            className="w-full md:w-1/4 shrink-0 h-auto md:h-full"
+          >
+            <SidebarContent className="md:border-r border-b md:border-b-0">
               <SidebarGroup>
                 <SidebarGroupContent>
-                  <SidebarMenu>
+                  <SidebarMenu className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-0 p-4 md:p-0">
                     {sidebarItems.map((item) => (
                       <SidebarMenuItem key={item.label}>
                         <SidebarMenuButton
                           isActive={item.label === activeItem}
                           onClick={() => setActiveItem(item.label)}
+                          className="justify-start"
                         >
                           <item.icon />
                           <span>{item.label}</span>
@@ -98,25 +103,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </SidebarGroup>
             </SidebarContent>
           </Sidebar>
-          <main className="flex h-[500px] flex-1 flex-col overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="p-6 space-y-6">
-                {activeItem === "General" && <GeneralSettings />}
-                {activeItem === "API Keys" && <ApiKeysSettings />}
-                {activeItem === "Custom Instructions" && (
-                  <CustomInstructionsSettings />
-                )}
-                {activeItem === "Memory" && <MemorySettings />}
-              </div>
-            </ScrollArea>
-          </main>
+
+          <ScrollArea className="flex flex-col w-full max-h-[90vh] md:max-h-[600px]">
+            {activeItem === "General" && <General />}
+            {activeItem === "API Keys" && <ApiKeys />}
+            {activeItem === "Custom Prompt" && <CustomPrompt />}
+            {activeItem === "Memory" && <Memory />}
+          </ScrollArea>
         </SidebarProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function GeneralSettings() {
+function General() {
   const router = useRouter();
 
   const handleDeleteAllChats = async () => {
@@ -154,7 +154,7 @@ function GeneralSettings() {
   };
 
   return (
-    <>
+    <div className="p-6 space-y-6">
       <h3 className="text-lg font-medium mb-4">General Settings</h3>
       <div className="space-y-4">
         <div className="flex items-center justify-between py-2">
@@ -183,7 +183,7 @@ function GeneralSettings() {
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -208,7 +208,7 @@ const providers: ProviderConfig[] = [
   },
 ];
 
-function ApiKeysSettings() {
+function ApiKeys() {
   const { apiKeys, setApiKeys } = useSettingsContext();
   const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
     openrouter: "",
@@ -240,7 +240,7 @@ function ApiKeysSettings() {
   }, [apiKeys]);
 
   return (
-    <>
+    <div className="p-6 space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-2">API Keys</h3>
         <p className="text-sm text-muted-foreground mb-6">
@@ -309,11 +309,11 @@ function ApiKeysSettings() {
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function CustomInstructionsSettings() {
+function CustomPrompt() {
   const { customInstructions, setCustomInstructions } = useSettingsContext();
   const [localInstructions, setLocalInstructions] =
     useState<CustomInstructions>({
@@ -350,72 +350,34 @@ function CustomInstructionsSettings() {
   }, [customInstructions]);
 
   return (
-    <>
+    <div className="p-6 space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">Custom Instructions</h3>
+        <h3 className="text-lg font-medium mb-2">Custom Prompt</h3>
         <p className="text-sm text-muted-foreground mb-6">
           Customize how SpeedChat responds to you
         </p>
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            placeholder="Enter your name"
-            value={localInstructions.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="what-you-do">What do you do?</Label>
-          <Input
-            id="what-you-do"
-            placeholder="Engineer, student, etc."
-            value={localInstructions.whatYouDo}
-            onChange={(e) => handleChange("whatYouDo", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="how-to-respond">
-            How should SpeedChat respond to you?
-          </Label>
-          <Textarea
-            id="how-to-respond"
-            placeholder="Explain concepts in an easy manner and use examples"
-            value={localInstructions.howToRespond}
-            onChange={(e) => handleChange("howToRespond", e.target.value)}
-            className="max-h-[150px] min-h-[100px] resize-none"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="additional-info">
-            Anything else SpeedChat should know about you?
-          </Label>
-          <Textarea
-            id="additional-info"
-            placeholder="Interests, values, or preferences to keep in mind"
-            value={localInstructions.additionalInfo}
-            onChange={(e) => handleChange("additionalInfo", e.target.value)}
-            className="max-h-[150px] min-h-[100px] resize-none"
-          />
-        </div>
+        <Textarea
+          id="custom-prompt"
+          value={localInstructions.whatYouDo}
+          onChange={(e) => handleChange("whatYouDo", e.target.value)}
+          className="max-h-[400px] min-h-[400px]"
+          placeholder="Extend the system prompt here..."
+        />
 
         <div className="flex justify-end gap-2 pt-4">
           <Button onClick={handleSave} disabled={!hasChanges}>
-            Save Custom Instructions
+            Save Custom Prompt
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-function MemorySettings() {
+function Memory() {
   // TODO: Implement real data fetching later
   const [memories] = useState([
     {
@@ -436,7 +398,7 @@ function MemorySettings() {
   ]);
 
   return (
-    <>
+    <div className="p-6 space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-2">Memory</h3>
         <p className="text-sm text-muted-foreground mb-6">
@@ -477,6 +439,6 @@ function MemorySettings() {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
