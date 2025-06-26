@@ -236,17 +236,6 @@ function ApiKeys() {
     }
   }, [apiKeys, hasHydrated]);
 
-  if (!hasHydrated) {
-    return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-2">API Keys</h3>
-          <p className="text-sm text-muted-foreground mb-6">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -343,17 +332,6 @@ function CustomPrompt() {
       setLocalPrompt(customPrompt);
     }
   }, [customPrompt, hasHydrated]);
-
-  if (!hasHydrated) {
-    return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-2">Custom Prompt</h3>
-          <p className="text-sm text-muted-foreground mb-6">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-6">

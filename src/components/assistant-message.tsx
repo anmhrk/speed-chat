@@ -4,6 +4,9 @@ import {
   RotateCcw,
   ChevronRight,
   ChevronDown,
+  Download,
+  Text,
+  WrapText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo, useMemo, useCallback } from "react";
@@ -19,15 +22,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import remarkGfm from "remark-gfm";
-import rehypeKatex from "rehype-katex";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import {
-  oneDark,
-  oneLight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Markdown } from "@/components/markdown";
+import ShikiHighlighter, { Element, isInlineCode } from "react-shiki";
 import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
@@ -38,7 +34,7 @@ interface AssistantMessageProps {
   reload: () => void;
 }
 
-export function AssistantMessage({
+export const AssistantMessage = memo(function AssistantMessage({
   message,
   isLastMessage,
   reload,
@@ -80,107 +76,7 @@ export function AssistantMessage({
               if (part.type === "text") {
                 return (
                   <div key={partIndex}>
-                    <ReactMarkdown
-                      remarkPlugins={[remarkMath, remarkGfm]}
-                      rehypePlugins={[rehypeKatex]}
-                      components={{
-                        code: ({ children, className }) => (
-                          <CodeBlock className={className}>
-                            {children}
-                          </CodeBlock>
-                        ),
-
-                        hr: () => <hr className="border-border my-10" />,
-
-                        p: ({ children }) => (
-                          <p className="my-4 whitespace-pre-wrap last:mb-0">
-                            {children}
-                          </p>
-                        ),
-
-                        ul: ({ children }) => (
-                          <ul className="mb-4 list-disc pl-5">{children}</ul>
-                        ),
-
-                        ol: ({ children }) => (
-                          <ol className="mb-4 list-decimal pl-5">{children}</ol>
-                        ),
-
-                        li: ({ children }) => (
-                          <li className="mb-1 pl-2">{children}</li>
-                        ),
-
-                        h1: ({ children }) => (
-                          <h1 className="mt-6 mb-4 text-2xl font-bold">
-                            {children}
-                          </h1>
-                        ),
-
-                        h2: ({ children }) => (
-                          <h2 className="mt-5 mb-3 text-xl font-bold">
-                            {children}
-                          </h2>
-                        ),
-
-                        h3: ({ children }) => (
-                          <h3 className="mt-4 mb-3 text-lg font-bold">
-                            {children}
-                          </h3>
-                        ),
-
-                        h4: ({ children }) => (
-                          <h4 className="mt-3 mb-2 text-base font-bold">
-                            {children}
-                          </h4>
-                        ),
-
-                        h5: ({ children }) => (
-                          <h5 className="mt-3 mb-2 text-sm font-bold">
-                            {children}
-                          </h5>
-                        ),
-
-                        h6: ({ children }) => (
-                          <h6 className="mt-3 mb-2 text-xs font-bold">
-                            {children}
-                          </h6>
-                        ),
-
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-primary bg-muted my-6 border-l-4 py-2 pl-4 italic">
-                            {children}
-                          </blockquote>
-                        ),
-
-                        table: ({ children }) => (
-                          <div className="border-border my-6 overflow-hidden rounded-lg border last:mb-0">
-                            <table className="min-w-full border-collapse">
-                              {children}
-                            </table>
-                          </div>
-                        ),
-
-                        thead: ({ children }) => (
-                          <thead className="bg-muted/50">{children}</thead>
-                        ),
-
-                        tbody: ({ children }) => <tbody>{children}</tbody>,
-
-                        th: ({ children }) => (
-                          <th className="border-border border-r border-b px-4 py-2 text-left font-semibold last:border-r-0">
-                            {children}
-                          </th>
-                        ),
-
-                        td: ({ children }) => (
-                          <td className="border-border border-r border-b px-4 py-2 last:border-r-0 [tr:last-child>&]:border-b-0">
-                            {children}
-                          </td>
-                        ),
-                      }}
-                    >
-                      {part.text || ""}
-                    </ReactMarkdown>
+                    <Markdown>{part.text}</Markdown>
                   </div>
                 );
               }
@@ -232,20 +128,24 @@ export function AssistantMessage({
       </div>
     </div>
   );
-}
+});
 
-const CodeBlock = memo(function CodeBlock({
-  children,
+export const CodeBlock = memo(function CodeBlock({
   className,
+  children,
+  node,
+  ...props
 }: {
-  children: React.ReactNode;
   className?: string;
+  children?: React.ReactNode;
+  node?: Element;
 }) {
   const { theme } = useTheme();
+  const [wrapText, setWrapText] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
-  const match = /language-(\w+)/.exec(className ?? "");
-  const isDark = theme === "dark";
-  const language = match?.[1] || "text";
+  const match = className?.match(/language-(\w+)/);
+  const language = match ? match[1] : "text";
+  const isInline = node ? isInlineCode(node) : false;
   const codeContent = String(children).replace(/\n$/, "");
 
   const handleCodeCopy = useCallback(() => {
@@ -255,62 +155,106 @@ const CodeBlock = memo(function CodeBlock({
     setTimeout(() => setCodeCopied(false), 2000);
   }, [codeContent]);
 
+  const handleCodeDownload = useCallback(() => {
+    const blob = new Blob([codeContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `code.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [codeContent]);
+
   const codeBlockHeader = useMemo(
     () => (
-      <div className="bg-muted/50 flex items-center justify-between border-b px-4">
+      <div className="bg-primary/10 dark:bg-muted/80 flex items-center justify-between rounded-t-lg px-3">
         <span className="text-muted-foreground text-sm font-medium">
           {language}
         </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={handleCodeCopy}
-            >
-              {codeCopied ? (
-                <Check className="size-4" />
-              ) : (
-                <Copy className="size-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {codeCopied ? "Copied!" : "Copy code"}
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleCodeDownload}
+              >
+                <Download className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Download code</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setWrapText(!wrapText)}
+              >
+                {wrapText ? (
+                  <WrapText className="size-4" />
+                ) : (
+                  <Text className="size-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {wrapText ? "Disable text wrapping" : "Enable text wrapping"}
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleCodeCopy}
+              >
+                {codeCopied ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {codeCopied ? "Copied!" : "Copy code"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
     ),
-    [language, codeCopied, handleCodeCopy],
+    [language, codeCopied, handleCodeCopy, wrapText, handleCodeDownload]
   );
 
-  return match ? (
-    <div className="my-4 w-full rounded-lg border">
+  return !isInline ? (
+    <div className="mb-4 mt-8 w-full border rounded-xl overflow-hidden last:mb-0 relative">
       {codeBlockHeader}
-      <SyntaxHighlighter
+      <ShikiHighlighter
+        theme={{
+          light: "one-light",
+          dark: "one-dark-pro",
+        }}
+        defaultColor={theme}
+        delay={150}
         language={language}
-        style={isDark ? oneDark : oneLight}
-        PreTag="div"
-        customStyle={{
-          fontSize: "14px",
-          margin: 0,
-        }}
-        codeTagProps={{
-          style: {
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-          },
-        }}
+        showLanguage={false}
+        showLineNumbers={false}
+        addDefaultStyles={false}
+        className={`[&>pre]:px-6 [&>pre]:py-5 ${wrapText ? "[&>pre]:whitespace-pre-wrap [&>pre]:overflow-x-hidden" : "[&>pre]:overflow-auto"}`}
+        {...props}
       >
         {codeContent}
-      </SyntaxHighlighter>
+      </ShikiHighlighter>
     </div>
   ) : (
-    // Inline
-    <code className="bg-muted rounded px-1 py-0.5 font-mono text-sm">
-      {children}
-    </code>
+    <code className="bg-muted rounded p-1 font-mono text-sm">{children}</code>
   );
 });
 
@@ -322,25 +266,19 @@ const ReasoningBlock = memo(function ReasoningBlock({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className="bg-muted mb-8 overflow-hidden rounded-lg"
-    >
-      <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between p-3 text-left text-sm font-medium transition-colors">
-        <span className="select-none">View reasoning</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs">
-            {isOpen ? (
-              <ChevronDown className="size-4" />
-            ) : (
-              <ChevronRight className="size-4" />
-            )}
-          </span>
-        </div>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex gap-2 w-full cursor-pointer hover:underline items-center justify-start p-4 px-0 text-sm font-medium">
+        <span className="text-xs">
+          {isOpen ? (
+            <ChevronDown className="size-5" />
+          ) : (
+            <ChevronRight className="size-5" />
+          )}
+        </span>
+        <span className="select-none">Reasoning</span>
       </CollapsibleTrigger>
-      <CollapsibleContent className="overflow-x-auto p-3 text-sm whitespace-pre-wrap">
-        {reasoning}
+      <CollapsibleContent className="px-3 pt-1 pb-5 text-sm whitespace-pre-wrap bg-muted/50 rounded-lg [&>*:last-child]:mb-0">
+        <Markdown>{reasoning}</Markdown>
       </CollapsibleContent>
     </Collapsible>
   );

@@ -5,7 +5,10 @@ interface UseScrollOptions {
   scrollSelector?: string;
 }
 
-export function useScroll(options: UseScrollOptions = {}) {
+export function useScroll(
+  options: UseScrollOptions = {},
+  hasInitialMessages = false
+) {
   const {
     autoScrollToBottom = true,
     scrollSelector = '[data-slot="scroll-area-viewport"]',
@@ -37,7 +40,7 @@ export function useScroll(options: UseScrollOptions = {}) {
 
   // Auto-scroll to bottom on initial load
   useEffect(() => {
-    if (autoScrollToBottom) {
+    if (autoScrollToBottom && hasInitialMessages) {
       scrollToBottom("instant");
     }
   }, [autoScrollToBottom, scrollToBottom]);

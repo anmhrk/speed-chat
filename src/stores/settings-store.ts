@@ -7,20 +7,23 @@ const VALID_MODEL_IDS = new Set(AVAILABLE_MODELS.map((m) => m.id));
 const VALID_REASONING_IDS = new Set(REASONING_EFFORTS.map((r) => r.id));
 const VALID_PROVIDERS = new Set(AVAILABLE_MODELS.map((m) => m.provider));
 
-interface SettingsStore {
+interface SettingsState {
   model: Models;
   reasoningEffort: ReasoningEfforts;
   apiKeys: Record<Providers, string>;
   customPrompt: string;
   _hasHydrated: boolean;
+}
 
+interface SettingsActions {
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
   setApiKeys: (apiKeys: Record<Providers, string>) => void;
   setCustomPrompt: (prompt: string) => void;
   hasApiKeyForProvider: (provider: Providers) => boolean;
-  setHasHydrated: (state: boolean) => void;
 }
+
+type SettingsStore = SettingsState & SettingsActions;
 
 const hasApiKeyForProvider = (
   keys: Record<Providers, string>,
@@ -96,12 +99,6 @@ export const useSettingsStore = create<SettingsStore>()(
         const { apiKeys } = get();
         return hasApiKeyForProvider(apiKeys, provider);
       },
-
-      setHasHydrated: (state: boolean) => {
-        set({
-          _hasHydrated: state,
-        });
-      },
     }),
     {
       name: "settings-store",
@@ -112,25 +109,22 @@ export const useSettingsStore = create<SettingsStore>()(
         customPrompt: state.customPrompt,
       }),
 
-      // Fix hydration issues with proper merge function
+      // Sanitize persisted state in case of invalid values
       merge: (persistedState, currentState) => {
         const typedPersistedState = persistedState as Partial<SettingsStore>;
 
-        // Validate and sanitize the persisted model
         const sanitizedModel =
           typedPersistedState.model &&
           VALID_MODEL_IDS.has(typedPersistedState.model)
             ? typedPersistedState.model
             : currentState.model;
 
-        // Validate and sanitize the persisted reasoning effort
         const sanitizedReasoningEffort =
           typedPersistedState.reasoningEffort &&
           VALID_REASONING_IDS.has(typedPersistedState.reasoningEffort)
             ? typedPersistedState.reasoningEffort
             : currentState.reasoningEffort;
 
-        // Sanitize API keys
         const sanitizedApiKeys: Record<Providers, string> = {
           openrouter: "",
           openai: "",
@@ -148,35 +142,25 @@ export const useSettingsStore = create<SettingsStore>()(
           );
         }
 
-        return {
+        const result = {
           ...currentState,
           model: sanitizedModel,
           reasoningEffort: sanitizedReasoningEffort,
           apiKeys: sanitizedApiKeys,
-          customPrompt:
-            typedPersistedState.customPrompt || currentState.customPrompt,
           _hasHydrated: true,
         };
-      },
 
-      // Add storage check for Next.js compatibility
-      storage: {
-        getItem: (name) => {
-          if (typeof window === "undefined") return null;
-          const value = localStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (name, value) => {
-          if (typeof window === "undefined") return;
-          localStorage.setItem(name, JSON.stringify(value));
-        },
-        removeItem: (name) => {
-          if (typeof window === "undefined") return;
-          localStorage.removeItem(name);
-        },
-      },
+        if (
+          result.model !== typedPersistedState.model ||
+          result.reasoningEffort !== typedPersistedState.reasoningEffort ||
+          result.apiKeys !== typedPersistedState.apiKeys
+        ) {
+          // Trigger a re-save to localStorage if sanitized state is different from persisted state
+          useSettingsStore.setState(result);
+        }
 
-      // Skip hydration during SSR
+        return result;
+      },
       skipHydration: true,
     }
   )
@@ -188,7 +172,6 @@ export const useHasApiKeys = () => {
   );
 };
 
-// Helper hook to check if store has hydrated
 export const useHasHydrated = () => {
   return useSettingsStore((state) => state._hasHydrated);
 };

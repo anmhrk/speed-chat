@@ -22,7 +22,7 @@ export function Messages({
     allMessages[allMessages.length - 1].role === "user";
 
   return (
-    <div className="flex w-full flex-col gap-8 max-w-[750px] mx-auto pt-6 pb-16">
+    <div className="flex w-full flex-col gap-10 max-w-[750px] mx-auto pt-6 pb-16">
       {allMessages.map((message) => (
         <div key={message.id} className="w-full">
           {message.role === "user" ? (

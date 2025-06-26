@@ -14,12 +14,7 @@ import { Messages } from "./messages";
 import { createChat, generateChatTitle } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
-import {
-  useHasApiKeys,
-  useSettingsStore,
-  useHasHydrated,
-} from "@/stores/settings-store";
-import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
+import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
 import { useScroll } from "@/hooks/use-scroll";
 
 const promptSuggestions = [
@@ -42,7 +37,6 @@ export function ChatPage({
   initialMessages,
   isLoading,
 }: ChatPageProps) {
-  const hasHydrated = useHasHydrated();
   const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
   const hasApiKeys = useHasApiKeys();
 
@@ -91,31 +85,14 @@ export function ChatPage({
       size: 16,
     }),
     experimental_throttle: 200,
-    // Only pass the body after hydration to avoid mismatches
-    body: hasHydrated
-      ? {
-          chatId: dynamicChatId || undefined,
-          model,
-          reasoningEffort,
-          apiKeys,
-          temporaryChat,
-          customPrompt,
-        }
-      : {
-          chatId: dynamicChatId || undefined,
-          // Use default values during SSR/before hydration
-          model:
-            AVAILABLE_MODELS.find((m) => m.default)?.id ||
-            AVAILABLE_MODELS[0].id,
-          reasoningEffort: REASONING_EFFORTS[0].id,
-          apiKeys: {
-            openrouter: "",
-            openai: "",
-            anthropic: "",
-          },
-          temporaryChat,
-          customPrompt: "",
-        },
+    body: {
+      chatId: dynamicChatId || undefined,
+      model,
+      reasoningEffort,
+      apiKeys,
+      temporaryChat,
+      customPrompt,
+    },
     onError: (error) => {
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
