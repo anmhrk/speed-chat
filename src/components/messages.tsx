@@ -1,6 +1,8 @@
 import type { Message } from "ai";
 import { AssistantMessage } from "@/components/assistant-message";
 import { UserMessage } from "@/components/user-message";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useScroll } from "@/hooks/use-scroll";
 
 interface MessagesProps {
   allMessages: Message[];
@@ -17,38 +19,42 @@ export function Messages({
   append,
   setMessages,
 }: MessagesProps) {
+  const { scrollAreaRef } = useScroll();
+
   const showLoading =
     status === "submitted" &&
     allMessages[allMessages.length - 1].role === "user";
 
   return (
-    <div className="flex w-full flex-col gap-10 max-w-[750px] mx-auto pt-6 pb-16">
-      {allMessages.map((message) => (
-        <div key={message.id} className="w-full">
-          {message.role === "user" ? (
-            <UserMessage
-              message={message}
-              allMessages={allMessages}
-              append={append}
-              setMessages={setMessages}
-            />
-          ) : (
-            <AssistantMessage
-              message={message}
-              isLastMessage={
-                message.id === allMessages[allMessages.length - 1]?.id
-              }
-              reload={reload}
-            />
-          )}
-        </div>
-      ))}
-      {showLoading && (
-        <div className="w-full">
-          <AssistantMessageLoader />
-        </div>
-      )}
-    </div>
+    <ScrollArea className="h-full px-3" ref={scrollAreaRef}>
+      <div className="flex w-full flex-col gap-10 max-w-[750px] mx-auto py-16">
+        {allMessages.map((message) => (
+          <div key={message.id} className="w-full">
+            {message.role === "user" ? (
+              <UserMessage
+                message={message}
+                allMessages={allMessages}
+                append={append}
+                setMessages={setMessages}
+              />
+            ) : (
+              <AssistantMessage
+                message={message}
+                isLastMessage={
+                  message.id === allMessages[allMessages.length - 1]?.id
+                }
+                reload={reload}
+              />
+            )}
+          </div>
+        ))}
+        {showLoading && (
+          <div className="w-full">
+            <AssistantMessageLoader />
+          </div>
+        )}
+      </div>
+    </ScrollArea>
   );
 }
 

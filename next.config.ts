@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   },
   devIndicators: false,
   experimental: {
-    ppr: true,
+    reactCompiler: true,
   },
 };
 

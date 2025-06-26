@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface UseScrollOptions {
   autoScrollToBottom?: boolean;
@@ -14,7 +14,6 @@ export function useScroll(
     scrollSelector = '[data-slot="scroll-area-viewport"]',
   } = options;
 
-  const [isScrolled, setIsScrolled] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const getViewport = useCallback(
@@ -45,21 +44,7 @@ export function useScroll(
     }
   }, [autoScrollToBottom, scrollToBottom]);
 
-  // Set up scroll event listener to track scroll state
-  useEffect(() => {
-    const scrollViewport = getViewport();
-    if (!scrollViewport) return;
-
-    const handleScroll = () => {
-      setIsScrolled(scrollViewport.scrollTop > 0);
-    };
-
-    scrollViewport.addEventListener("scroll", handleScroll);
-    return () => scrollViewport.removeEventListener("scroll", handleScroll);
-  }, [getViewport]);
-
   return {
-    isScrolled,
     scrollAreaRef,
     scrollToBottom,
     getViewport,

@@ -247,7 +247,7 @@ export const CodeBlock = memo(function CodeBlock({
         showLanguage={false}
         showLineNumbers={false}
         addDefaultStyles={false}
-        className={`[&>pre]:px-6 [&>pre]:py-5 ${wrapText ? "[&>pre]:whitespace-pre-wrap [&>pre]:overflow-x-hidden" : "[&>pre]:overflow-auto"}`}
+        className={`[&>pre]:px-4 [&>pre]:py-4 [&>pre]:text-[14px] ${wrapText ? "[&>pre]:whitespace-pre-wrap" : "[&>pre]:overflow-auto"}`}
         {...props}
       >
         {codeContent}

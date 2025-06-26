@@ -11,10 +11,11 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarGroupLabel,
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
 import { PenBox, LogIn, Loader2, LogOut, Search, Settings } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "better-auth";
 import { signIn, signOut } from "@/lib/auth/auth-client";
 import {
@@ -23,22 +24,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useRouter } from "next/navigation";
 import { SettingsDialog } from "./settings-dialog";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getChats, getMessages } from "@/lib/actions";
+import { toast } from "sonner";
 
 interface AppSidebarProps {
   user: User | null;
+  chatId: string;
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, chatId }: AppSidebarProps) {
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const {
+    data: chats,
+    isLoading: isLoadingChats,
+    isError: isErrorChats,
+  } = useQuery({
+    queryKey: ["chats"],
+    queryFn: async () => await getChats(),
+    enabled: isSignedIn,
+  });
+
+  useEffect(() => {
+    if (isErrorChats) {
+      toast.error("Failed to load chats");
+      router.push("/");
+    }
+  }, [isErrorChats]);
 
   return (
-    <Sidebar className="border-r-0">
-      <SidebarHeader className="flex items-center flex-col gap-6 justify-center py-4">
+    <Sidebar>
+      <SidebarHeader className="flex items-center justify-center py-4">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Logo" width={32} height={32} />
           <span className="text-lg font-semibold">SpeedChat</span>
@@ -69,6 +92,38 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 Settings
               </SidebarMenuButton>
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+          <SidebarMenu>
+            {isLoadingChats ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton>
+                  <Loader2 className="size-5 animate-spin" />
+                  Loading chats...
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              chats?.map((chat) => (
+                <SidebarMenuItem
+                  key={chat.id}
+                  onMouseEnter={() => {
+                    queryClient.prefetchQuery({
+                      queryKey: ["messages", chat.id],
+                      queryFn: async () => await getMessages(chat.id),
+                    });
+                  }}
+                >
+                  <SidebarMenuButton asChild isActive={chat.id === chatId}>
+                    <Link href={`/chat/${chat.id}`}>
+                      <span className="truncate">{chat.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

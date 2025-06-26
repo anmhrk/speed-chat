@@ -37,6 +37,8 @@ import { useRouter } from "next/navigation";
 import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
 import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
+import { deleteAllChats } from "@/lib/actions";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -113,7 +115,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 }
 
 function General() {
+  const queryClient = useQueryClient();
   const router = useRouter();
+  const [deletingAllChats, setDeletingAllChats] = useState(false);
 
   const handleDeleteAllChats = async () => {
     if (
@@ -122,11 +126,15 @@ function General() {
       )
     ) {
       try {
-        // TODO: Implement delete all chats functionality
+        setDeletingAllChats(true);
+        await deleteAllChats();
+        queryClient.invalidateQueries({ queryKey: ["chats"] });
         toast.success("All chats deleted successfully!");
       } catch (error) {
         console.error(error);
         toast.error("Failed to delete chats. Please try again.");
+      } finally {
+        setDeletingAllChats(false);
       }
     }
   };
@@ -160,9 +168,13 @@ function General() {
               Remove all your chat history permanently
             </p>
           </div>
-          <Button variant="destructive" onClick={handleDeleteAllChats}>
+          <Button
+            variant="destructive"
+            onClick={handleDeleteAllChats}
+            disabled={deletingAllChats}
+          >
             <Trash className="mr-2 size-4" />
-            Delete
+            {deletingAllChats ? "Deleting..." : "Delete"}
           </Button>
         </div>
         <Separator />

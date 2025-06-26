@@ -3,9 +3,56 @@
 import { getUser } from "./auth/get-user";
 import { db } from "./db";
 import { chats, messages } from "./db/schema";
-import { generateText, type Message } from "ai";
-import { openrouter } from "@openrouter/ai-sdk-provider";
-import { eq } from "drizzle-orm";
+import { type Message } from "ai";
+import { and, asc, desc, eq } from "drizzle-orm";
+
+export async function getChats() {
+  try {
+    const user = await getUser();
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const allChats = await db
+      .select()
+      .from(chats)
+      .where(eq(chats.userId, user.id))
+      .orderBy(desc(chats.updatedAt));
+
+    return allChats;
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to get chats: ${error}`);
+  }
+}
+
+export async function getMessages(chatId: string) {
+  try {
+    const user = await getUser();
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const chat = await db.query.chats.findFirst({
+      where: and(eq(chats.id, chatId), eq(chats.userId, user.id)),
+    });
+
+    if (!chat) {
+      throw new Error(`Chat ${chatId} not found`);
+    }
+
+    const allMessages = (await db.query.messages.findMany({
+      where: eq(messages.chatId, chatId),
+      orderBy: [asc(messages.createdAt)],
+    })) as Message[];
+
+    return allMessages;
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to get messages: ${error}`);
+  }
+}
 
 export async function createChat(chatId: string) {
   const user = await getUser();
@@ -26,56 +73,10 @@ export async function createChat(chatId: string) {
   }
 }
 
-export async function generateChatTitle(chatId: string, prompt: string) {
-  try {
-    const response = await generateText({
-      model: openrouter("google/gemini-2.5-flash-preview-05-20"),
-      prompt: `
-        Your job is to create concise, descriptive titles for chat conversations based on the user's first message. 
-        
-        <rules>
-        - Generate titles that are 5-6 words maximum
-        - Make titles descriptive and specific to the topic
-        - Use clear, professional language
-        - Avoid generic titles like "Chat" or "Conversation"
-        - Focus on the main subject or task being discussed
-        - Use title case formatting
-        - Do not include quotation marks or special formatting
-        </rules>
-
-        <examples>
-        - "React Component State Management Help"
-        - "Python Data Analysis Tutorial"
-        - "Database Schema Design Discussion"
-        - "API Integration Troubleshooting"
-        </examples>
-
-        <user_message>
-        ${prompt}
-        </user_message>
-
-        Generate and return only the title text, nothing else.
-        `,
-    });
-
-    await db
-      .update(chats)
-      .set({
-        title: response.text,
-      })
-      .where(eq(chats.id, chatId));
-
-    return response.text;
-  } catch (error) {
-    console.error(error);
-    throw new Error(`Failed to generate chat title: ${error}`);
-  }
-}
-
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[],
+  newMessages: Message[]
 ) {
   try {
     await db.transaction(async (tx) => {
@@ -122,5 +123,21 @@ export async function saveMessages(
   } catch (error) {
     console.error(error);
     throw new Error(`Failed to save messages: ${error}`);
+  }
+}
+
+export async function deleteAllChats() {
+  try {
+    const user = await getUser();
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    await db.delete(chats).where(eq(chats.userId, user.id));
+    // Messages are deleted automatically due to cascade
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to delete all chats: ${error}`);
   }
 }

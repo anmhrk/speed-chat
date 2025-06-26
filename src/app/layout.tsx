@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { Hydration } from "@/components/hydration";
+import { QueryClientProvider } from "@/components/query-client-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +34,15 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const DEV = process.env.NODE_ENV === "development";
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {DEV && (
+          <script src="https://unpkg.com/react-scan/dist/auto.global.js" />
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} overscroll-none antialiased`}
       >
@@ -46,9 +53,11 @@ export default async function RootLayout({
             disableTransitionOnChange
             enableSystem
           >
-            <Hydration />
-            <Toaster />
-            {children}
+            <QueryClientProvider>
+              <Hydration />
+              <Toaster />
+              {children}
+            </QueryClientProvider>
           </ThemeProvider>
         </SidebarProvider>
       </body>

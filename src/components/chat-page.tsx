@@ -6,16 +6,16 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
-import { createChat, generateChatTitle } from "@/lib/actions";
+import { createChat } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
-import { ScrollArea } from "./ui/scroll-area";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
-import { useScroll } from "@/hooks/use-scroll";
+import { getMessages } from "@/lib/actions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -26,43 +26,47 @@ const promptSuggestions = [
 
 interface ChatPageProps {
   user: User | null;
-  error?: string;
-  initialMessages?: Message[];
-  isLoading?: boolean;
+  initialChatId: string;
 }
 
-export function ChatPage({
-  user,
-  error,
-  initialMessages,
-  isLoading,
-}: ChatPageProps) {
+export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
   const hasApiKeys = useHasApiKeys();
+  const queryClient = useQueryClient();
 
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const chatId = typeof params.id === "string" ? params.id : null;
   const temporaryChat = searchParams.get("temporary") === "true";
-  const lastChatIdRef = useRef<string | null>(chatId);
-  const [dynamicChatId, setDynamicChatId] = useState<string | null>(chatId);
+  const [chatId, setChatId] = useState<string | null>(initialChatId);
+  const [dontFetchId, setDontFetchId] = useState("");
 
-  const { isScrolled, scrollAreaRef } = useScroll();
+  // Sync the chatId from the URL with the state
+  useEffect(() => {
+    setChatId(params.id ?? null);
+  }, [params.id]);
+
+  const {
+    data: initialMessages,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["messages", chatId],
+    queryFn: async () => {
+      if (!chatId) return [];
+      return await getMessages(chatId);
+    },
+    enabled: Boolean(chatId && chatId !== dontFetchId),
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
-    if (chatId !== lastChatIdRef.current) {
-      lastChatIdRef.current = chatId;
-      setDynamicChatId(chatId);
-    }
-  }, [chatId]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
+    if (isError) {
+      toast.error(error?.message ?? "Failed to load messages");
       router.push("/");
     }
-  }, [error, router]);
+  }, [isError, error, router]);
 
   const {
     messages,
@@ -76,7 +80,7 @@ export function ChatPage({
     append,
     setMessages,
   } = useChat({
-    id: dynamicChatId || undefined,
+    id: chatId ?? undefined,
     initialMessages,
     credentials: "include",
     sendExtraMessageFields: true,
@@ -86,7 +90,7 @@ export function ChatPage({
     }),
     experimental_throttle: 200,
     body: {
-      chatId: dynamicChatId || undefined,
+      chatId: chatId ?? undefined,
       model,
       reasoningEffort,
       apiKeys,
@@ -147,29 +151,63 @@ export function ChatPage({
       return;
     }
 
-    if (!dynamicChatId) {
+    if (!chatId) {
       const newChatId = crypto.randomUUID();
       const userMessage = input.trim();
 
-      setDynamicChatId(newChatId);
-      createChat(newChatId); // Don't await this to not block the UI
+      setChatId(newChatId);
+      setDontFetchId(newChatId);
+
+      createChat(newChatId);
+      queryClient.setQueryData(["chats"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return [
+          {
+            id: newChatId,
+            userId: user.id,
+            title: "New Chat",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isPinned: false,
+          },
+          ...oldData,
+        ];
+      });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
-      // Start both in parallel
-      await Promise.all([
-        handleSubmit(e),
-        (async () => {
-          try {
-            const title = await generateChatTitle(newChatId, userMessage);
-            return title;
-            // TODO: Update the title in the sidebar once returned
-          } catch (error) {
-            console.error(error);
-            // Fallback title is already set when chat is created
+      const submitPromise = handleSubmit(e);
+      const titlePromise = (async () => {
+        try {
+          const response = await fetch("/api/generate-title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              chatId: newChatId,
+              prompt: userMessage,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            queryClient.setQueryData(["chats"], (oldData: any) => {
+              if (!oldData) return oldData;
+              return oldData.map((chat: any) =>
+                chat.id === newChatId ? { ...chat, title: result.title } : chat
+              );
+            });
           }
-        })(),
-      ]);
+        } catch (error) {
+          console.error(error);
+          // Fallback title is already set when chat is created, so just log for now
+        }
+      })();
+
+      // Send both requests in parallel
+      await Promise.all([submitPromise, titlePromise]);
     } else {
       handleSubmit(e);
     }
@@ -177,10 +215,10 @@ export function ChatPage({
 
   return (
     <>
-      <AppSidebar user={user} />
+      <AppSidebar user={user} chatId={chatId ?? ""} />
       <SidebarInset>
         <div className="flex flex-col h-screen">
-          <Header temporaryChat={temporaryChat} isScrolled={isScrolled} />
+          <Header temporaryChat={temporaryChat} />
           <div className="flex-1 min-h-0">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
@@ -192,15 +230,13 @@ export function ChatPage({
                 </div>
               </div>
             ) : messages.length > 0 ? (
-              <ScrollArea className="h-full px-3" ref={scrollAreaRef}>
-                <Messages
-                  allMessages={messages}
-                  status={status}
-                  reload={reload}
-                  append={append}
-                  setMessages={setMessages}
-                />
-              </ScrollArea>
+              <Messages
+                allMessages={messages}
+                status={status}
+                reload={reload}
+                append={append}
+                setMessages={setMessages}
+              />
             ) : (
               <div className="h-full flex items-center justify-center px-3">
                 <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
@@ -225,7 +261,7 @@ export function ChatPage({
                         {promptSuggestions.map((suggestion, index) => (
                           <div
                             key={index}
-                            className="border-border bg-card hover:bg-primary/10 cursor-pointer rounded-xl border p-4 text-left transition-colors"
+                            className="border-border bg-card hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
                             onClick={() => setInput(suggestion)}
                           >
                             <span className="text-muted-foreground text-sm">
