@@ -24,7 +24,8 @@ export function Header({
 
   return (
     <div
-      className={`sticky top-0 z-10 flex items-center justify-between h-12 p-3 transition-shadow duration-200 ${isScrolled && "shadow-sm dark:shadow-md border-b border-border/10 dark:border-border"}`}
+      className={`sticky top-0 z-10 flex items-center justify-between h-12 p-3 ${isScrolled && "border-b border-border"}`}
+      // className="sticky top-0 z-10 flex items-center justify-between h-12 p-3 border-b border-border"
     >
       <Tooltip>
         <TooltipTrigger asChild>

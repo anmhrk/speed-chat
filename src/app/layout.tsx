@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
+import { Hydration } from "@/components/hydration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default async function RootLayout({
             disableTransitionOnChange
             enableSystem
           >
+            <Hydration />
             <Toaster />
             {children}
           </ThemeProvider>

@@ -36,13 +36,6 @@ export type ProviderConfig = {
   url: string;
 };
 
-export type CustomInstructions = {
-  name: string;
-  whatYouDo: string;
-  howToRespond: string;
-  additionalInfo: string;
-};
-
 export type ChatRequest = {
   messages: Message[];
   chatId: string;
@@ -50,5 +43,5 @@ export type ChatRequest = {
   reasoningEffort: ReasoningEfforts;
   apiKeys: Record<Providers, string>;
   temporaryChat: boolean;
-  customInstructions: CustomInstructions;
+  customPrompt: string;
 };

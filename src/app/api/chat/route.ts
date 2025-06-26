@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       reasoningEffort,
       apiKeys,
       temporaryChat,
-      customInstructions,
+      customPrompt,
     } = body;
 
     const user = await getUser();
@@ -79,14 +79,9 @@ export async function POST(request: NextRequest) {
         - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
 
         ${
-          customInstructions &&
-          `
-            This is some extra customization settings set by the user. You may use these to tailor your response:
-            ${customInstructions.name && `- Name of the user: ${customInstructions.name}`}
-            ${customInstructions.whatYouDo && `- Profession of the user: ${customInstructions.whatYouDo}`}
-            ${customInstructions.howToRespond && `- Specifics on how to respond to the user: ${customInstructions.howToRespond}`}
-            ${customInstructions.additionalInfo && `- Some additional information about the user: ${customInstructions.additionalInfo}`}
-            `
+          customPrompt &&
+          `\n\nThis is a user-provided extension to the system prompt. You may use this to tailor your response:
+            \n${customPrompt}\n`
         }
         `,
       experimental_transform: [
@@ -192,7 +187,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError
+            dbError,
           );
         }
 

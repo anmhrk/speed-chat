@@ -2,7 +2,6 @@
 
 import { ChatInput } from "./chat-input";
 import { Header } from "./header";
-import { SettingsProvider, useSettingsContext } from "./settings-provider";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
@@ -15,6 +14,13 @@ import { Messages } from "./messages";
 import { createChat, generateChatTitle } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
+import {
+  useHasApiKeys,
+  useSettingsStore,
+  useHasHydrated,
+} from "@/stores/settings-store";
+import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
+import { useScroll } from "@/hooks/use-scroll";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -36,26 +42,9 @@ export function ChatPage({
   initialMessages,
   isLoading,
 }: ChatPageProps) {
-  return (
-    <SettingsProvider>
-      <ChatPageInner
-        user={user}
-        initialMessages={initialMessages}
-        error={error}
-        isLoading={isLoading}
-      />
-    </SettingsProvider>
-  );
-}
-
-function ChatPageInner({
-  user,
-  error,
-  initialMessages,
-  isLoading,
-}: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customInstructions, hasApiKeys } =
-    useSettingsContext();
+  const hasHydrated = useHasHydrated();
+  const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
+  const hasApiKeys = useHasApiKeys();
 
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -65,8 +54,7 @@ function ChatPageInner({
   const lastChatIdRef = useRef<string | null>(chatId);
   const [dynamicChatId, setDynamicChatId] = useState<string | null>(chatId);
 
-  const [isScrolled, setIsScrolled] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { isScrolled, scrollAreaRef } = useScroll();
 
   useEffect(() => {
     if (chatId !== lastChatIdRef.current) {
@@ -103,14 +91,31 @@ function ChatPageInner({
       size: 16,
     }),
     experimental_throttle: 200,
-    body: {
-      chatId: dynamicChatId || undefined,
-      model,
-      reasoningEffort,
-      apiKeys,
-      temporaryChat,
-      customInstructions,
-    },
+    // Only pass the body after hydration to avoid mismatches
+    body: hasHydrated
+      ? {
+          chatId: dynamicChatId || undefined,
+          model,
+          reasoningEffort,
+          apiKeys,
+          temporaryChat,
+          customPrompt,
+        }
+      : {
+          chatId: dynamicChatId || undefined,
+          // Use default values during SSR/before hydration
+          model:
+            AVAILABLE_MODELS.find((m) => m.default)?.id ||
+            AVAILABLE_MODELS[0].id,
+          reasoningEffort: REASONING_EFFORTS[0].id,
+          apiKeys: {
+            openrouter: "",
+            openai: "",
+            anthropic: "",
+          },
+          temporaryChat,
+          customPrompt: "",
+        },
     onError: (error) => {
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
@@ -135,41 +140,6 @@ function ChatPageInner({
       });
     },
   });
-
-  // TODO: fix save messages action
-  // TODO: T3 chat behavior when new message is sent
-  // TODO: Clean up client component and move to server components and use zustand to make stuff more performant
-
-  const getViewport = () =>
-    scrollAreaRef.current?.querySelector(
-      '[data-slot="scroll-area-viewport"]'
-    ) as HTMLDivElement | null;
-
-  useEffect(() => {
-    const scrollViewport = getViewport();
-    if (!scrollViewport) return;
-
-    scrollViewport.scrollTo({
-      top: scrollViewport.scrollHeight,
-      behavior: "instant",
-    });
-  }, []);
-
-  useEffect(() => {
-    const scrollViewport = getViewport();
-    if (!scrollViewport) return;
-
-    const handleScroll = () => {
-      setIsScrolled(scrollViewport.scrollTop > 0);
-    };
-
-    scrollViewport.addEventListener("scroll", handleScroll);
-    return () => scrollViewport.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    
-  })
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,9 +203,7 @@ function ChatPageInner({
       <AppSidebar user={user} />
       <SidebarInset>
         <div className="flex flex-col h-screen">
-          <div className="shrink-0">
-            <Header temporaryChat={temporaryChat} isScrolled={isScrolled} />
-          </div>
+          <Header temporaryChat={temporaryChat} isScrolled={isScrolled} />
           <div className="flex-1 min-h-0">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">

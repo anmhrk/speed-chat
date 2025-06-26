@@ -7,8 +7,7 @@ import { useEffect, useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
-import { useSettingsContext } from "./settings-provider";
-import { Providers } from "@/lib/types";
+import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
 import { Toggle } from "./ui/toggle";
 
 interface ChatInputProps {
@@ -27,8 +26,14 @@ export function ChatInput({
   status,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { model, setModel, apiKeys, reasoningEffort, setReasoningEffort } =
-    useSettingsContext();
+  const hasHydrated = useHasHydrated();
+  const {
+    model,
+    setModel,
+    reasoningEffort,
+    setReasoningEffort,
+    hasApiKeyForProvider,
+  } = useSettingsStore();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -47,14 +52,10 @@ export function ChatInput({
     }
   };
 
-  const hasApiKey = (provider: Providers) => {
-    return apiKeys?.[provider] && apiKeys[provider].trim() !== "";
-  };
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-t-xl dark:bg-input/30 border p-2 max-w-3xl w-full mx-auto"
+      className="rounded-t-xl dark:bg-input/30 border border-b-0 p-2 max-w-3xl w-full mx-auto"
     >
       <Textarea
         ref={inputRef}
@@ -62,11 +63,11 @@ export function ChatInput({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder="Ask anything..."
-        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[90px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
+        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[70px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          {model && reasoningEffort && (
+          {hasHydrated && model && reasoningEffort && (
             <>
               <Select value={model} onValueChange={setModel}>
                 <SelectTrigger
@@ -82,7 +83,7 @@ export function ChatInput({
                     }
                     return a.name.localeCompare(b.name);
                   }).map((model) => {
-                    const isDisabled = !hasApiKey(model.provider);
+                    const isDisabled = !hasApiKeyForProvider(model.provider);
                     const selectItem = (
                       <SelectItem
                         key={model.id}

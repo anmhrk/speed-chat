@@ -32,15 +32,11 @@ import { Textarea } from "./ui/textarea";
 import { useState, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { toast } from "sonner";
-import { useSettingsContext } from "./settings-provider";
 import { deleteUser } from "@/lib/auth/auth-client";
 import { useRouter } from "next/navigation";
-import type {
-  ProviderConfig,
-  Providers,
-  CustomInstructions,
-} from "@/lib/types";
+import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
+import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -209,7 +205,8 @@ const providers: ProviderConfig[] = [
 ];
 
 function ApiKeys() {
-  const { apiKeys, setApiKeys } = useSettingsContext();
+  const hasHydrated = useHasHydrated();
+  const { apiKeys, setApiKeys } = useSettingsStore();
   const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
     openrouter: "",
     openai: "",
@@ -234,10 +231,21 @@ function ApiKeys() {
   };
 
   useEffect(() => {
-    if (apiKeys) {
+    if (hasHydrated) {
       setLocalApiKeys(apiKeys);
     }
-  }, [apiKeys]);
+  }, [apiKeys, hasHydrated]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-2">API Keys</h3>
+          <p className="text-sm text-muted-foreground mb-6">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -314,40 +322,38 @@ function ApiKeys() {
 }
 
 function CustomPrompt() {
-  const { customInstructions, setCustomInstructions } = useSettingsContext();
-  const [localInstructions, setLocalInstructions] =
-    useState<CustomInstructions>({
-      name: "",
-      whatYouDo: "",
-      howToRespond: "",
-      additionalInfo: "",
-    });
+  const hasHydrated = useHasHydrated();
+  const { customPrompt, setCustomPrompt } = useSettingsStore();
+  const [localPrompt, setLocalPrompt] = useState<string>("");
 
-  const hasChanges =
-    JSON.stringify(localInstructions) !== JSON.stringify(customInstructions);
-
-  const handleChange = (field: keyof CustomInstructions, value: string) => {
-    setLocalInstructions((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const hasChanges = localPrompt !== customPrompt;
 
   const handleSave = async () => {
     try {
-      setCustomInstructions(localInstructions);
-      toast.success("Custom instructions saved successfully!");
+      setCustomPrompt(localPrompt);
+      toast.success("Custom prompt saved successfully!");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to save custom instructions. Please try again.");
+      toast.error("Failed to save custom prompt. Please try again.");
     }
   };
 
   useEffect(() => {
-    if (customInstructions) {
-      setLocalInstructions(customInstructions);
+    if (hasHydrated) {
+      setLocalPrompt(customPrompt);
     }
-  }, [customInstructions]);
+  }, [customPrompt, hasHydrated]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-2">Custom Prompt</h3>
+          <p className="text-sm text-muted-foreground mb-6">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -361,9 +367,9 @@ function CustomPrompt() {
       <div className="space-y-6">
         <Textarea
           id="custom-prompt"
-          value={localInstructions.whatYouDo}
-          onChange={(e) => handleChange("whatYouDo", e.target.value)}
-          className="max-h-[400px] min-h-[400px]"
+          value={localPrompt}
+          onChange={(e) => setLocalPrompt(e.target.value)}
+          className="max-h-[400px] min-h-[400px] focus-visible:ring-0"
           placeholder="Extend the system prompt here..."
         />
 
