@@ -45,3 +45,9 @@ export type ChatRequest = {
   temporaryChat: boolean;
   customPrompt: string;
 };
+
+export type TitleRequest = {
+  chatId: string;
+  prompt: string;
+  apiKeys: Record<Providers, string>;
+};

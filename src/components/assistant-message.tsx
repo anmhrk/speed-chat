@@ -230,7 +230,7 @@ export const CodeBlock = memo(function CodeBlock({
         </div>
       </div>
     ),
-    [language, codeCopied, handleCodeCopy, wrapText, handleCodeDownload]
+    [language, codeCopied, handleCodeCopy, wrapText, handleCodeDownload],
   );
 
   return !isInline ? (

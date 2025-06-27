@@ -2,7 +2,7 @@
 
 import { ChatInput } from "./chat-input";
 import { Header } from "./header";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
@@ -35,16 +35,22 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const queryClient = useQueryClient();
 
   const router = useRouter();
-  const params = useParams<{ id: string }>();
+  const pathname = usePathname();
+  const chatIdParams = pathname.split("/chat/")[1];
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [dontFetchId, setDontFetchId] = useState("");
 
   // Sync the chatId from the URL with the state
+  // useParams was being weird so using usePathname instead
   useEffect(() => {
-    setChatId(params.id ?? null);
-  }, [params.id]);
+    if (pathname === "/") {
+      setChatId(null);
+    } else {
+      setChatId(chatIdParams);
+    }
+  }, [chatIdParams, pathname]);
 
   const {
     data: initialMessages,
@@ -98,6 +104,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       customPrompt,
     },
     onError: (error) => {
+      console.error(error);
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
         role: "assistant",
@@ -187,6 +194,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
             body: JSON.stringify({
               chatId: newChatId,
               prompt: userMessage,
+              apiKeys,
             }),
           });
 
@@ -196,7 +204,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
             queryClient.setQueryData(["chats"], (oldData: any) => {
               if (!oldData) return oldData;
               return oldData.map((chat: any) =>
-                chat.id === newChatId ? { ...chat, title: result.title } : chat
+                chat.id === newChatId ? { ...chat, title: result.title } : chat,
               );
             });
           }
@@ -215,11 +223,11 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
 
   return (
     <>
-      <AppSidebar user={user} chatId={chatId ?? ""} />
+      <AppSidebar user={user} chatIdParams={chatId ?? ""} />
       <SidebarInset>
         <div className="flex flex-col h-screen">
           <Header temporaryChat={temporaryChat} />
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 relative">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
                 <div className="flex items-center gap-2">

@@ -19,7 +19,7 @@ export function QueryClientProvider({
             retry: false,
           },
         },
-      })
+      }),
   );
 
   return (

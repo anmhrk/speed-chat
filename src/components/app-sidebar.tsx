@@ -12,35 +12,62 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarGroupLabel,
+  SidebarMenuAction,
 } from "./ui/sidebar";
 import { Button } from "./ui/button";
-import { PenBox, LogIn, Loader2, LogOut, Search, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  PenBox,
+  LogIn,
+  Loader2,
+  LogOut,
+  Search,
+  Settings,
+  MessageSquare,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Pin,
+  PinOff,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "better-auth";
 import { signIn, signOut } from "@/lib/auth/auth-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { SettingsDialog } from "./settings-dialog";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getChats, getMessages } from "@/lib/actions";
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
+import {
+  deleteChat,
+  getChats,
+  getMessages,
+  handlePinChat,
+  renameChatTitle,
+} from "@/lib/actions";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Input } from "./ui/input";
+import { chats } from "@/lib/db/schema";
 
 interface AppSidebarProps {
   user: User | null;
-  chatId: string;
+  chatIdParams: string;
 }
 
-export function AppSidebar({ user, chatId }: AppSidebarProps) {
+export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const {
     data: chats,
@@ -61,15 +88,12 @@ export function AppSidebar({ user, chatId }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex items-center justify-center py-4">
+      <SidebarHeader className="flex items-center justify-between pt-5">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Logo" width={32} height={32} />
           <span className="text-lg font-semibold">SpeedChat</span>
         </Link>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="mt-1 px-0 pb-0">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
@@ -94,37 +118,58 @@ export function AppSidebar({ user, chatId }: AppSidebarProps) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+      </SidebarHeader>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Chats</SidebarGroupLabel>
-          <SidebarMenu>
-            {isLoadingChats ? (
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Loader2 className="size-5 animate-spin" />
-                  Loading chats...
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ) : (
-              chats?.map((chat) => (
-                <SidebarMenuItem
-                  key={chat.id}
-                  onMouseEnter={() => {
-                    queryClient.prefetchQuery({
-                      queryKey: ["messages", chat.id],
-                      queryFn: async () => await getMessages(chat.id),
-                    });
-                  }}
-                >
-                  <SidebarMenuButton asChild isActive={chat.id === chatId}>
-                    <Link href={`/chat/${chat.id}`}>
-                      <span className="truncate">{chat.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))
-            )}
-          </SidebarMenu>
+      <SidebarContent>
+        <SidebarGroup className="flex flex-1 flex-col">
+          {isLoadingChats ? (
+            <div className="flex flex-1 flex-col items-center justify-center">
+              <Loader2 className="size-5 animate-spin mb-2" />
+              <span className="text-sm text-muted-foreground">
+                Loading chats...
+              </span>
+            </div>
+          ) : chats && chats.length > 0 ? (
+            <>
+              {chats.filter((chat) => chat.isPinned).length > 0 && (
+                <>
+                  <SidebarGroupLabel>Pinned</SidebarGroupLabel>
+                  <SidebarMenu>
+                    {chats
+                      .filter((chat) => chat.isPinned)
+                      .map((chat) => (
+                        <ChatItem
+                          key={chat.id}
+                          chat={chat}
+                          chatIdParams={chatIdParams}
+                        />
+                      ))}
+                  </SidebarMenu>
+                </>
+              )}
+              {chats.filter((chat) => !chat.isPinned).length > 0 && (
+                <>
+                  <SidebarGroupLabel>Chats</SidebarGroupLabel>
+                  <SidebarMenu>
+                    {chats
+                      .filter((chat) => !chat.isPinned)
+                      .map((chat) => (
+                        <ChatItem
+                          key={chat.id}
+                          chat={chat}
+                          chatIdParams={chatIdParams}
+                        />
+                      ))}
+                  </SidebarMenu>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
+              <MessageSquare className="size-8 mb-2" />
+              <span className="text-sm">No chats yet</span>
+            </div>
+          )}
         </SidebarGroup>
       </SidebarContent>
 
@@ -194,5 +239,145 @@ export function AppSidebar({ user, chatId }: AppSidebarProps) {
         )}
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function ChatItem({
+  chat,
+  chatIdParams,
+}: {
+  chat: typeof chats.$inferSelect;
+  chatIdParams: string;
+}) {
+  const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const router = useRouter();
+  const [isRenamingChat, setIsRenamingChat] = useState(false);
+  const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
+  const [newChatTitle, setNewChatTitle] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  const clearInput = () => {
+    setIsRenamingChat(false);
+    setRenamingChatId(null);
+    setNewChatTitle("");
+  };
+
+  return (
+    <SidebarMenuItem
+      key={chat.id}
+      onMouseEnter={() => {
+        if (chat.id === chatIdParams) return;
+        queryClient.prefetchQuery({
+          queryKey: ["messages", chat.id],
+          queryFn: async () => await getMessages(chat.id),
+        });
+      }}
+    >
+      <SidebarMenuButton
+        asChild={!(isRenamingChat && chat.id === renamingChatId)}
+        isActive={chat.id === chatIdParams}
+      >
+        {isRenamingChat && chat.id === renamingChatId ? (
+          <Input
+            ref={renameInputRef}
+            value={newChatTitle}
+            onChange={(e) => setNewChatTitle(e.target.value)}
+            onBlur={clearInput}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                queryClient.setQueryData(["chats"], (oldData: any) => {
+                  if (!oldData) return oldData;
+                  return oldData.map((chatItem: any) =>
+                    chatItem.id === chat.id
+                      ? { ...chatItem, title: newChatTitle }
+                      : chatItem
+                  );
+                });
+                renameChatTitle(chat.id, newChatTitle);
+                clearInput();
+              } else if (e.key === "Escape") {
+                clearInput();
+              }
+            }}
+            className="border-none focus-visible:ring-0 !bg-transparent w-full px-0"
+          />
+        ) : (
+          <Link href={`/chat/${chat.id}`}>
+            <span className="truncate">{chat.title}</span>
+          </Link>
+        )}
+      </SidebarMenuButton>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuAction showOnHover className="!top-2 cursor-pointer">
+            <MoreHorizontal />
+            <span className="sr-only">Chat Actions</span>
+          </SidebarMenuAction>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="w-fit rounded-lg"
+          side={isMobile ? "bottom" : "right"}
+          align={isMobile ? "end" : "start"}
+          onCloseAutoFocus={(e) => {
+            if (isRenamingChat) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <DropdownMenuItem
+            onClick={async () => {
+              queryClient.setQueryData(["chats"], (oldData: any) => {
+                if (!oldData) return oldData;
+                return oldData.map((chatItem: any) =>
+                  chatItem.id === chat.id
+                    ? {
+                        ...chatItem,
+                        isPinned: !chatItem.isPinned,
+                      }
+                    : chatItem
+                );
+              });
+
+              // Update db in background but show optimistic update immediately
+              handlePinChat(chat.id, chat.isPinned);
+            }}
+          >
+            {chat.isPinned ? <PinOff /> : <Pin />}
+            <span>{chat.isPinned ? "Unpin" : "Pin"}</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setIsRenamingChat(true);
+              setRenamingChatId(chat.id);
+              setNewChatTitle(chat.title);
+              setTimeout(() => {
+                renameInputRef.current?.focus();
+                renameInputRef.current?.select();
+              }, 100);
+            }}
+          >
+            <Pencil />
+            <span>Rename</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={async () => {
+              await deleteChat(chat.id);
+              queryClient.invalidateQueries({
+                queryKey: ["chats"],
+              });
+              if (chat.id === chatIdParams) {
+                router.push("/");
+              }
+            }}
+          >
+            <Trash2 />
+            <span>Delete</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
   );
 }

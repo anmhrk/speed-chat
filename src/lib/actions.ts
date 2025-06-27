@@ -141,3 +141,33 @@ export async function deleteAllChats() {
     throw new Error(`Failed to delete all chats: ${error}`);
   }
 }
+
+export async function deleteChat(chatId: string) {
+  try {
+    await db.delete(chats).where(eq(chats.id, chatId));
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to delete chat: ${error}`);
+  }
+}
+
+export async function renameChatTitle(chatId: string, newTitle: string) {
+  try {
+    await db.update(chats).set({ title: newTitle }).where(eq(chats.id, chatId));
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to rename chat: ${error}`);
+  }
+}
+
+export async function handlePinChat(chatId: string, isPinned: boolean) {
+  try {
+    await db
+      .update(chats)
+      .set({ isPinned: !isPinned })
+      .where(eq(chats.id, chatId));
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Failed to pin chat: ${error}`);
+  }
+}

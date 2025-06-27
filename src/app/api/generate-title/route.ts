@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
-import { openrouter } from "@openrouter/ai-sdk-provider";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { getUser } from "@/lib/auth/get-user";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { TitleRequest, Providers } from "@/lib/types";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,10 +16,11 @@ export async function POST(request: NextRequest) {
       throw new Error("Unauthorized");
     }
 
-    const { chatId, prompt } = await request.json();
+    const { chatId, prompt, apiKeys }: TitleRequest = await request.json();
+    const model = buildModel(apiKeys);
 
     const response = await generateText({
-      model: openrouter("google/gemini-2.5-flash-preview-05-20"),
+      model,
       prompt: `
         Your job is to create concise, descriptive titles for chat conversations based on the user's first message. 
         
@@ -61,3 +65,22 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 }
+
+const buildModel = (apiKeys: Record<Providers, string>) => {
+  if (apiKeys.openrouter) {
+    const openrouter = createOpenRouter({
+      apiKey: apiKeys.openrouter,
+    });
+    return openrouter("google/gemini-2.5-flash-lite-preview-06-17");
+  } else if (apiKeys.openai) {
+    const openai = createOpenAI({
+      apiKey: apiKeys.openai,
+    });
+    return openai("gpt-4.1-nano");
+  } else {
+    const anthropic = createAnthropic({
+      apiKey: apiKeys.anthropic,
+    });
+    return anthropic("claude-3-5-haiku-latest");
+  }
+};

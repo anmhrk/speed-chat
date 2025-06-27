@@ -55,7 +55,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-t-xl dark:bg-input/30 border border-b-0 p-2 max-w-3xl w-full mx-auto"
+      className="rounded-t-xl bg-muted/40 dark:bg-input/30 border border-b-0 p-2 max-w-3xl w-full mx-auto"
     >
       <Textarea
         ref={inputRef}
@@ -133,7 +133,7 @@ export function ChatInput({
                       >
                         {(() => {
                           const effort = REASONING_EFFORTS.find(
-                            (e) => e.id === reasoningEffort
+                            (e) => e.id === reasoningEffort,
                           );
                           if (effort) {
                             const IconComponent = effort.icon;
