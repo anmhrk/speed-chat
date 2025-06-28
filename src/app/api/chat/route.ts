@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import {
+  createDataStream,
   streamText,
   APICallError,
   InvalidPromptError,
@@ -19,7 +20,120 @@ import type { Models, Providers, ChatRequest } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
-import { saveMessages } from "@/lib/actions";
+import { getMessages, saveMessages } from "@/lib/actions";
+import { createResumableStreamContext } from "resumable-stream";
+import { loadStreams, saveStreamId } from "@/lib/redis/stream";
+import {
+  setConversationState,
+  getConversationState,
+  clearConversationState,
+} from "@/lib/redis/conversation";
+
+const streamContext = createResumableStreamContext({
+  waitUntil: after,
+});
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const chatId = searchParams.get("chatId");
+
+    if (!chatId) {
+      return new NextResponse("chatId is required", { status: 400 });
+    }
+
+    const streamIds = await loadStreams(chatId);
+
+    if (!streamIds.length) {
+      console.log(`[Chat Resume] No streams found for chatId: ${chatId}`);
+      return new NextResponse("No streams found", { status: 404 });
+    }
+
+    const recentStreamId = streamIds.at(-1);
+
+    if (!recentStreamId) {
+      return new NextResponse("No recent stream found", { status: 404 });
+    }
+
+    console.log(`[Chat Resume] Found streams for chat ${chatId}:`, streamIds);
+    console.log(
+      `[Chat Resume] Attempting to resume stream: ${recentStreamId} for chat: ${chatId}`
+    );
+
+    const emptyDataStream = createDataStream({
+      execute: () => {},
+    });
+
+    try {
+      // Add a timeout to the resumable stream to prevent hanging
+      const resumePromise = streamContext.resumableStream(
+        recentStreamId,
+        () => emptyDataStream
+      );
+
+      // Set a 3-second timeout for the resume attempt
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Resume timeout")), 3000);
+      });
+
+      const stream = await Promise.race([resumePromise, timeoutPromise]);
+
+      if (stream) {
+        console.log(
+          `[Chat Resume] Successfully resumed stream: ${recentStreamId}`
+        );
+        return new NextResponse(stream, { status: 200 });
+      }
+    } catch (error) {
+      console.error(
+        `[Chat Resume] Failed to resume stream ${recentStreamId}:`,
+        error
+      );
+      // Continue to fallback handling below
+    }
+
+    console.log(
+      `[Chat Resume] Stream already concluded, checking for completion status`
+    );
+
+    /*
+     * When the stream has already completed, we need to check if there's
+     * an assistant response that the client hasn't received yet
+     */
+
+    // Get current database messages to see if response completed
+    const dbMessages = await getMessages(chatId);
+    const mostRecentMessage = dbMessages.at(-1);
+
+    // If the last message is from assistant, the stream completed successfully
+    // Send it to the client to ensure they have the complete conversation
+    if (mostRecentMessage && mostRecentMessage.role === "assistant") {
+      console.log(
+        `[Chat Resume] Stream completed, sending final assistant message`
+      );
+
+      const streamWithMessage = createDataStream({
+        execute: (buffer) => {
+          buffer.writeData({
+            type: "append-message",
+            message: JSON.stringify(mostRecentMessage),
+          });
+        },
+      });
+
+      return new NextResponse(streamWithMessage, { status: 200 });
+    }
+
+    // If no assistant message or still incomplete, return empty stream
+    console.log(
+      `[Chat Resume] No completed assistant response found, returning empty stream`
+    );
+    return new NextResponse(emptyDataStream, { status: 200 });
+  } catch (error) {
+    console.error("[Chat Resume] Error in GET handler:", error);
+    return new NextResponse("Internal server error", { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +151,7 @@ export async function POST(request: NextRequest) {
     const user = await getUser();
 
     if (!user) {
-      throw new Error("Unauthorized");
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     let modelId = model;
@@ -59,141 +173,198 @@ export async function POST(request: NextRequest) {
       return 15000 / 4;
     };
 
-    const chatStream = streamText({
-      model: aiModel,
-      system: `
-        You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful and respectful.
-        If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
-        The current date and time including timezone for the user is ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}.
+    const streamId = createIdGenerator({
+      prefix: "stream",
+      size: 16,
+    })();
 
-        *Instructions for when generating mathematical expressions:*
-        - Always use LaTeX
-        - Inline math should be wrapped in single dollar signs: $content$
-        - Display math should be wrapped in double dollar signs: $$content$$
-        - Use proper LaTeX syntax within the delimiters.
-        - DO NOT output LaTeX as a code block.
+    console.log(
+      `[Chat API] Creating new stream: ${streamId} for chat: ${chatId}`
+    );
+    await saveStreamId(chatId, streamId);
+
+    // Store conversation state in Redis immediately (for resume functionality)
+    // This ensures the user message is available if user refreshes during streaming
+    try {
+      await setConversationState(chatId, messages);
+
+      // Also save to database for non-temporary chats
+      if (!temporaryChat) {
+        const messageIds = messages.slice(0, -1).map((m) => m.id);
+        const latestUserMessage = messages[messages.length - 1];
+
+        console.log(
+          `[Chat API] Saving user message immediately for chat: ${chatId}`
+        );
+        await saveMessages(chatId, messageIds, [latestUserMessage]);
+      }
+    } catch (error) {
+      console.error("[Chat API] Failed to save conversation state:", error);
+    }
+
+    const chatStream = createDataStream({
+      execute: (dataStream) => {
+        const result = streamText({
+          model: aiModel,
+          system: `
+            You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful and respectful.
+            If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
+            The current date and time including timezone for the user is ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}.
+
+            *Instructions for when generating mathematical expressions:*
+            - Always use LaTeX
+            - Inline math should be wrapped in single dollar signs: $content$
+            - Display math should be wrapped in double dollar signs: $$content$$
+            - Use proper LaTeX syntax within the delimiters.
+            - DO NOT output LaTeX as a code block.
           
-        *Instructions for when generating code:*
-        - Ensure it is properly formatted using Prettier with a print width of 80 characters
-        - Inline code should be wrapped in backticks: \`content\`
-        - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
+            *Instructions for when generating code:*
+            - Ensure it is properly formatted using Prettier with a print width of 80 characters
+            - Inline code should be wrapped in backticks: \`content\`
+            - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
 
-        ${
-          customPrompt &&
-          `\n\nThis is a user-provided extension to the system prompt. You may use this to tailor your response:
-            \n${customPrompt}\n`
-        }
-        `,
-      experimental_transform: [
-        smoothStream({
-          chunking: "word",
-        }),
-      ],
-      messages,
-      ...(isReasoningModel && {
-        providerOptions: {
-          openai: {
-            reasoningEffort: reasoningEffort,
-          },
-          openrouter: {
-            reasoning: {
-              max_tokens: calculateThinkingBudget(),
+            ${
+              customPrompt &&
+              `\n\nThis is a user-provided extension to the system prompt. You may use this to tailor your response:
+              \n${customPrompt}\n`
+            }
+          `,
+          // Optional: Enable smooth streaming for new conversations
+          // experimental_transform: [
+          //   smoothStream({
+          //     chunking: "word",
+          //   }),
+          // ],
+          messages,
+          ...(isReasoningModel && {
+            providerOptions: {
+              openai: {
+                reasoningEffort: reasoningEffort,
+              },
+              openrouter: {
+                reasoning: {
+                  max_tokens: calculateThinkingBudget(),
+                },
+              },
+              anthropic: {
+                thinking: {
+                  type: "enabled",
+                  budgetTokens: calculateThinkingBudget(),
+                },
+              } satisfies AnthropicProviderOptions,
             },
+          }),
+          onFinish: async ({ response }) => {
+            try {
+              if (temporaryChat) {
+                return;
+              }
+
+              console.log(
+                `[Chat API] Saving assistant response for chat: ${chatId}`
+              );
+
+              // Get current messages (which should include the user message we saved earlier)
+              const currentMessages = await getMessages(chatId);
+              const currentMessageIds = currentMessages.map((m) => m.id);
+
+              // Use appendResponseMessages to properly format the assistant response
+              const newMessages = appendResponseMessages({
+                messages: currentMessages,
+                responseMessages: response.messages,
+              }).slice(currentMessages.length); // Only get the new assistant messages
+
+              // Override IDs for consistency
+              const formattedNewMessages = newMessages.map((m) => ({
+                ...m,
+                id:
+                  m.role === "assistant"
+                    ? createIdGenerator({
+                        prefix: "assistant",
+                        size: 16,
+                      })()
+                    : m.id,
+              }));
+
+              await saveMessages(
+                chatId,
+                currentMessageIds,
+                formattedNewMessages
+              );
+
+              // Clear Redis conversation state since we've saved to database
+              await clearConversationState(chatId);
+            } catch (error) {
+              console.error("[Chat API] Database save failed:", error);
+            }
           },
-          anthropic: {
-            thinking: {
-              type: "enabled",
-              budgetTokens: calculateThinkingBudget(),
-            },
-          } satisfies AnthropicProviderOptions,
-        },
-      }),
-      onFinish: async ({ response }) => {
-        try {
-          if (temporaryChat) {
-            return;
-          }
+          onError: async (error) => {
+            console.error("[Chat API] Error:", error);
 
-          const messageIds = messages.slice(0, -1).map((m) => m.id);
-          const latestUserMessage = messages[messages.length - 1];
+            let errorContent = "";
+            if (
+              APICallError.isInstance(error) ||
+              InvalidPromptError.isInstance(error)
+            ) {
+              errorContent = `Error: ${error.message}`;
+            } else if (RetryError.isInstance(error)) {
+              // Extract the actual error message from the lastError property
+              if (error.lastError && APICallError.isInstance(error.lastError)) {
+                errorContent = `Error: ${error.lastError.message}`;
+              } else {
+                // Fallback to parsing the message string
+                const lastErrorMatch = error.message.match(/Last error: (.+)$/);
+                errorContent = lastErrorMatch
+                  ? `Error: ${lastErrorMatch[1].trim()}`
+                  : `Error: ${error.message}`;
+              }
+            } else {
+              errorContent = "An unknown error occurred. Please try again.";
+            }
 
-          const newMessages = appendResponseMessages({
-            messages: [latestUserMessage],
-            responseMessages: response.messages,
-          }).map((m) => ({
-            ...m,
-            // Overriding id for consistency because different providers send different id formats
-            id:
-              m.role === "assistant"
-                ? createIdGenerator({
-                    prefix: "assistant",
-                    size: 16,
-                  })()
-                : m.id,
-          }));
+            try {
+              const messageIds = messages.slice(0, -1).map((m) => m.id);
+              const latestUserMessage = messages[messages.length - 1];
+              const errorMessage = {
+                id: createIdGenerator({
+                  prefix: "error",
+                  size: 16,
+                })(),
+                role: "assistant" as const,
+                content: errorContent,
+                createdAt: new Date(),
+                parts: [{ type: "text" as const, text: errorContent }],
+              };
 
-          await saveMessages(chatId, messageIds, newMessages);
-        } catch (error) {
-          console.error("[Chat API] Database save failed:", error);
-        }
+              const newMessages = [
+                latestUserMessage,
+                errorMessage,
+              ] as Message[];
+
+              await saveMessages(chatId, messageIds, newMessages);
+            } catch (dbError) {
+              console.error(
+                "[Chat API] Failed to save error message to database:",
+                dbError
+              );
+            }
+
+            dataStream.writeData({
+              type: "error",
+              error: errorContent,
+            });
+          },
+        });
+
+        result.mergeIntoDataStream(dataStream, {
+          sendReasoning: true,
+        });
       },
     });
 
-    // chatStream.consumeStream();
-
-    return chatStream.toDataStreamResponse({
-      sendReasoning: true,
-      getErrorMessage: (error) => {
-        console.error("[Chat API] Error:", error);
-
-        let errorContent = "";
-        if (
-          APICallError.isInstance(error) ||
-          InvalidPromptError.isInstance(error)
-        ) {
-          errorContent = `Error: ${error.message}`;
-        } else if (RetryError.isInstance(error)) {
-          // Extract the actual error message from the lastError property
-          if (error.lastError && APICallError.isInstance(error.lastError)) {
-            errorContent = `Error: ${error.lastError.message}`;
-          } else {
-            // Fallback to parsing the message string
-            const lastErrorMatch = error.message.match(/Last error: (.+)$/);
-            errorContent = lastErrorMatch
-              ? `Error: ${lastErrorMatch[1].trim()}`
-              : `Error: ${error.message}`;
-          }
-        } else {
-          errorContent = "An unknown error occurred. Please try again.";
-        }
-
-        try {
-          const messageIds = messages.slice(0, -1).map((m) => m.id);
-          const latestUserMessage = messages[messages.length - 1];
-          const errorMessage = {
-            id: createIdGenerator({
-              prefix: "error",
-              size: 16,
-            })(),
-            role: "assistant" as const,
-            content: errorContent,
-            createdAt: new Date(),
-            parts: [{ type: "text" as const, text: errorContent }],
-          };
-
-          const newMessages = [latestUserMessage, errorMessage] as Message[];
-
-          saveMessages(chatId, messageIds, newMessages);
-        } catch (dbError) {
-          console.error(
-            "[Chat API] Failed to save error message to database:",
-            dbError,
-          );
-        }
-
-        return errorContent;
-      },
-    });
+    return new NextResponse(
+      await streamContext.resumableStream(streamId, () => chatStream)
+    );
   } catch (error) {
     console.log("[Chat API] Error:", error);
     throw error;

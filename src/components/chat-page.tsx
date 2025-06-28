@@ -5,7 +5,7 @@ import { Header } from "./header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, type Message } from "ai";
+import { createIdGenerator, type Message, type UIMessage } from "ai";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
@@ -17,6 +17,7 @@ import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
 import { getMessages } from "@/lib/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
+import { useAutoResume } from "@/hooks/use-auto-resume";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -64,7 +65,14 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     queryKey: ["messages", chatId],
     queryFn: async () => {
       if (!chatId) return [];
-      return await getMessages(chatId);
+      const messages = await getMessages(chatId);
+      console.log("[Chat Page] Loaded messages:", {
+        chatId,
+        messageCount: messages.length,
+        lastMessage: messages.at(-1)?.role,
+        messages: messages.map((m) => ({ role: m.role, id: m.id })),
+      });
+      return messages;
     },
     enabled: Boolean(chatId && chatId !== dontFetchId),
     staleTime: Infinity,
@@ -88,6 +96,8 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     reload,
     append,
     setMessages,
+    experimental_resume,
+    data,
   } = useChat({
     id: chatId ?? undefined,
     initialMessages,
@@ -97,7 +107,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       prefix: "user",
       size: 16,
     }),
-    experimental_throttle: 200,
+    experimental_throttle: 16, // ~60fps updates for maximum responsiveness during resume
     body: {
       chatId: chatId ?? undefined,
       model,
@@ -106,30 +116,45 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       temporaryChat,
       customPrompt,
     },
-    onError: (error) => {
-      console.error(error);
-      const errorMessage = {
-        id: `error-${crypto.randomUUID()}`,
-        role: "assistant",
-        content: error.message,
-        createdAt: new Date(),
-        parts: [{ type: "text", text: error.message }],
-      } as Message;
+  });
 
-      setMessages((prev) => {
-        // On error an empty assistant message is created, so we replace it with the error message
-        const lastMessage = prev[prev.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          (!lastMessage.content || lastMessage.content.trim() === "")
-        ) {
-          return [...prev.slice(0, -1), errorMessage];
-        } else {
-          // Fallback
-          return [...prev, errorMessage];
-        }
-      });
-    },
+  useEffect(() => {
+    if (data && "type" in data && data.type === "error") {
+      if ("error" in data) {
+        const errorMessage = data.error as string;
+
+        const fullError = {
+          id: `error-${crypto.randomUUID()}`,
+          role: "assistant",
+          content: errorMessage,
+          createdAt: new Date(),
+          parts: [{ type: "text", text: errorMessage }],
+        } as Message;
+
+        setMessages((prev) => {
+          // On error an empty assistant message is created, so we replace it with the error message
+          const lastMessage = prev[prev.length - 1];
+          if (
+            lastMessage?.role === "assistant" &&
+            (!lastMessage.content || lastMessage.content.trim() === "")
+          ) {
+            return [...prev.slice(0, -1), fullError];
+          } else {
+            // Fallback
+            return [...prev, fullError];
+          }
+        });
+      }
+    }
+  }, [data, setMessages]);
+
+  // Only call useAutoResume when messages are loaded and we have a chatId
+  useAutoResume({
+    autoResume: Boolean(chatId && !isLoading && initialMessages),
+    initialMessages: (initialMessages || []) as UIMessage[],
+    experimental_resume,
+    data,
+    setMessages,
   });
 
   const handleChatSubmit = async (e: React.FormEvent) => {

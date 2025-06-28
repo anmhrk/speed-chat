@@ -5,6 +5,7 @@ import { db } from "./db";
 import { chats, messages, user as userTable } from "./db/schema";
 import type { Message } from "ai";
 import { and, asc, desc, eq } from "drizzle-orm";
+import { getConversationState } from "./redis/conversation";
 
 export async function getChats() {
   const user = await getUser();
@@ -36,11 +37,26 @@ export async function getMessages(chatId: string) {
     throw new Error(`Chat ${chatId} not found`);
   }
 
+  // First try to get conversation state from Redis (might have user message during streaming)
+  try {
+    const redisMessages = await getConversationState(chatId);
+    if (redisMessages && redisMessages.length > 0) {
+      console.log(
+        `[Actions] Using Redis conversation state for chat: ${chatId}`
+      );
+      return redisMessages;
+    }
+  } catch (error) {
+    console.error("[Actions] Failed to get Redis conversation state:", error);
+  }
+
+  // Fallback to database messages
   const allMessages = (await db.query.messages.findMany({
     where: eq(messages.chatId, chatId),
     orderBy: [asc(messages.createdAt)],
   })) as Message[];
 
+  console.log(`[Actions] Using database messages for chat: ${chatId}`);
   return allMessages;
 }
 
