@@ -27,7 +27,7 @@ type SettingsStore = SettingsState & SettingsActions;
 
 const hasApiKeyForProvider = (
   keys: Record<Providers, string>,
-  provider: Providers,
+  provider: Providers
 ): boolean => {
   return !!(keys[provider] && keys[provider].trim() !== "");
 };
@@ -57,16 +57,16 @@ export const useSettingsStore = create<SettingsStore>()(
 
       setApiKeys: (apiKeys: Record<Providers, string>) => {
         const hasAnyKey = Object.values(apiKeys).some(
-          (key) => key && key.toString().trim() !== "",
+          (key) => key && key.toString().trim() !== ""
         );
 
         const availableModels = AVAILABLE_MODELS.filter((model) =>
-          hasApiKeyForProvider(apiKeys, model.provider),
+          hasApiKeyForProvider(apiKeys, model.provider)
         );
 
         let selectedModel = get().model;
         const selectedModelProvider = AVAILABLE_MODELS.find(
-          (m) => m.id === selectedModel,
+          (m) => m.id === selectedModel
         )?.provider;
         const defaultModel = AVAILABLE_MODELS.find((m) => m.default);
 
@@ -109,10 +109,19 @@ export const useSettingsStore = create<SettingsStore>()(
         customPrompt: state.customPrompt,
       }),
 
-      // Sanitize persisted state in case of invalid values
       merge: (persistedState, currentState) => {
         const typedPersistedState = persistedState as Partial<SettingsStore>;
 
+        // If no persisted state, set default values
+        // Only in memory for now, will be persisted when user puts an api key
+        if (!typedPersistedState) {
+          return {
+            ...currentState,
+            _hasHydrated: true,
+          };
+        }
+
+        // Sanitize persisted state in case of invalid values
         const sanitizedModel =
           typedPersistedState.model &&
           VALID_MODEL_IDS.has(typedPersistedState.model)
@@ -138,7 +147,7 @@ export const useSettingsStore = create<SettingsStore>()(
               if (VALID_PROVIDERS.has(provider as Providers)) {
                 sanitizedApiKeys[provider as Providers] = key || "";
               }
-            },
+            }
           );
         }
 
@@ -162,13 +171,13 @@ export const useSettingsStore = create<SettingsStore>()(
         return result;
       },
       skipHydration: true,
-    },
-  ),
+    }
+  )
 );
 
 export const useHasApiKeys = () => {
   return useSettingsStore((state) =>
-    Object.values(state.apiKeys).some((key) => key && key.trim() !== ""),
+    Object.values(state.apiKeys).some((key) => key && key.trim() !== "")
   );
 };
 

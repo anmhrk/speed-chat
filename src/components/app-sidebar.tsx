@@ -41,11 +41,7 @@ import {
 } from "./ui/dropdown-menu";
 import { SettingsDialog } from "./settings-dialog";
 import { useRouter } from "next/navigation";
-import {
-  useQuery,
-  useQueryClient,
-  useInfiniteQuery,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteChat,
   getChats,
@@ -56,18 +52,28 @@ import {
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
-import { chats } from "@/lib/db/schema";
+import type { Chat } from "@/lib/db/schema";
 
 interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
+  settingsDialogOpen: boolean;
+  setSettingsDialogOpen: (open: boolean) => void;
+  dialogActiveItem: string;
+  setDialogActiveItem: (item: string) => void;
 }
 
-export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
+export function AppSidebar({
+  user,
+  chatIdParams,
+  settingsDialogOpen,
+  setSettingsDialogOpen,
+  dialogActiveItem,
+  setDialogActiveItem,
+}: AppSidebarProps) {
   const router = useRouter();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const isSignedIn = !!user;
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const {
     data: chats,
@@ -110,12 +116,14 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)}>
-                <Settings />
-                Settings
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {isSignedIn && (
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)}>
+                  <Settings />
+                  Settings
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarHeader>
@@ -176,6 +184,9 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
       <SettingsDialog
         open={settingsDialogOpen}
         onOpenChange={setSettingsDialogOpen}
+        chatsCount={chats?.length || 0}
+        dialogActiveItem={dialogActiveItem}
+        setDialogActiveItem={setDialogActiveItem}
       />
 
       <SidebarFooter>
@@ -202,7 +213,7 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
               <DropdownMenuContent className="w-56">
                 <DropdownMenuItem
                   onClick={() =>
-                    signOut({
+                    void signOut({
                       fetchOptions: {
                         onSuccess: () => {
                           router.push("/");
@@ -246,7 +257,7 @@ function ChatItem({
   chat,
   chatIdParams,
 }: {
-  chat: typeof chats.$inferSelect;
+  chat: Chat;
   chatIdParams: string;
 }) {
   const queryClient = useQueryClient();
@@ -286,15 +297,20 @@ function ChatItem({
             onBlur={clearInput}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                queryClient.setQueryData(["chats"], (oldData: any) => {
+                queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
                   if (!oldData) return oldData;
-                  return oldData.map((chatItem: any) =>
+                  return oldData.map((chatItem) =>
                     chatItem.id === chat.id
                       ? { ...chatItem, title: newChatTitle }
                       : chatItem
                   );
                 });
-                renameChatTitle(chat.id, newChatTitle);
+                try {
+                  renameChatTitle(chat.id, newChatTitle);
+                } catch (error) {
+                  console.error(error);
+                  toast.error("Failed to rename chat");
+                }
                 clearInput();
               } else if (e.key === "Escape") {
                 clearInput();
@@ -327,9 +343,9 @@ function ChatItem({
         >
           <DropdownMenuItem
             onClick={async () => {
-              queryClient.setQueryData(["chats"], (oldData: any) => {
+              queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
                 if (!oldData) return oldData;
-                return oldData.map((chatItem: any) =>
+                return oldData.map((chatItem) =>
                   chatItem.id === chat.id
                     ? {
                         ...chatItem,
@@ -340,7 +356,12 @@ function ChatItem({
               });
 
               // Update db in background but show optimistic update immediately
-              handlePinChat(chat.id, chat.isPinned);
+              try {
+                handlePinChat(chat.id, chat.isPinned);
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to pin chat");
+              }
             }}
           >
             {chat.isPinned ? <PinOff /> : <Pin />}
@@ -364,7 +385,13 @@ function ChatItem({
           <DropdownMenuItem
             variant="destructive"
             onClick={async () => {
-              await deleteChat(chat.id);
+              try {
+                await deleteChat(chat.id);
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to delete chat");
+              }
+
               queryClient.invalidateQueries({
                 queryKey: ["chats"],
               });

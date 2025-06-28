@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
 import { getMessages } from "@/lib/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Chat } from "@/lib/db/schema";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -41,6 +42,8 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [dontFetchId, setDontFetchId] = useState("");
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [dialogActiveItem, setDialogActiveItem] = useState("General");
 
   // Sync the chatId from the URL with the state
   // useParams was being weird so using usePathname instead
@@ -142,7 +145,8 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
         action: {
           label: "Add keys",
           onClick: () => {
-            router.push("/settings/keys");
+            setSettingsDialogOpen(true);
+            setDialogActiveItem("API Keys");
           },
         },
       });
@@ -166,7 +170,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       setDontFetchId(newChatId);
 
       createChat(newChatId);
-      queryClient.setQueryData(["chats"], (oldData: any) => {
+      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
         if (!oldData) return oldData;
         return [
           {
@@ -201,10 +205,12 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
           const result = await response.json();
 
           if (result.success) {
-            queryClient.setQueryData(["chats"], (oldData: any) => {
+            queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
               if (!oldData) return oldData;
-              return oldData.map((chat: any) =>
-                chat.id === newChatId ? { ...chat, title: result.title } : chat,
+              return oldData.map((chatItem) =>
+                chatItem.id === newChatId
+                  ? { ...chatItem, title: result.title }
+                  : chatItem
               );
             });
           }
@@ -217,13 +223,31 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       // Send both requests in parallel
       await Promise.all([submitPromise, titlePromise]);
     } else {
+      // Bring chat to top of list
+      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
+        if (!oldData) return oldData;
+        const chatIndex = oldData.findIndex((chat) => chat.id === chatId);
+        if (chatIndex === -1) return oldData;
+
+        const newChats = [...oldData];
+        newChats.splice(chatIndex, 1);
+        newChats.unshift(oldData[chatIndex]);
+        return newChats;
+      });
       handleSubmit(e);
     }
   };
 
   return (
     <>
-      <AppSidebar user={user} chatIdParams={chatId ?? ""} />
+      <AppSidebar
+        user={user}
+        chatIdParams={chatId ?? ""}
+        settingsDialogOpen={settingsDialogOpen}
+        setSettingsDialogOpen={setSettingsDialogOpen}
+        dialogActiveItem={dialogActiveItem}
+        setDialogActiveItem={setDialogActiveItem}
+      />
       <SidebarInset>
         <div className="flex flex-col h-screen">
           <Header temporaryChat={temporaryChat} />

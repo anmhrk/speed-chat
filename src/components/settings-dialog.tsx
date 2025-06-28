@@ -32,17 +32,20 @@ import { Textarea } from "./ui/textarea";
 import { useState, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { toast } from "sonner";
-import { deleteUser } from "@/lib/auth/auth-client";
 import { useRouter } from "next/navigation";
 import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
 import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
-import { deleteAllChats } from "@/lib/actions";
+import { deleteAllChats, deleteUser } from "@/lib/actions";
 import { useQueryClient } from "@tanstack/react-query";
+import { signOut } from "@/lib/auth/auth-client";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  chatsCount: number;
+  dialogActiveItem: string;
+  setDialogActiveItem: (item: string) => void;
 }
 
 const sidebarItems = [
@@ -64,9 +67,13 @@ const sidebarItems = [
   },
 ];
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [activeItem, setActiveItem] = useState(sidebarItems[0].label);
-
+export function SettingsDialog({
+  open,
+  onOpenChange,
+  chatsCount,
+  dialogActiveItem,
+  setDialogActiveItem,
+}: SettingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="overflow-hidden p-0 h-full w-full max-h-[90vh] md:max-h-[600px] md:max-w-[700px] lg:max-w-[800px]">
@@ -87,8 +94,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     {sidebarItems.map((item) => (
                       <SidebarMenuItem key={item.label}>
                         <SidebarMenuButton
-                          isActive={item.label === activeItem}
-                          onClick={() => setActiveItem(item.label)}
+                          isActive={item.label === dialogActiveItem}
+                          onClick={() => setDialogActiveItem(item.label)}
                           className="justify-start"
                         >
                           <item.icon />
@@ -103,10 +110,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </Sidebar>
 
           <ScrollArea className="flex flex-col w-full max-h-[90vh] md:max-h-[600px]">
-            {activeItem === "General" && <General />}
-            {activeItem === "API Keys" && <ApiKeys />}
-            {activeItem === "Custom Prompt" && <CustomPrompt />}
-            {activeItem === "Memory" && <Memory />}
+            {dialogActiveItem === "General" && (
+              <General onOpenChange={onOpenChange} chatsCount={chatsCount} />
+            )}
+            {dialogActiveItem === "API Keys" && <ApiKeys />}
+            {dialogActiveItem === "Custom Prompt" && <CustomPrompt />}
+            {dialogActiveItem === "Memory" && <Memory />}
           </ScrollArea>
         </SidebarProvider>
       </DialogContent>
@@ -114,15 +123,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   );
 }
 
-function General() {
+function General({
+  onOpenChange,
+  chatsCount,
+}: {
+  onOpenChange: (open: boolean) => void;
+  chatsCount: number;
+}) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [deletingAllChats, setDeletingAllChats] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleDeleteAllChats = async () => {
     if (
       confirm(
-        "Are you sure you want to delete all chats? This action cannot be undone.",
+        `Are you sure you want to delete all ${chatsCount} chats? This action cannot be undone.`
       )
     ) {
       try {
@@ -133,7 +149,7 @@ function General() {
         toast.success("All chats deleted successfully!");
       } catch (error) {
         console.error(error);
-        toast.error("Failed to delete chats. Please try again.");
+        toast.error("Failed to delete chats");
       } finally {
         setDeletingAllChats(false);
       }
@@ -143,17 +159,27 @@ function General() {
   const handleDeleteAccount = async () => {
     if (
       confirm(
-        "Are you sure you want to delete your account? This action cannot be undone.",
+        "Are you sure you want to delete your account? This action cannot be undone."
       )
     ) {
       try {
+        setDeletingAccount(true);
         await deleteUser();
-        // TODO: Delete db stuff for user
+        await queryClient.invalidateQueries({ queryKey: ["chats"] });
+        void signOut({
+          fetchOptions: {
+            onSuccess: () => {
+              router.push("/");
+            },
+          },
+        });
+        onOpenChange(false);
         toast.success("Account deleted successfully!");
-        router.push("/");
       } catch (error) {
         console.error(error);
-        toast.error("Failed to delete account. Please try again.");
+        toast.error("Failed to delete account");
+      } finally {
+        setDeletingAccount(false);
       }
     }
   };
@@ -172,7 +198,7 @@ function General() {
           <Button
             variant="destructive"
             onClick={handleDeleteAllChats}
-            disabled={deletingAllChats}
+            disabled={chatsCount === 0 || deletingAllChats}
           >
             <Trash className="mr-2 size-4" />
             {deletingAllChats ? "Deleting..." : "Delete"}
@@ -188,7 +214,7 @@ function General() {
           </div>
           <Button variant="destructive" onClick={handleDeleteAccount}>
             <Trash className="mr-2 size-4" />
-            Delete
+            {deletingAccount ? "Deleting..." : "Delete"}
           </Button>
         </div>
       </div>

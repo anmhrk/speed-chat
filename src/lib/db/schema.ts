@@ -53,10 +53,10 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
   updatedAt: timestamp("updated_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
 });
 
@@ -76,6 +76,8 @@ export const chats = pgTable("chats", {
     .notNull()
     .$defaultFn(() => false),
 });
+
+export type Chat = typeof chats.$inferSelect;
 
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
