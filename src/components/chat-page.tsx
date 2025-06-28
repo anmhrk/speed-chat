@@ -11,13 +11,10 @@ import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
-import { createChat } from "@/lib/actions";
 import { Loader2 } from "lucide-react";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
-import { getMessages } from "@/lib/actions";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Chat } from "@/lib/db/schema";
 import { useAutoResume } from "@/hooks/use-auto-resume";
+import { useFetchData } from "@/hooks/use-fetch-data";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -34,7 +31,6 @@ interface ChatPageProps {
 export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
   const hasApiKeys = useHasApiKeys();
-  const queryClient = useQueryClient();
 
   const router = useRouter();
   const pathname = usePathname();
@@ -57,33 +53,13 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   }, [chatIdParams, pathname]);
 
   const {
-    data: initialMessages,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["messages", chatId],
-    queryFn: async () => {
-      if (!chatId) return [];
-      const messages = await getMessages(chatId);
-      console.log("[Chat Page] Loaded messages:", {
-        chatId,
-        messageCount: messages.length,
-        lastMessage: messages.at(-1)?.role,
-        messages: messages.map((m) => ({ role: m.role, id: m.id })),
-      });
-      return messages;
-    },
-    enabled: Boolean(chatId && chatId !== dontFetchId),
-    staleTime: Infinity,
+    loading,
+    chats,
+    messages: chatMessages,
+  } = useFetchData({
+    user,
+    chatId: chatId ?? undefined,
   });
-
-  useEffect(() => {
-    if (isError) {
-      toast.error(error?.message ?? "Failed to load messages");
-      router.push("/");
-    }
-  }, [isError, error, router]);
 
   const {
     messages,
@@ -100,14 +76,14 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     data,
   } = useChat({
     id: chatId ?? undefined,
-    initialMessages,
+    initialMessages: chatMessages as UIMessage[],
     credentials: "include",
     sendExtraMessageFields: true,
     generateId: createIdGenerator({
       prefix: "user",
       size: 16,
     }),
-    experimental_throttle: 16, // ~60fps updates for maximum responsiveness during resume
+    experimental_throttle: 100,
     body: {
       chatId: chatId ?? undefined,
       model,
@@ -148,14 +124,13 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     }
   }, [data, setMessages]);
 
-  // Only call useAutoResume when messages are loaded and we have a chatId
-  useAutoResume({
-    autoResume: Boolean(chatId && !isLoading && initialMessages),
-    initialMessages: (initialMessages || []) as UIMessage[],
-    experimental_resume,
-    data,
-    setMessages,
-  });
+  // useAutoResume({
+  //   autoResume: Boolean(chatId && !isLoading && initialMessages),
+  //   initialMessages: (initialMessages || []) as UIMessage[],
+  //   experimental_resume,
+  //   data,
+  //   setMessages,
+  // });
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,21 +169,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       setChatId(newChatId);
       setDontFetchId(newChatId);
 
-      createChat(newChatId);
-      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-        if (!oldData) return oldData;
-        return [
-          {
-            id: newChatId,
-            userId: user.id,
-            title: "New Chat",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            isPinned: false,
-          },
-          ...oldData,
-        ];
-      });
+      // createChat(newChatId);
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
@@ -230,14 +191,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
           const result = await response.json();
 
           if (result.success) {
-            queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-              if (!oldData) return oldData;
-              return oldData.map((chatItem) =>
-                chatItem.id === newChatId
-                  ? { ...chatItem, title: result.title }
-                  : chatItem
-              );
-            });
+            // TODO: update chat title in local db
           }
         } catch (error) {
           console.error(error);
@@ -248,26 +202,29 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       // Send both requests in parallel
       await Promise.all([submitPromise, titlePromise]);
     } else {
-      // Bring chat to top of list
-      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-        if (!oldData) return oldData;
-        const chatIndex = oldData.findIndex((chat) => chat.id === chatId);
-        if (chatIndex === -1) return oldData;
+      // Bring chat to top of list in local db
 
-        const newChats = [...oldData];
-        newChats.splice(chatIndex, 1);
-        newChats.unshift(oldData[chatIndex]);
-        return newChats;
-      });
       handleSubmit(e);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-muted-foreground text-sm">
+          Setting things up...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>
       <AppSidebar
         user={user}
         chatIdParams={chatId ?? ""}
+        chats={chats}
         settingsDialogOpen={settingsDialogOpen}
         setSettingsDialogOpen={setSettingsDialogOpen}
         dialogActiveItem={dialogActiveItem}
@@ -277,16 +234,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
         <div className="flex flex-col h-screen">
           <Header temporaryChat={temporaryChat} />
           <div className="flex-1 min-h-0 relative">
-            {isLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="size-5 animate-spin" />
-                  <span className="text-muted-foreground text-sm">
-                    Loading messages..
-                  </span>
-                </div>
-              </div>
-            ) : messages.length > 0 ? (
+            {messages.length > 0 ? (
               <Messages
                 allMessages={messages}
                 status={status}

@@ -29,7 +29,7 @@ import {
   Pin,
   PinOff,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { User } from "better-auth";
 import { signIn, signOut } from "@/lib/auth/auth-client";
 import {
@@ -41,18 +41,11 @@ import {
 } from "./ui/dropdown-menu";
 import { SettingsDialog } from "./settings-dialog";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  deleteChat,
-  getChats,
-  getMessages,
-  handlePinChat,
-  renameChatTitle,
-} from "@/lib/actions";
+import { deleteChat, handlePinChat, renameChatTitle } from "@/lib/db/actions";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
-import type { Chat } from "@/lib/db/schema";
+import type { Chat } from "@/lib/db/drizzle/schema";
 
 interface AppSidebarProps {
   user: User | null;
@@ -61,6 +54,7 @@ interface AppSidebarProps {
   setSettingsDialogOpen: (open: boolean) => void;
   dialogActiveItem: string;
   setDialogActiveItem: (item: string) => void;
+  chats: Chat[];
 }
 
 export function AppSidebar({
@@ -70,27 +64,11 @@ export function AppSidebar({
   setSettingsDialogOpen,
   dialogActiveItem,
   setDialogActiveItem,
+  chats,
 }: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  const {
-    data: chats,
-    isLoading: isLoadingChats,
-    isError: isErrorChats,
-  } = useQuery({
-    queryKey: ["chats"],
-    queryFn: async () => await getChats(),
-    enabled: isSignedIn,
-  });
-
-  useEffect(() => {
-    if (isErrorChats) {
-      toast.error("Failed to load chats");
-      router.push("/");
-    }
-  }, [isErrorChats]);
 
   return (
     <Sidebar>
@@ -130,14 +108,7 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup className="flex flex-1 flex-col">
-          {isLoadingChats ? (
-            <div className="flex flex-1 flex-col items-center justify-center">
-              <Loader2 className="size-5 animate-spin mb-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading chats...
-              </span>
-            </div>
-          ) : chats && chats.length > 0 ? (
+          {chats && chats.length > 0 && (
             <>
               {chats.filter((chat) => chat.isPinned).length > 0 && (
                 <>
@@ -172,11 +143,6 @@ export function AppSidebar({
                 </>
               )}
             </>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-              <MessageSquare className="size-8 mb-2" />
-              <span className="text-sm">No chats yet</span>
-            </div>
           )}
         </SidebarGroup>
       </SidebarContent>
@@ -260,7 +226,6 @@ function ChatItem({
   chat: Chat;
   chatIdParams: string;
 }) {
-  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const router = useRouter();
   const [isRenamingChat, setIsRenamingChat] = useState(false);
@@ -275,16 +240,7 @@ function ChatItem({
   };
 
   return (
-    <SidebarMenuItem
-      key={chat.id}
-      onMouseEnter={() => {
-        if (chat.id === chatIdParams) return;
-        queryClient.prefetchQuery({
-          queryKey: ["messages", chat.id],
-          queryFn: async () => await getMessages(chat.id),
-        });
-      }}
-    >
+    <SidebarMenuItem key={chat.id}>
       <SidebarMenuButton
         asChild={!(isRenamingChat && chat.id === renamingChatId)}
         isActive={chat.id === chatIdParams}
@@ -297,14 +253,7 @@ function ChatItem({
             onBlur={clearInput}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-                  if (!oldData) return oldData;
-                  return oldData.map((chatItem) =>
-                    chatItem.id === chat.id
-                      ? { ...chatItem, title: newChatTitle }
-                      : chatItem
-                  );
-                });
+                // TODO: update new title in local db
                 try {
                   renameChatTitle(chat.id, newChatTitle);
                 } catch (error) {
@@ -343,17 +292,7 @@ function ChatItem({
         >
           <DropdownMenuItem
             onClick={async () => {
-              queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-                if (!oldData) return oldData;
-                return oldData.map((chatItem) =>
-                  chatItem.id === chat.id
-                    ? {
-                        ...chatItem,
-                        isPinned: !chatItem.isPinned,
-                      }
-                    : chatItem
-                );
-              });
+              // TODO: update pin status in local db
 
               // Update db in background but show optimistic update immediately
               try {
@@ -392,9 +331,7 @@ function ChatItem({
                 toast.error("Failed to delete chat");
               }
 
-              queryClient.invalidateQueries({
-                queryKey: ["chats"],
-              });
+              // TODO: delete chat from local db
               if (chat.id === chatIdParams) {
                 router.push("/");
               }

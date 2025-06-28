@@ -1,11 +1,10 @@
 "use server";
 
-import { getUser } from "./auth/get-user";
-import { db } from "./db";
-import { chats, messages, user as userTable } from "./db/schema";
+import { getUser } from "../auth/get-user";
+import { db } from "../db/drizzle";
+import { chats, messages, user as userTable } from "../db/drizzle/schema";
 import type { Message } from "ai";
-import { and, asc, desc, eq } from "drizzle-orm";
-import { getConversationState } from "./redis/conversation";
+import { desc, eq } from "drizzle-orm";
 
 export async function getChats() {
   const user = await getUser();
@@ -14,50 +13,20 @@ export async function getChats() {
     throw new Error("Unauthorized");
   }
 
-  const allChats = await db
+  return await db
     .select()
     .from(chats)
     .where(eq(chats.userId, user.id))
     .orderBy(desc(chats.updatedAt));
-
-  return allChats;
 }
 
-export async function getMessages(chatId: string) {
+export async function getAllMessages() {
   const user = await getUser();
   if (!user) {
     throw new Error("Unauthorized");
   }
 
-  const chat = await db.query.chats.findFirst({
-    where: and(eq(chats.id, chatId), eq(chats.userId, user.id)),
-  });
-
-  if (!chat) {
-    throw new Error(`Chat ${chatId} not found`);
-  }
-
-  // First try to get conversation state from Redis (might have user message during streaming)
-  try {
-    const redisMessages = await getConversationState(chatId);
-    if (redisMessages && redisMessages.length > 0) {
-      console.log(
-        `[Actions] Using Redis conversation state for chat: ${chatId}`
-      );
-      return redisMessages;
-    }
-  } catch (error) {
-    console.error("[Actions] Failed to get Redis conversation state:", error);
-  }
-
-  // Fallback to database messages
-  const allMessages = (await db.query.messages.findMany({
-    where: eq(messages.chatId, chatId),
-    orderBy: [asc(messages.createdAt)],
-  })) as Message[];
-
-  console.log(`[Actions] Using database messages for chat: ${chatId}`);
-  return allMessages;
+  return await db.select().from(messages);
 }
 
 export async function createChat(chatId: string) {
@@ -88,8 +57,7 @@ export async function saveMessages(
       where: eq(messages.chatId, chatId),
     });
 
-    // Delete messages that exist in the DB but are no longer present on the client
-    // Need to keep client and db in sync
+    // Delete messages that exist in the DB but are no longer present in client sent messages
     for (const existingMessage of existingMessages) {
       if (!desiredIds.has(existingMessage.id)) {
         await tx.delete(messages).where(eq(messages.id, existingMessage.id));

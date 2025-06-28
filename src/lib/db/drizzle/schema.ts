@@ -77,8 +77,6 @@ export const chats = pgTable("chats", {
     .$defaultFn(() => false),
 });
 
-export type Chat = typeof chats.$inferSelect;
-
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   chatId: text("chat_id")
@@ -89,3 +87,6 @@ export const messages = pgTable("messages", {
   parts: jsonb("parts"),
   createdAt: timestamp("created_at").notNull(),
 });
+
+export type Chat = typeof chats.$inferSelect;
+export type Message = typeof messages.$inferSelect;
