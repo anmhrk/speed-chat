@@ -37,15 +37,13 @@ import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
 import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
 import { deleteAllChats, deleteUser } from "@/lib/db/actions";
-import { useQueryClient } from "@tanstack/react-query";
 import { signOut } from "@/lib/auth/auth-client";
+import { localDb } from "@/lib/db/dexie";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chatsCount: number;
-  dialogActiveItem: string;
-  setDialogActiveItem: (item: string) => void;
 }
 
 const sidebarItems = [
@@ -71,9 +69,11 @@ export function SettingsDialog({
   open,
   onOpenChange,
   chatsCount,
-  dialogActiveItem,
-  setDialogActiveItem,
 }: SettingsDialogProps) {
+  const [dialogActiveItem, setDialogActiveItem] = useState(
+    sidebarItems[0].label
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="overflow-hidden p-0 h-full w-full max-h-[90vh] md:max-h-[600px] md:max-w-[700px] lg:max-w-[800px]">
@@ -130,7 +130,6 @@ function General({
   onOpenChange: (open: boolean) => void;
   chatsCount: number;
 }) {
-  const queryClient = useQueryClient();
   const router = useRouter();
   const [deletingAllChats, setDeletingAllChats] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -143,8 +142,9 @@ function General({
     ) {
       try {
         setDeletingAllChats(true);
+        localDb.chats.clear();
+        localDb.messages.clear();
         await deleteAllChats();
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
         router.push("/");
         toast.success("All chats deleted successfully!");
       } catch (error) {
@@ -164,8 +164,9 @@ function General({
     ) {
       try {
         setDeletingAccount(true);
+        localDb.chats.clear();
+        localDb.messages.clear();
         await deleteUser();
-        await queryClient.invalidateQueries({ queryKey: ["chats"] });
         void signOut({
           fetchOptions: {
             onSuccess: () => {

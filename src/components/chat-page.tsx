@@ -2,19 +2,19 @@
 
 import { ChatInput } from "./chat-input";
 import { Header } from "./header";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, type Message, type UIMessage } from "ai";
-import { useEffect, useState } from "react";
+import { createIdGenerator, type UIMessage } from "ai";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
-import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { Loader2 } from "lucide-react";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
 import { useAutoResume } from "@/hooks/use-auto-resume";
-import { useFetchData } from "@/hooks/use-fetch-data";
+import { useChatContext } from "@/contexts/chat-context";
+import { createChat } from "@/lib/db/actions";
+import { localDb } from "@/lib/db/dexie";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -25,41 +25,18 @@ const promptSuggestions = [
 
 interface ChatPageProps {
   user: User | null;
-  initialChatId: string;
 }
 
-export function ChatPage({ user, initialChatId }: ChatPageProps) {
+export function ChatPage({ user }: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
   const hasApiKeys = useHasApiKeys();
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const chatIdParams = pathname.split("/chat/")[1];
-  const searchParams = useSearchParams();
-  const temporaryChat = searchParams.get("temporary") === "true";
-  const [chatId, setChatId] = useState<string | null>(initialChatId);
-  const [dontFetchId, setDontFetchId] = useState("");
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [dialogActiveItem, setDialogActiveItem] = useState("General");
-
-  // Sync the chatId from the URL with the state
-  // useParams was being weird so using usePathname instead
-  useEffect(() => {
-    if (pathname === "/") {
-      setChatId(null);
-    } else {
-      setChatId(chatIdParams);
-    }
-  }, [chatIdParams, pathname]);
-
   const {
     loading,
-    chats,
     messages: chatMessages,
-  } = useFetchData({
-    user,
-    chatId: chatId ?? undefined,
-  });
+    currentChatId,
+    setCurrentChatId,
+    temporaryChat,
+  } = useChatContext();
 
   const {
     messages,
@@ -75,7 +52,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     experimental_resume,
     data,
   } = useChat({
-    id: chatId ?? undefined,
+    id: currentChatId ?? undefined,
     initialMessages: chatMessages as UIMessage[],
     credentials: "include",
     sendExtraMessageFields: true,
@@ -85,12 +62,32 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     }),
     experimental_throttle: 100,
     body: {
-      chatId: chatId ?? undefined,
+      chatId: currentChatId ?? undefined,
       model,
       reasoningEffort,
       apiKeys,
       temporaryChat,
       customPrompt,
+    },
+    onFinish: async (message) => {
+      console.log("onFinish called", { message, currentChatId });
+      // TODO: why isnt this working??
+      if (currentChatId && !temporaryChat) {
+        try {
+          await localDb.messages.add({
+            id: message.id,
+            chatId: currentChatId,
+            content: message.content,
+            createdAt: new Date(),
+            role: message.role,
+            parts: message.parts,
+          });
+          console.log("Message saved to local DB successfully");
+        } catch (error) {
+          console.error("Failed to save message to local DB:", error);
+          toast.error("Failed to save message locally");
+        }
+      }
     },
   });
 
@@ -105,7 +102,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
           content: errorMessage,
           createdAt: new Date(),
           parts: [{ type: "text", text: errorMessage }],
-        } as Message;
+        } as UIMessage;
 
         setMessages((prev) => {
           // On error an empty assistant message is created, so we replace it with the error message
@@ -124,13 +121,13 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     }
   }, [data, setMessages]);
 
-  // useAutoResume({
-  //   autoResume: Boolean(chatId && !isLoading && initialMessages),
-  //   initialMessages: (initialMessages || []) as UIMessage[],
-  //   experimental_resume,
-  //   data,
-  //   setMessages,
-  // });
+  useAutoResume({
+    autoResume: true,
+    initialMessages: (chatMessages || []) as UIMessage[],
+    experimental_resume,
+    data,
+    setMessages,
+  });
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,15 +138,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     }
 
     if (!hasApiKeys) {
-      toast("Please add API keys to chat", {
-        action: {
-          label: "Add keys",
-          onClick: () => {
-            setSettingsDialogOpen(true);
-            setDialogActiveItem("API Keys");
-          },
-        },
-      });
+      toast.error("Please add API keys to chat");
       return;
     }
 
@@ -162,16 +151,34 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       return;
     }
 
-    if (!chatId) {
+    if (!currentChatId) {
       const newChatId = crypto.randomUUID();
       const userMessage = input.trim();
 
-      setChatId(newChatId);
-      setDontFetchId(newChatId);
+      setCurrentChatId(newChatId);
 
-      // createChat(newChatId);
+      createChat(newChatId);
+      localDb.chats.add({
+        id: newChatId,
+        title: "New Chat",
+        userId: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isPinned: false,
+      });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
+
+      // Save user message to local DB immediately
+      const userMessageId = crypto.randomUUID();
+      await localDb.messages.add({
+        id: userMessageId,
+        chatId: newChatId,
+        content: userMessage,
+        createdAt: new Date(),
+        role: "user",
+        parts: [{ type: "text", text: userMessage }],
+      });
 
       const submitPromise = handleSubmit(e);
       const titlePromise = (async () => {
@@ -191,7 +198,9 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
           const result = await response.json();
 
           if (result.success) {
-            // TODO: update chat title in local db
+            localDb.chats.update(newChatId, {
+              title: result.title,
+            });
           }
         } catch (error) {
           console.error(error);
@@ -202,8 +211,20 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       // Send both requests in parallel
       await Promise.all([submitPromise, titlePromise]);
     } else {
-      // Bring chat to top of list in local db
+      // Save user message to local DB for existing chat
+      const userMessageId = crypto.randomUUID();
+      await localDb.messages.add({
+        id: userMessageId,
+        chatId: currentChatId,
+        content: input.trim(),
+        createdAt: new Date(),
+        role: "user",
+        parts: [{ type: "text", text: input.trim() }],
+      });
 
+      localDb.chats.update(currentChatId, {
+        updatedAt: new Date(),
+      });
       handleSubmit(e);
     }
   };
@@ -220,79 +241,68 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   }
 
   return (
-    <>
-      <AppSidebar
-        user={user}
-        chatIdParams={chatId ?? ""}
-        chats={chats}
-        settingsDialogOpen={settingsDialogOpen}
-        setSettingsDialogOpen={setSettingsDialogOpen}
-        dialogActiveItem={dialogActiveItem}
-        setDialogActiveItem={setDialogActiveItem}
-      />
-      <SidebarInset>
-        <div className="flex flex-col h-screen">
-          <Header temporaryChat={temporaryChat} />
-          <div className="flex-1 min-h-0 relative">
-            {messages.length > 0 ? (
-              <Messages
-                allMessages={messages}
-                status={status}
-                reload={reload}
-                append={append}
-                setMessages={setMessages}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center px-3">
-                <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
-                  {temporaryChat ? (
-                    <>
-                      <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        Temporary chat
-                      </h1>
-                      <p className="text-muted-foreground text-md max-w-sm text-center">
-                        This chat won&apos;t appear in your chat history and
-                        will be cleared when you close the tab.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        {user
-                          ? `How can I help you, ${user.name.split(" ")[0]}?`
-                          : "How can I help you?"}
-                      </h1>
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 w-full">
-                        {promptSuggestions.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="border-border bg-card hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
-                            onClick={() => setInput(suggestion)}
-                          >
-                            <span className="text-muted-foreground text-sm">
-                              {suggestion}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="shrink-0 px-3">
-            <ChatInput
-              input={input}
-              handleInputChange={handleInputChange}
-              handleSubmit={handleChatSubmit}
-              stop={stop}
+    <SidebarInset>
+      <div className="flex flex-col h-screen">
+        <Header temporaryChat={temporaryChat} />
+        <div className="flex-1 min-h-0 relative">
+          {messages.length > 0 ? (
+            <Messages
+              allMessages={messages}
               status={status}
+              reload={reload}
+              append={append}
+              setMessages={setMessages}
             />
-          </div>
+          ) : (
+            <div className="h-full flex items-center justify-center px-3">
+              <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
+                {temporaryChat ? (
+                  <>
+                    <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
+                      Temporary chat
+                    </h1>
+                    <p className="text-muted-foreground text-md max-w-sm text-center">
+                      This chat won&apos;t appear in your chat history and will
+                      be cleared when you close the tab.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
+                      {user
+                        ? `How can I help you, ${user.name.split(" ")[0]}?`
+                        : "How can I help you?"}
+                    </h1>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 w-full">
+                      {promptSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          className="border-border bg-card hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
+                          onClick={() => setInput(suggestion)}
+                        >
+                          <span className="text-muted-foreground text-sm">
+                            {suggestion}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      </SidebarInset>
-    </>
+
+        <div className="shrink-0 px-3">
+          <ChatInput
+            input={input}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleChatSubmit}
+            stop={stop}
+            status={status}
+          />
+        </div>
+      </div>
+    </SidebarInset>
   );
 }

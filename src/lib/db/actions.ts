@@ -4,11 +4,10 @@ import { getUser } from "../auth/get-user";
 import { db } from "../db/drizzle";
 import { chats, messages, user as userTable } from "../db/drizzle/schema";
 import type { Message } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 
 export async function getChats() {
   const user = await getUser();
-
   if (!user) {
     throw new Error("Unauthorized");
   }
@@ -26,7 +25,29 @@ export async function getAllMessages() {
     throw new Error("Unauthorized");
   }
 
-  return await db.select().from(messages);
+  const allChats = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.userId, user.id));
+
+  return await db
+    .select()
+    .from(messages)
+    .where(
+      inArray(
+        messages.chatId,
+        allChats.map((c) => c.id)
+      )
+    )
+    .orderBy(asc(messages.createdAt));
+}
+
+export async function getMessagesByChatId(chatId: string) {
+  return await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId))
+    .orderBy(asc(messages.createdAt));
 }
 
 export async function createChat(chatId: string) {

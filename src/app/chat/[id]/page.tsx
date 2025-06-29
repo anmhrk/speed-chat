@@ -15,5 +15,5 @@ export default async function Page({
     redirect("/");
   }
 
-  return <ChatPage user={user} initialChatId={id} />;
+  return <ChatPage user={user} />;
 }

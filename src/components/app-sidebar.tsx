@@ -22,7 +22,6 @@ import {
   LogOut,
   Search,
   Settings,
-  MessageSquare,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -30,7 +29,6 @@ import {
   PinOff,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import type { User } from "better-auth";
 import { signIn, signOut } from "@/lib/auth/auth-client";
 import {
   DropdownMenu,
@@ -46,29 +44,16 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
 import type { Chat } from "@/lib/db/drizzle/schema";
+import { useChatContext } from "@/contexts/chat-context";
+import { localDb } from "@/lib/db/dexie";
 
-interface AppSidebarProps {
-  user: User | null;
-  chatIdParams: string;
-  settingsDialogOpen: boolean;
-  setSettingsDialogOpen: (open: boolean) => void;
-  dialogActiveItem: string;
-  setDialogActiveItem: (item: string) => void;
-  chats: Chat[];
-}
-
-export function AppSidebar({
-  user,
-  chatIdParams,
-  settingsDialogOpen,
-  setSettingsDialogOpen,
-  dialogActiveItem,
-  setDialogActiveItem,
-  chats,
-}: AppSidebarProps) {
+export function AppSidebar() {
+  const { user, currentChatId, chats } = useChatContext();
   const router = useRouter();
   const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const chatIdParams = currentChatId ?? "";
 
   return (
     <Sidebar>
@@ -151,8 +136,6 @@ export function AppSidebar({
         open={settingsDialogOpen}
         onOpenChange={setSettingsDialogOpen}
         chatsCount={chats?.length || 0}
-        dialogActiveItem={dialogActiveItem}
-        setDialogActiveItem={setDialogActiveItem}
       />
 
       <SidebarFooter>
@@ -253,7 +236,9 @@ function ChatItem({
             onBlur={clearInput}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                // TODO: update new title in local db
+                localDb.chats.update(chat.id, {
+                  title: newChatTitle,
+                });
                 try {
                   renameChatTitle(chat.id, newChatTitle);
                 } catch (error) {
@@ -292,9 +277,9 @@ function ChatItem({
         >
           <DropdownMenuItem
             onClick={async () => {
-              // TODO: update pin status in local db
-
-              // Update db in background but show optimistic update immediately
+              localDb.chats.update(chat.id, {
+                isPinned: !chat.isPinned,
+              });
               try {
                 handlePinChat(chat.id, chat.isPinned);
               } catch (error) {
@@ -324,14 +309,14 @@ function ChatItem({
           <DropdownMenuItem
             variant="destructive"
             onClick={async () => {
+              localDb.chats.delete(chat.id);
               try {
-                await deleteChat(chat.id);
+                deleteChat(chat.id);
               } catch (error) {
                 console.error(error);
                 toast.error("Failed to delete chat");
               }
 
-              // TODO: delete chat from local db
               if (chat.id === chatIdParams) {
                 router.push("/");
               }

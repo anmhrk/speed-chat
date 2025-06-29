@@ -1,37 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { localDb } from "@/lib/db/dexie";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { getAllMessages, getChats } from "@/lib/db/actions";
 import { useRouter } from "next/navigation";
 import type { User } from "better-auth";
 
-export function useFetchData({
-  user,
-  chatId,
-}: {
-  user: User | null;
-  chatId?: string;
-}) {
+export function useDataSync({ user }: { user: User | null }) {
   const router = useRouter();
   const isSignedIn = !!user;
   const [hasCheckedLocalData, setHasCheckedLocalData] = useState(false);
   const [needsInitialFetch, setNeedsInitialFetch] = useState(false);
 
-  const localChats = useLiveQuery(() => localDb.chats.toArray());
-  const localMessages = useLiveQuery(() => localDb.messages.toArray());
-
   // Check if there is local data on first load
   useEffect(() => {
     if (!isSignedIn || hasCheckedLocalData) return;
 
-    if (localChats !== undefined && localMessages !== undefined) {
-      const hasLocalData = localChats.length > 0 || localMessages.length > 0;
-      setNeedsInitialFetch(!hasLocalData);
-      setHasCheckedLocalData(true);
-    }
-  }, [isSignedIn, localChats, localMessages, hasCheckedLocalData]);
+    const fetchLocalData = async () => {
+      const localChats = await localDb.chats.toArray();
+      const localMessages = await localDb.messages.toArray();
+
+      if (localChats !== undefined && localMessages !== undefined) {
+        const hasLocalData = localChats.length > 0 || localMessages.length > 0;
+        setNeedsInitialFetch(!hasLocalData);
+        setHasCheckedLocalData(true);
+      }
+    };
+
+    fetchLocalData();
+  }, [isSignedIn, hasCheckedLocalData]);
 
   // Fetch all chats from server when no local data exists
   const {
@@ -51,7 +48,7 @@ export function useFetchData({
     isLoading: isLoadingAllMessages,
     isError: isErrorAllMessages,
   } = useQuery({
-    queryKey: ["server-all-messages"],
+    queryKey: ["server-messages"],
     queryFn: async () => await getAllMessages(),
     enabled: isSignedIn && needsInitialFetch,
     staleTime: Infinity,
@@ -76,6 +73,8 @@ export function useFetchData({
             await localDb.messages.bulkPut(serverMessages);
           }
         );
+
+        setNeedsInitialFetch(false);
       } catch (error) {
         toast.error("Failed to sync data locally");
       }
@@ -91,42 +90,7 @@ export function useFetchData({
     }
   }, [isErrorChats, isErrorAllMessages, router]);
 
-  const chats = useMemo(() => {
-    if (!isSignedIn) return [];
-
-    if (localChats && localChats.length > 0) {
-      return localChats.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
-    }
-
-    return serverChats || [];
-  }, [isSignedIn, localChats, serverChats]);
-
-  const chatMessages = useLiveQuery(
-    async () => {
-      if (!chatId || !localMessages) return [];
-
-      const messages = await localDb.messages
-        .where("chatId")
-        .equals(chatId)
-        .sortBy("createdAt");
-
-      return messages;
-    },
-    [chatId, localMessages],
-    []
-  );
-
-  const messages = useMemo(() => {
-    if (!chatId) return [];
-    return chatMessages || [];
-  }, [chatId, chatMessages]);
-
   return {
-    loading: needsInitialFetch || isLoadingChats || isLoadingAllMessages, // just show loading when populating local db
-    chats,
-    messages,
+    loading: needsInitialFetch || isLoadingChats || isLoadingAllMessages,
   };
 }
