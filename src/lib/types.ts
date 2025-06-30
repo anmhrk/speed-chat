@@ -51,3 +51,10 @@ export type TitleRequest = {
   prompt: string;
   apiKeys: Record<Providers, string>;
 };
+
+export type FileMetadata = {
+  name: string;
+  url: string;
+  key: string;
+  extension: string;
+};

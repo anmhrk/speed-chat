@@ -19,7 +19,7 @@ import type { Models, Providers, ChatRequest } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
-import { saveMessages } from "@/lib/actions";
+import { saveMessages } from "@/lib/db/actions";
 
 export async function POST(request: NextRequest) {
   try {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError,
+            dbError
           );
         }
 

@@ -48,7 +48,7 @@ import {
   getMessages,
   handlePinChat,
   renameChatTitle,
-} from "@/lib/actions";
+} from "@/lib/db/actions";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";

@@ -11,12 +11,14 @@ import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
-import { createChat } from "@/lib/actions";
+import { createChat } from "@/lib/db/actions";
 import { Loader2 } from "lucide-react";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
-import { getMessages } from "@/lib/actions";
+import { getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
+import type { Attachment } from "@ai-sdk/ui-utils";
+import type { FileMetadata } from "@/lib/types";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -44,6 +46,23 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const [dontFetchId, setDontFetchId] = useState("");
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [dialogActiveItem, setDialogActiveItem] = useState("General");
+  const [fileMetadata, setFileMetadata] = useState<
+    Record<string, FileMetadata>
+  >({});
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // TODO: if file removed from fileMetadata, remove it from attachments
+  useEffect(() => {
+    if (fileMetadata) {
+      setAttachments(
+        Object.values(fileMetadata).map((file) => ({
+          name: file.name,
+          contentType: `image/${file.extension}`,
+          url: file.url,
+        }))
+      );
+    }
+  }, [fileMetadata]);
 
   // Sync the chatId from the URL with the state
   // useParams was being weird so using usePathname instead
@@ -64,7 +83,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     queryKey: ["messages", chatId],
     queryFn: async () => {
       if (!chatId) return [];
-      return await getMessages(chatId);
+      return (await getMessages(chatId)) as Message[];
     },
     enabled: Boolean(chatId && chatId !== dontFetchId),
     staleTime: Infinity,
@@ -97,7 +116,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       prefix: "user",
       size: 16,
     }),
-    experimental_throttle: 200,
+    experimental_throttle: 100,
     body: {
       chatId: chatId ?? undefined,
       model,
@@ -187,7 +206,9 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
-      const submitPromise = handleSubmit(e);
+      const submitPromise = handleSubmit(e, {
+        experimental_attachments: attachments,
+      });
       const titlePromise = (async () => {
         try {
           const response = await fetch("/api/generate-title", {
@@ -234,7 +255,9 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
         newChats.unshift(oldData[chatIndex]);
         return newChats;
       });
-      handleSubmit(e);
+      handleSubmit(e, {
+        experimental_attachments: attachments,
+      });
     }
   };
 
@@ -316,6 +339,8 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
               handleSubmit={handleChatSubmit}
               stop={stop}
               status={status}
+              fileMetadata={fileMetadata}
+              setFileMetadata={setFileMetadata}
             />
           </div>
         </div>

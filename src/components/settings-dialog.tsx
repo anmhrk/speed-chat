@@ -36,7 +36,7 @@ import { useRouter } from "next/navigation";
 import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
 import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
-import { deleteAllChats, deleteUser } from "@/lib/actions";
+import { deleteAllChats, deleteUser } from "@/lib/db/actions";
 import { useQueryClient } from "@tanstack/react-query";
 import { signOut } from "@/lib/auth/auth-client";
 

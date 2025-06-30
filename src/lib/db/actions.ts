@@ -1,14 +1,13 @@
 "use server";
 
-import { getUser } from "./auth/get-user";
-import { db } from "./db";
-import { chats, messages, user as userTable } from "./db/schema";
+import { getUser } from "../auth/get-user";
+import { db } from ".";
+import { chats, messages, user as userTable } from "./schema";
 import type { Message } from "ai";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 export async function getChats() {
   const user = await getUser();
-
   if (!user) {
     throw new Error("Unauthorized");
   }
@@ -28,18 +27,21 @@ export async function getMessages(chatId: string) {
     throw new Error("Unauthorized");
   }
 
-  const chat = await db.query.chats.findFirst({
-    where: and(eq(chats.id, chatId), eq(chats.userId, user.id)),
-  });
+  const chat = await db
+    .select()
+    .from(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, user.id)))
+    .limit(1);
 
   if (!chat) {
     throw new Error(`Chat ${chatId} not found`);
   }
 
-  const allMessages = (await db.query.messages.findMany({
-    where: eq(messages.chatId, chatId),
-    orderBy: [asc(messages.createdAt)],
-  })) as Message[];
+  const allMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId))
+    .orderBy(asc(messages.createdAt));
 
   return allMessages;
 }
@@ -68,9 +70,10 @@ export async function saveMessages(
       ...newMessages.map((m) => m.id),
     ]);
 
-    const existingMessages = await tx.query.messages.findMany({
-      where: eq(messages.chatId, chatId),
-    });
+    const existingMessages = await tx
+      .select()
+      .from(messages)
+      .where(eq(messages.chatId, chatId));
 
     // Delete messages that exist in the DB but are no longer present on the client
     // Need to keep client and db in sync

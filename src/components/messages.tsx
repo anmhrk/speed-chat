@@ -5,13 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { ArrowDown } from "lucide-react";
+import { UseChatHelpers } from "@ai-sdk/react";
 
 interface MessagesProps {
   allMessages: Message[];
-  status: "submitted" | "streaming" | "ready" | "error";
-  reload: () => void;
-  append: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
+  status: UseChatHelpers["status"];
+  reload: UseChatHelpers["reload"];
+  append: UseChatHelpers["append"];
+  setMessages: UseChatHelpers["setMessages"];
 }
 
 export function Messages({
@@ -32,9 +33,9 @@ export function Messages({
   const getViewport = useCallback(
     () =>
       scrollAreaRef.current?.querySelector(
-        '[data-slot="scroll-area-viewport"]',
+        '[data-slot="scroll-area-viewport"]'
       ) as HTMLDivElement | null,
-    [],
+    []
   );
 
   const scrollToBottom = useCallback(() => {
