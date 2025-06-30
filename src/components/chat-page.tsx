@@ -6,19 +6,20 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { createChat } from "@/lib/db/actions";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
 import { getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
 import type { Attachment } from "@ai-sdk/ui-utils";
 import type { FileMetadata } from "@/lib/types";
+import { useDropzone } from "react-dropzone";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -50,19 +51,32 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     Record<string, FileMetadata>
   >({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
-  // TODO: if file removed from fileMetadata, remove it from attachments
+  // Sync attachments with fileMetadata state
   useEffect(() => {
-    if (fileMetadata) {
-      setAttachments(
-        Object.values(fileMetadata).map((file) => ({
-          name: file.name,
-          contentType: `image/${file.extension}`,
-          url: file.url,
-        }))
-      );
+    const newAttachments = Object.values(fileMetadata).map((file) => ({
+      name: file.name,
+      contentType: `image/${file.extension}`,
+      url: file.url,
+    }));
+
+    if (JSON.stringify(attachments) !== JSON.stringify(newAttachments)) {
+      setAttachments(newAttachments);
     }
-  }, [fileMetadata]);
+  }, [fileMetadata, attachments]);
+
+  const handleFileDrop = useCallback((files: File[]) => {
+    setDroppedFiles(files);
+    setTimeout(() => setDroppedFiles([]), 100);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileDrop,
+    noClick: true,
+    noKeyboard: true,
+    multiple: true,
+  });
 
   // Sync the chatId from the URL with the state
   // useParams was being weird so using usePathname instead
@@ -243,6 +257,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
 
       // Send both requests in parallel
       await Promise.all([submitPromise, titlePromise]);
+      setFileMetadata({});
     } else {
       // Bring chat to top of list
       queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
@@ -258,6 +273,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       handleSubmit(e, {
         experimental_attachments: attachments,
       });
+      setFileMetadata({});
     }
   };
 
@@ -272,7 +288,20 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
         setDialogActiveItem={setDialogActiveItem}
       />
       <SidebarInset>
-        <div className="flex flex-col h-screen">
+        <div {...getRootProps()} className="flex flex-col h-screen relative">
+          <input {...getInputProps()} />
+
+          {isDragActive && (
+            <div className="absolute inset-0 z-50 bg-secondary border-2 border-dashed border-primary flex items-center justify-center">
+              <div className="text-center flex flex-col items-center gap-2">
+                <Upload className="size-24" />
+                <div className="text-md text-muted-foreground mt-1">
+                  Upload images to attach to your message
+                </div>
+              </div>
+            </div>
+          )}
+
           <Header temporaryChat={temporaryChat} />
           <div className="flex-1 min-h-0 relative">
             {isLoading ? (
@@ -341,6 +370,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
               status={status}
               fileMetadata={fileMetadata}
               setFileMetadata={setFileMetadata}
+              droppedFiles={droppedFiles}
             />
           </div>
         </div>

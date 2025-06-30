@@ -138,7 +138,7 @@ function General({
   const handleDeleteAllChats = async () => {
     if (
       confirm(
-        `Are you sure you want to delete all ${chatsCount} chats? This action cannot be undone.`
+        `Are you sure you want to delete all ${chatsCount} chats? This action cannot be undone.`,
       )
     ) {
       try {
@@ -159,7 +159,7 @@ function General({
   const handleDeleteAccount = async () => {
     if (
       confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
+        "Are you sure you want to delete your account? This action cannot be undone.",
       )
     ) {
       try {

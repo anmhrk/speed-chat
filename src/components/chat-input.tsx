@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Globe, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, Globe, Loader2, Paperclip, Square, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
@@ -11,6 +11,7 @@ import {
   memo,
   Dispatch,
   SetStateAction,
+  useCallback,
 } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
@@ -21,7 +22,6 @@ import { UseChatHelpers } from "@ai-sdk/react";
 import { useUploadThing } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Skeleton } from "./ui/skeleton";
 import { deleteFile } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
 
@@ -33,6 +33,7 @@ interface ChatInputProps {
   status: UseChatHelpers["status"];
   fileMetadata: Record<string, FileMetadata>;
   setFileMetadata: Dispatch<SetStateAction<Record<string, FileMetadata>>>;
+  droppedFiles?: File[];
 }
 
 export function ChatInput({
@@ -43,6 +44,7 @@ export function ChatInput({
   status,
   fileMetadata,
   setFileMetadata,
+  droppedFiles,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const hasHydrated = useHasHydrated();
@@ -62,9 +64,6 @@ export function ChatInput({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const [fileUploading, setFileUploading] = useState<Record<string, boolean>>(
-    {}
-  );
 
   const { startUpload, routeConfig, isUploading } = useUploadThing(
     "imageUploader",
@@ -80,41 +79,82 @@ export function ChatInput({
               extension: file.type.split("/")[1],
             },
           }));
-          setFileUploading((prev) => ({ ...prev, [file.name]: false }));
         });
       },
       onUploadError: (error: Error) => {
         console.error(error);
         toast.error("Failed to upload files");
-        setFileUploading({});
-      },
-      onUploadBegin: (fileName) => {
-        setFileUploading((prev) => ({ ...prev, [fileName]: true }));
+        setFiles([]);
+        setFileMetadata({});
       },
     }
   );
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    const maxFileSize = Number(
-      routeConfig?.image?.maxFileSize.replace("MB", "")
-    );
-
-    if (selectedFiles.length > 0 && selectedFiles.length <= 5) {
-      const exceedSizeLimit = selectedFiles.some(
-        (file) => file.size > maxFileSize * 1024 * 1024
+  const processFiles = useCallback(
+    (selectedFiles: File[]) => {
+      const maxFileSize = Number(
+        routeConfig?.image?.maxFileSize.replace("MB", "")
       );
 
-      if (exceedSizeLimit) {
-        toast.error("File size exceeds the limit");
-        return;
-      }
+      if (selectedFiles.length > 0) {
+        if (
+          !selectedFiles.some((file) =>
+            ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(
+              file.type
+            )
+          )
+        ) {
+          toast.error("Only PNG, JPEG, JPG, and WebP are supported");
+          return;
+        }
 
-      setFiles((prev) => [...prev, ...selectedFiles]);
-      startUpload(selectedFiles);
-    } else {
-      toast.error("Too many images uploaded. Max 5 per message");
+        // Filter out duplicates
+        const uniqueFiles = selectedFiles.filter(
+          (file) => !files.some((f) => f.name === file.name)
+        );
+
+        const duplicateCount = selectedFiles.length - uniqueFiles.length;
+        if (duplicateCount > 0) {
+          toast.info(
+            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
+          );
+        }
+
+        // Check if adding these files would exceed the limit
+        if (files.length + uniqueFiles.length > 5) {
+          toast.error("Too many images uploaded. Max 5 per message");
+          return;
+        }
+
+        // File size limit check
+        const exceedsSizeLimit = uniqueFiles.some(
+          (file) => file.size > maxFileSize * 1024 * 1024
+        );
+
+        if (exceedsSizeLimit) {
+          toast.error("File size exceeds the limit");
+          return;
+        }
+
+        if (uniqueFiles.length > 0) {
+          setFiles((prev) => [...prev, ...uniqueFiles]);
+          startUpload(uniqueFiles);
+        }
+      }
+    },
+    [files, routeConfig, startUpload]
+  );
+
+  // Process files from parent component dropzone
+  useEffect(() => {
+    if (droppedFiles && droppedFiles.length > 0) {
+      processFiles(droppedFiles);
     }
+  }, [droppedFiles]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const allSelectedFiles = e.target.files ? Array.from(e.target.files) : [];
+    processFiles(allSelectedFiles);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -122,12 +162,11 @@ export function ChatInput({
       e.preventDefault();
 
       if (isUploading) {
-        // TODO: Instead of returning, wait for the upload to complete and automatically submit the form
-        // Show a toast promise or something
         return;
       }
 
       (e.target as HTMLTextAreaElement).form?.requestSubmit();
+      setFiles([]);
     }
 
     if (e.key === "Escape") {
@@ -146,8 +185,7 @@ export function ChatInput({
           setFiles={setFiles}
           fileMetadata={fileMetadata}
           setFileMetadata={setFileMetadata}
-          fileUploading={fileUploading}
-          setFileUploading={setFileUploading}
+          isUploading={isUploading}
         />
       )}
       <Textarea
@@ -327,46 +365,17 @@ const FilePreview = ({
   setFiles,
   setFileMetadata,
   fileMetadata,
-  fileUploading,
-  setFileUploading,
+  isUploading,
 }: {
   files: File[];
   setFiles: Dispatch<SetStateAction<File[]>>;
   setFileMetadata: Dispatch<SetStateAction<Record<string, FileMetadata>>>;
   fileMetadata: Record<string, FileMetadata>;
-  fileUploading: Record<string, boolean>;
-  setFileUploading: Dispatch<SetStateAction<Record<string, boolean>>>;
+  isUploading: boolean;
 }) => {
   const previews = useMemo(
     () =>
       files.map((file) => {
-        if (fileUploading[file.name]) {
-          return (
-            <div className="relative group" key={file.name}>
-              <Skeleton className="w-20 h-20 rounded-md" />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-0 right-0 !bg-transparent !hover:bg-transparent opacity-0 group-hover:opacity-100"
-                onClick={() => {
-                  setFiles((prev) => prev.filter((f) => f.name !== file.name));
-                  setFileMetadata((prev) => {
-                    const { [file.name]: _, ...rest } = prev;
-                    return rest;
-                  });
-                  setFileUploading((prev) => {
-                    const { [file.name]: _, ...rest } = prev;
-                    return rest;
-                  });
-                }}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-          );
-        }
-
-        // TODO: Make this a horizontal scrollable div
         return (
           <div className="relative group" key={file.name}>
             <Image
@@ -374,41 +383,45 @@ const FilePreview = ({
               alt="Uploaded file"
               width={80}
               height={80}
-              className="rounded-md object-cover"
+              className="rounded-md object-cover w-20 h-20"
+              loading="lazy"
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-0 right-0 !bg-transparent !hover:bg-transparent opacity-0 group-hover:opacity-100"
-              onClick={async () => {
-                toast.promise(
-                  deleteFile(fileMetadata[file.name].key).finally(() => {
-                    setFiles((prev) =>
-                      prev.filter((f) => f.name !== file.name)
-                    );
-                    setFileMetadata((prev) => {
-                      const { [file.name]: _, ...rest } = prev;
-                      return rest;
-                    });
-                    setFileUploading((prev) => {
-                      const { [file.name]: _, ...rest } = prev;
-                      return rest;
-                    });
-                  }),
-                  {
-                    loading: "Deleting file...",
-                    success: "File deleted",
-                    error: "Failed to delete file",
-                  }
-                );
-              }}
-            >
-              <X className="size-4" />
-            </Button>
+            {isUploading && !fileMetadata[file.name] && (
+              <div className="absolute top-0 right-0 left-0 bottom-0 flex items-center justify-center bg-black/50 rounded-md">
+                <Loader2 className="size-6 animate-spin" />
+              </div>
+            )}
+            {!(isUploading && !fileMetadata[file.name]) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-0 right-0 !bg-transparent !hover:bg-transparent opacity-0 group-hover:opacity-100"
+                onClick={async () => {
+                  toast.promise(
+                    deleteFile(fileMetadata[file.name].key).finally(() => {
+                      setFiles((prev) =>
+                        prev.filter((f) => f.name !== file.name)
+                      );
+                      setFileMetadata((prev) => {
+                        const { [file.name]: _, ...rest } = prev;
+                        return rest;
+                      });
+                    }),
+                    {
+                      loading: "Deleting file...",
+                      success: "File deleted",
+                      error: "Failed to delete file",
+                    }
+                  );
+                }}
+              >
+                <X className="size-4" />
+              </Button>
+            )}
           </div>
         );
       }),
-    [files, fileUploading, fileMetadata]
+    [files, isUploading, fileMetadata]
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;

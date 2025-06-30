@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError
+            dbError,
           );
         }
 

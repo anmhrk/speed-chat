@@ -302,7 +302,7 @@ function ChatItem({
                   return oldData.map((chatItem) =>
                     chatItem.id === chat.id
                       ? { ...chatItem, title: newChatTitle }
-                      : chatItem
+                      : chatItem,
                   );
                 });
                 try {
@@ -351,7 +351,7 @@ function ChatItem({
                         ...chatItem,
                         isPinned: !chatItem.isPinned,
                       }
-                    : chatItem
+                    : chatItem,
                 );
               });
 

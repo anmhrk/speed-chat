@@ -11,12 +11,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Textarea } from "./ui/textarea";
 import Image from "next/image";
+import { UseChatHelpers } from "@ai-sdk/react";
+import { deleteFile } from "@/lib/uploadthing";
 
 interface UserMessageProps {
   message: Message;
   allMessages: Message[];
-  append: (message: Message) => void;
-  setMessages: (messages: Message[]) => void;
+  append: UseChatHelpers["append"];
+  setMessages: UseChatHelpers["setMessages"];
 }
 
 export function UserMessage({
@@ -49,12 +51,28 @@ export function UserMessage({
     }, 50);
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     setIsEditing(false);
 
     const editedMessageIndex = allMessages.findIndex(
       (m) => m.id === message.id
     );
+
+    const messagesToCheck = allMessages.slice(editedMessageIndex);
+    const fileKeys = messagesToCheck.flatMap((m) =>
+      m.experimental_attachments?.map((a) => a.url.split("/f/").pop())
+    );
+
+    // Don't await to not block the UI
+    if (fileKeys.length > 0) {
+      Promise.all(
+        fileKeys.map((key) => {
+          if (key) {
+            deleteFile(key);
+          }
+        })
+      );
+    }
 
     // Remove all messages after the edited message including the edited message
     allMessages.splice(editedMessageIndex);
@@ -120,6 +138,7 @@ export function UserMessage({
                     width={100}
                     height={100}
                     className="rounded-md w-40 h-40 object-cover"
+                    loading="lazy"
                   />
                 ))}
             </div>

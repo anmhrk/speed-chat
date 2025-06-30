@@ -27,11 +27,12 @@ import ShikiHighlighter, { Element, isInlineCode } from "react-shiki";
 import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
+import { UseChatHelpers } from "@ai-sdk/react";
 
 interface AssistantMessageProps {
   message: Message;
   isLastMessage: boolean;
-  reload: () => void;
+  reload: UseChatHelpers["reload"];
 }
 
 export const AssistantMessage = memo(function AssistantMessage({
@@ -115,7 +116,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={reload}
+                  onClick={() => reload()}
                   className="h-8 w-8"
                 >
                   <RotateCcw className="size-4" />
