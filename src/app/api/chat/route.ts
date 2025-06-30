@@ -7,7 +7,6 @@ import {
   createIdGenerator,
   smoothStream,
   appendResponseMessages,
-  type Message,
 } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -181,8 +180,7 @@ export async function POST(request: NextRequest) {
             parts: [{ type: "text" as const, text: errorContent }],
           };
 
-          const newMessages = [latestUserMessage, errorMessage] as Message[];
-
+          const newMessages = [latestUserMessage, errorMessage];
           saveMessages(chatId, messageIds, newMessages);
         } catch (dbError) {
           console.error(

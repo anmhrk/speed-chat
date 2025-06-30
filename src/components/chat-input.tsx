@@ -122,7 +122,7 @@ export function ChatInput({
       e.preventDefault();
 
       if (isUploading) {
-        // Instead of returning, wait for the upload to complete and automatically submit the form
+        // TODO: Instead of returning, wait for the upload to complete and automatically submit the form
         // Show a toast promise or something
         return;
       }
@@ -138,16 +138,18 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-t-xl bg-muted/40 dark:bg-input/30 border border-b-0 p-2 max-w-3xl w-full mx-auto"
+      className="rounded-t-xl border border-b-0 p-2 max-w-3xl w-full mx-auto"
     >
-      <MemoizedFilePreview
-        files={files}
-        setFiles={setFiles}
-        fileMetadata={fileMetadata}
-        setFileMetadata={setFileMetadata}
-        fileUploading={fileUploading}
-        setFileUploading={setFileUploading}
-      />
+      {files.length > 0 && (
+        <MemoizedFilePreview
+          files={files}
+          setFiles={setFiles}
+          fileMetadata={fileMetadata}
+          setFileMetadata={setFileMetadata}
+          fileUploading={fileUploading}
+          setFileUploading={setFileUploading}
+        />
+      )}
       <Textarea
         ref={inputRef}
         value={input}
@@ -364,6 +366,7 @@ const FilePreview = ({
           );
         }
 
+        // TODO: Make this a horizontal scrollable div
         return (
           <div className="relative group" key={file.name}>
             <Image

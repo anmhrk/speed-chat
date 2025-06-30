@@ -90,7 +90,11 @@ export async function saveMessages(
       if (existing) {
         await tx
           .update(messages)
-          .set({ content: newMessage.content, parts: newMessage.parts })
+          .set({
+            content: newMessage.content,
+            parts: newMessage.parts,
+            experimental_attachments: newMessage.experimental_attachments,
+          })
           .where(eq(messages.id, newMessage.id));
       } else {
         await tx.insert(messages).values({
@@ -99,6 +103,7 @@ export async function saveMessages(
           content: newMessage.content,
           role: newMessage.role,
           parts: newMessage.parts,
+          experimental_attachments: newMessage.experimental_attachments,
           createdAt: newMessage.createdAt
             ? new Date(newMessage.createdAt)
             : new Date(),

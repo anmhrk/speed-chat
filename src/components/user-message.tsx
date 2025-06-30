@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Textarea } from "./ui/textarea";
+import Image from "next/image";
 
 interface UserMessageProps {
   message: Message;
@@ -52,7 +53,7 @@ export function UserMessage({
     setIsEditing(false);
 
     const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id,
+      (m) => m.id === message.id
     );
 
     // Remove all messages after the edited message including the edited message
@@ -74,7 +75,7 @@ export function UserMessage({
         <div
           className={cn(
             isEditing ? "bg-primary/20 w-full" : "bg-accent",
-            "rounded-lg px-4 py-3",
+            "rounded-lg px-4 py-3"
           )}
         >
           <div className="break-words whitespace-pre-wrap">
@@ -83,11 +84,15 @@ export function UserMessage({
                 ref={editRef}
                 value={editedMessage}
                 onChange={(e) => setEditedMessage(e.target.value)}
-                className="w-full resize-none border-0 bg-[#D1D1D1] shadow-none focus-visible:ring-0 dark:bg-[#353537]"
-                onBlur={() => setIsEditing(false)}
+                className="w-full resize-none border-0 !bg-transparent shadow-none focus-visible:ring-0"
+                onBlur={() => {
+                  setIsEditing(false);
+                  setEditedMessage(message.content);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     setIsEditing(false);
+                    setEditedMessage(message.content);
                   }
 
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -100,6 +105,25 @@ export function UserMessage({
               message.content
             )}
           </div>
+
+          {message.experimental_attachments && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {message.experimental_attachments
+                ?.filter((attachment) =>
+                  attachment.contentType?.startsWith("image/")
+                )
+                .map((attachment, index) => (
+                  <Image
+                    key={`${message.id}-attachment-${index}`}
+                    src={attachment.url}
+                    alt={attachment.name ?? "Attachment"}
+                    width={100}
+                    height={100}
+                    className="rounded-md w-40 h-40 object-cover"
+                  />
+                ))}
+            </div>
+          )}
         </div>
 
         <div className="absolute top-full right-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">

@@ -1,3 +1,4 @@
+import type { Attachment, Message } from "@ai-sdk/ui-utils";
 import { pgTable, text, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -86,6 +87,9 @@ export const messages = pgTable("messages", {
     .references(() => chats.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   role: text("role").notNull(),
-  parts: jsonb("parts"),
+  parts: jsonb("parts").$type<Message["parts"]>(),
+  experimental_attachments: jsonb("experimental_attachments").$type<
+    Attachment[]
+  >(),
   createdAt: timestamp("created_at").notNull(),
 });
