@@ -392,12 +392,12 @@ function ChatItem({
                 toast.error("Failed to delete chat");
               }
 
-              queryClient.invalidateQueries({
-                queryKey: ["chats"],
-              });
               if (chat.id === chatIdParams) {
                 router.push("/");
               }
+              queryClient.invalidateQueries({
+                queryKey: ["chats"],
+              });
             }}
           >
             <Trash2 />

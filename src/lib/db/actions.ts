@@ -4,7 +4,8 @@ import { getUser } from "../auth/get-user";
 import { db } from ".";
 import { chats, messages, user as userTable } from "./schema";
 import type { Message } from "ai";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { deleteFile } from "../uploadthing";
 
 export async function getChats() {
   const user = await getUser();
@@ -124,10 +125,61 @@ export async function deleteAllChats() {
     throw new Error("Unauthorized");
   }
 
+  await deleteAllImages(user.id);
   await db.delete(chats).where(eq(chats.userId, user.id));
 }
 
+async function deleteAllImages(userId: string) {
+  const allChats = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.userId, userId));
+
+  const allMessages = await db
+    .select()
+    .from(messages)
+    .where(
+      inArray(
+        messages.chatId,
+        allChats.map((chat) => chat.id)
+      )
+    );
+
+  const allFileKeys = allMessages.flatMap((message) =>
+    message.experimental_attachments?.map((attachment) =>
+      attachment.url.split("/f/").pop()
+    )
+  );
+
+  await Promise.all(
+    allFileKeys.map(async (file) => {
+      if (file) {
+        await deleteFile(file);
+      }
+    })
+  );
+}
+
 export async function deleteChat(chatId: string) {
+  const chatMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId));
+
+  const allFileKeys = chatMessages.flatMap((message) =>
+    message.experimental_attachments?.map((attachment) =>
+      attachment.url.split("/f/").pop()
+    )
+  );
+
+  await Promise.all(
+    allFileKeys.map(async (file) => {
+      if (file) {
+        await deleteFile(file);
+      }
+    })
+  );
+
   await db.delete(chats).where(eq(chats.id, chatId));
 }
 
@@ -148,6 +200,7 @@ export async function deleteUser() {
     throw new Error("Unauthorized");
   }
 
+  await deleteAllImages(user.id);
   await db.delete(userTable).where(eq(userTable.id, user.id));
   // Everything else is deleted automatically due to cascade
 }
