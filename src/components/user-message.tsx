@@ -1,5 +1,5 @@
 import type { Message } from "ai";
-import { Check, Copy, Edit } from "lucide-react";
+import { Check, Copy, Edit, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import {
@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "./ui/textarea";
 import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { deleteFile } from "@/lib/uploadthing";
 
 interface UserMessageProps {
   message: Message;
@@ -31,6 +30,7 @@ export function UserMessage({
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const originalMessagesRef = useRef<Message[]>(allMessages);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -40,6 +40,8 @@ export function UserMessage({
   };
 
   const handleSelectEdit = () => {
+    originalMessagesRef.current = allMessages;
+
     setIsEditing(true);
     setTimeout(() => {
       if (editRef.current) {
@@ -58,22 +60,6 @@ export function UserMessage({
       (m) => m.id === message.id
     );
 
-    const messagesToCheck = allMessages.slice(editedMessageIndex);
-    const fileKeys = messagesToCheck.flatMap((m) =>
-      m.experimental_attachments?.map((a) => a.url.split("/f/").pop())
-    );
-
-    // Don't await to not block the UI
-    if (fileKeys.length > 0) {
-      Promise.all(
-        fileKeys.map((key) => {
-          if (key) {
-            deleteFile(key);
-          }
-        })
-      );
-    }
-
     // Remove all messages after the edited message including the edited message
     allMessages.splice(editedMessageIndex);
 
@@ -83,6 +69,17 @@ export function UserMessage({
       role: "user",
       content: editedMessage,
     });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedMessage(message.content);
+
+    // Revert to the snapshot captured at the start of editing if attachments were
+    // removed while the user was editing but they decide to cancel
+    if (allMessages !== originalMessagesRef.current) {
+      setMessages(originalMessagesRef.current);
+    }
   };
 
   return (
@@ -103,14 +100,18 @@ export function UserMessage({
                 value={editedMessage}
                 onChange={(e) => setEditedMessage(e.target.value)}
                 className="w-full resize-none border-0 !bg-transparent shadow-none focus-visible:ring-0"
-                onBlur={() => {
-                  setIsEditing(false);
-                  setEditedMessage(message.content);
+                onBlur={(e) => {
+                  // Don't exit editing if user clicked on an attachment removal button
+                  const relatedTarget = e.relatedTarget as HTMLElement;
+                  if (relatedTarget?.closest("[data-attachment-remove]")) {
+                    return;
+                  }
+
+                  handleCancelEdit();
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
-                    setIsEditing(false);
-                    setEditedMessage(message.content);
+                    handleCancelEdit();
                   }
 
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -125,21 +126,55 @@ export function UserMessage({
           </div>
 
           {message.experimental_attachments && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-4 relative">
               {message.experimental_attachments
                 ?.filter((attachment) =>
                   attachment.contentType?.startsWith("image/")
                 )
                 .map((attachment, index) => (
-                  <Image
+                  <div
                     key={`${message.id}-attachment-${index}`}
-                    src={attachment.url}
-                    alt={attachment.name ?? "Attachment"}
-                    width={100}
-                    height={100}
-                    className="rounded-md w-40 h-40 object-cover"
-                    loading="lazy"
-                  />
+                    className="relative"
+                  >
+                    <Image
+                      src={attachment.url}
+                      alt={attachment.name ?? "Attachment"}
+                      width={800}
+                      height={600}
+                      className="rounded-md max-w-full h-auto cursor-pointer"
+                      loading="lazy"
+                      onClick={() => window.open(attachment.url, "_blank")}
+                    />
+
+                    {isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute rounded-full top-1 right-1 h-8 w-8 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-attachment-remove
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+
+                          const messageWithoutAttachment = {
+                            ...message,
+                            experimental_attachments:
+                              message.experimental_attachments?.filter(
+                                (a) => a.url !== attachment.url
+                              ),
+                          };
+
+                          setMessages(
+                            allMessages.map((m) =>
+                              m.id === message.id ? messageWithoutAttachment : m
+                            )
+                          );
+                        }}
+                      >
+                        <X className="size-5" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
             </div>
           )}

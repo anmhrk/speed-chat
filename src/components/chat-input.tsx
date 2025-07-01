@@ -22,7 +22,7 @@ import { UseChatHelpers } from "@ai-sdk/react";
 import { useUploadThing } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
-import { deleteFile } from "@/lib/uploadthing";
+import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
 
 interface ChatInputProps {
@@ -74,7 +74,6 @@ export function ChatInput({
             ...prev,
             [file.name]: {
               url: file.ufsUrl,
-              key: file.key,
               name: file.name,
               extension: file.type.split("/")[1],
             },
@@ -383,8 +382,9 @@ const FilePreview = ({
               alt="Uploaded file"
               width={80}
               height={80}
-              className="rounded-md object-cover w-20 h-20"
+              className="rounded-md object-cover w-20 h-20 cursor-pointer"
               loading="lazy"
+              onClick={() => window.open(URL.createObjectURL(file), "_blank")}
             />
             {isUploading && !fileMetadata[file.name] && (
               <div className="absolute top-0 right-0 left-0 bottom-0 flex items-center justify-center bg-black/50 rounded-md">
@@ -395,10 +395,10 @@ const FilePreview = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-0 right-0 !bg-transparent !hover:bg-transparent opacity-0 group-hover:opacity-100"
+                className="absolute rounded-full top-0 right-0 h-6 w-6 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={async () => {
                   toast.promise(
-                    deleteFile(fileMetadata[file.name].key).finally(() => {
+                    deleteFiles([fileMetadata[file.name].url]).finally(() => {
                       setFiles((prev) =>
                         prev.filter((f) => f.name !== file.name)
                       );

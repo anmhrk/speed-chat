@@ -5,7 +5,7 @@ import { db } from ".";
 import { chats, messages, user as userTable } from "./schema";
 import type { Message } from "ai";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import { deleteFile } from "../uploadthing";
+import { deleteFiles } from "../uploadthing";
 
 export async function getChats() {
   const user = await getUser();
@@ -79,6 +79,14 @@ export async function saveMessages(
     // Delete messages that exist in the DB but are no longer present on the client
     // Need to keep client and db in sync
     for (const existingMessage of existingMessages) {
+      if (existingMessage.experimental_attachments) {
+        const fileUrls = existingMessage.experimental_attachments.map(
+          (attachment) => attachment.url
+        );
+
+        await deleteFiles(fileUrls);
+      }
+
       if (!desiredIds.has(existingMessage.id)) {
         await tx.delete(messages).where(eq(messages.id, existingMessage.id));
       }
@@ -89,6 +97,18 @@ export async function saveMessages(
       const existing = existingMessages.find((m) => m.id === newMessage.id);
 
       if (existing) {
+        if (
+          newMessage.experimental_attachments &&
+          existing.experimental_attachments &&
+          existing.experimental_attachments !==
+            newMessage.experimental_attachments
+        ) {
+          const fileUrls = existing.experimental_attachments.map(
+            (attachment) => attachment.url
+          );
+          await deleteFiles(fileUrls);
+        }
+
         await tx
           .update(messages)
           .set({
@@ -145,19 +165,11 @@ async function deleteAllImages(userId: string) {
       )
     );
 
-  const allFileKeys = allMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) =>
-      attachment.url.split("/f/").pop()
-    )
+  const allFileUrls = allMessages.flatMap((message) =>
+    message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  await Promise.all(
-    allFileKeys.map(async (file) => {
-      if (file) {
-        await deleteFile(file);
-      }
-    })
-  );
+  await deleteFiles(allFileUrls.filter((url) => url !== undefined));
 }
 
 export async function deleteChat(chatId: string) {
@@ -166,20 +178,11 @@ export async function deleteChat(chatId: string) {
     .from(messages)
     .where(eq(messages.chatId, chatId));
 
-  const allFileKeys = chatMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) =>
-      attachment.url.split("/f/").pop()
-    )
+  const allFileUrls = chatMessages.flatMap((message) =>
+    message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  await Promise.all(
-    allFileKeys.map(async (file) => {
-      if (file) {
-        await deleteFile(file);
-      }
-    })
-  );
-
+  await deleteFiles(allFileUrls.filter((url) => url !== undefined));
   await db.delete(chats).where(eq(chats.id, chatId));
 }
 

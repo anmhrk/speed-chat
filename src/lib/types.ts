@@ -55,6 +55,5 @@ export type TitleRequest = {
 export type FileMetadata = {
   name: string;
   url: string;
-  key: string;
   extension: string;
 };
