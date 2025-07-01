@@ -8,13 +8,8 @@ import {
   smoothStream,
   appendResponseMessages,
 } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
-import {
-  createAnthropic,
-  type AnthropicProviderOptions,
-} from "@ai-sdk/anthropic";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { Models, Providers, ChatRequest } from "@/lib/types";
+import type { Models, ChatRequest } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
@@ -44,12 +39,29 @@ export async function POST(request: NextRequest) {
       modelId = model.replace("-thinking", "") as Models;
     }
 
-    const aiModel = createAIProvider(modelId, apiKeys);
-
-    const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
+    const headers =
+      process.env.NODE_ENV === "production"
+        ? {
+            "HTTP-Referer": process.env.SITE_URL!,
+            "X-Title": "Speed Chat",
+          }
+        : undefined;
 
     const isReasoningModel =
       AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning === true;
+
+    const openrouter = createOpenRouter({
+      apiKey: apiKeys.openrouter,
+      ...(isReasoningModel && {
+        extraBody: {
+          include_reasoning: true,
+        },
+      }),
+      ...(headers && { headers }),
+    });
+
+    const aiModel = openrouter.chat(modelId);
+    const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
 
     const calculateThinkingBudget = () => {
       if (reasoningEffort === "low") return 15000 / 4;
@@ -91,20 +103,12 @@ export async function POST(request: NextRequest) {
       messages,
       ...(isReasoningModel && {
         providerOptions: {
-          openai: {
-            reasoningEffort: reasoningEffort,
-          },
           openrouter: {
-            reasoning: {
-              max_tokens: calculateThinkingBudget(),
-            },
+            reasoning:
+              modelId.includes("openai") || modelId.includes("x-ai")
+                ? { effort: reasoningEffort }
+                : { max_tokens: calculateThinkingBudget() },
           },
-          anthropic: {
-            thinking: {
-              type: "enabled",
-              budgetTokens: calculateThinkingBudget(),
-            },
-          } satisfies AnthropicProviderOptions,
         },
       }),
       onFinish: async ({ response }) => {
@@ -137,8 +141,6 @@ export async function POST(request: NextRequest) {
         }
       },
     });
-
-    // chatStream.consumeStream();
 
     return chatStream.toDataStreamResponse({
       sendReasoning: true,
@@ -185,7 +187,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError,
+            dbError
           );
         }
 
@@ -195,42 +197,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.log("[Chat API] Error:", error);
     throw error;
-  }
-}
-
-function createAIProvider(model: Models, apiKeys: Record<Providers, string>) {
-  const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
-  const isReasoningModel = modelConfig?.reasoning === true;
-
-  switch (modelConfig?.provider) {
-    case "openai":
-      const openai = createOpenAI({ apiKey: apiKeys.openai });
-      return openai(modelConfig.id);
-    case "anthropic":
-      const anthropic = createAnthropic({ apiKey: apiKeys.anthropic });
-      return anthropic(modelConfig.id);
-    case "openrouter":
-      const headers =
-        process.env.NODE_ENV === "production" &&
-        process.env.NEXT_PUBLIC_SITE_URL
-          ? {
-              "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL,
-              "X-Title": "Speed Chat",
-            }
-          : undefined;
-
-      const openrouter = createOpenRouter({
-        apiKey: apiKeys.openrouter,
-        ...(isReasoningModel && {
-          extraBody: {
-            include_reasoning: true,
-          },
-        }),
-        ...(headers && { headers }),
-      });
-      return openrouter.chat(modelConfig.id);
-
-    default:
-      throw new Error(`Unsupported provider: ${modelConfig?.provider}`);
   }
 }

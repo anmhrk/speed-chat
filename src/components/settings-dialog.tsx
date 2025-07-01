@@ -236,10 +236,16 @@ const providers: ProviderConfig[] = [
     url: "https://platform.openai.com/api-keys",
   },
   {
-    id: "anthropic",
-    name: "Anthropic",
-    placeholder: "sk-ant-...",
-    url: "https://console.anthropic.com/settings/keys",
+    id: "falai",
+    name: "FalAI",
+    placeholder: "sk-...",
+    url: "https://fal.ai/dashboard/keys",
+  },
+  {
+    id: "vertex",
+    name: "Vertex",
+    placeholder: "sk-...",
+    url: "https://console.cloud.google.com/apis/credentials",
   },
 ];
 
@@ -248,12 +254,14 @@ function ApiKeys() {
   const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
     openrouter: "",
     openai: "",
-    anthropic: "",
+    falai: "",
+    vertex: "",
   });
   const [showKeys, setShowKeys] = useState<Record<Providers, boolean>>({
     openrouter: false,
     openai: false,
-    anthropic: false,
+    falai: false,
+    vertex: false,
   });
 
   const hasChanges = JSON.stringify(localApiKeys) !== JSON.stringify(apiKeys);

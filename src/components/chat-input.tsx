@@ -203,46 +203,43 @@ export function ChatInput({
                   {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
                 </SelectTrigger>
                 <SelectContent>
-                  {AVAILABLE_MODELS.sort((a, b) => {
-                    if (a.provider !== b.provider) {
-                      return a.provider.localeCompare(b.provider);
-                    }
-                    return a.name.localeCompare(b.name);
-                  }).map((model) => {
-                    const isDisabled = !hasApiKeyForProvider(model.provider);
-                    const selectItem = (
-                      <SelectItem
-                        key={model.id}
-                        value={model.id}
-                        disabled={isDisabled}
-                      >
-                        <div className="flex w-70 items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            {model.icon}
-                            {model.name}
-                            <div className="text-xs text-muted-foreground">
-                              ({model.provider})
+                  {AVAILABLE_MODELS.filter((m) => !m.imageGeneration)
+                    .sort((a, b) => {
+                      return a.id.localeCompare(b.id);
+                    })
+                    .map((model) => {
+                      const isDisabled = !hasApiKeyForProvider(model.provider);
+
+                      const selectItem = (
+                        <SelectItem
+                          key={model.id}
+                          value={model.id}
+                          disabled={isDisabled}
+                        >
+                          <div className="flex w-fit items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              {model.icon}
+                              {model.name}
                             </div>
                           </div>
-                        </div>
-                      </SelectItem>
-                    );
-
-                    if (isDisabled) {
-                      return (
-                        <Tooltip key={model.id}>
-                          <TooltipTrigger asChild>
-                            <div className="w-full">{selectItem}</div>
-                          </TooltipTrigger>
-                          <TooltipContent className="text-xs">
-                            API key not set for provider
-                          </TooltipContent>
-                        </Tooltip>
+                        </SelectItem>
                       );
-                    }
 
-                    return selectItem;
-                  })}
+                      if (isDisabled) {
+                        return (
+                          <Tooltip key={model.id}>
+                            <TooltipTrigger asChild>
+                              <div className="w-full">{selectItem}</div>
+                            </TooltipTrigger>
+                            <TooltipContent className="text-xs">
+                              API key not set for provider
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+
+                      return selectItem;
+                    })}
                 </SelectContent>
               </Select>
 

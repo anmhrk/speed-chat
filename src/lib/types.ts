@@ -4,28 +4,36 @@ import type { LucideIcon } from "lucide-react";
 export type BasicModels =
   | "google/gemini-2.5-flash"
   | "google/gemini-2.5-flash-lite-preview-06-17"
-  | "gpt-4.1"
-  | "gpt-4.1-mini"
-  | "gpt-4.1-nano"
-  | "claude-4-sonnet-20250514"
-  | "claude-4-opus-20250514"
+  | "openai/gpt-4.1"
+  | "openai/gpt-4.1-mini"
+  | "openai/gpt-4.1-nano"
+  | "anthropic/claude-sonnet-4"
+  | "anthropic/claude-opus-4"
   | "deepseek/deepseek-chat-v3-0324"
   | "meta-llama/llama-4-maverick"
-  | "meta-llama/llama-4-scout";
+  | "meta-llama/llama-4-scout"
+  | "x-ai/grok-3";
 
 export type ReasoningModels =
   | "google/gemini-2.5-pro"
-  | "claude-4-sonnet-20250514-thinking"
-  | "claude-4-opus-20250514-thinking"
-  | "o4-mini"
-  | "o3"
-  | "deepseek/deepseek-r1-0528";
+  | "anthropic/claude-sonnet-4-thinking" // not valid id, just placeholder to identify thinking version
+  | "anthropic/claude-opus-4-thinking" // same as above
+  | "openai/o4-mini"
+  | "deepseek/deepseek-r1-0528"
+  | "x-ai/grok-3-mini";
 
-export type ImageModels = "gpt-image-1";
+export type ImageModels =
+  | "gpt-image-1"
+  | "fal-ai/flux-pro/v1.1-ultra"
+  | "fal-ai/flux-pro/kontext/max"
+  | "fal-ai/flux-pro/kontext/max/text-to-image"
+  | "imagen-4.0-generate-preview-06-06"
+  | "imagen-4.0-fast-generate-preview-06-06"
+  | "imagen-4.0-ultra-generate-preview-06-06";
 
 export type Models = BasicModels | ReasoningModels | ImageModels;
 
-export type Providers = "openrouter" | "openai" | "anthropic";
+export type Providers = "openrouter" | "openai" | "falai" | "vertex";
 
 export type ReasoningEfforts = "low" | "medium" | "high";
 
@@ -36,6 +44,7 @@ export type ModelConfig = {
   provider: Providers;
   default?: boolean;
   reasoning?: boolean;
+  imageGeneration?: boolean;
 };
 
 export type ReasoningEffortConfig = {

@@ -47,7 +47,8 @@ const INITIAL_STATE: PartialSettingsState = {
   apiKeys: {
     openrouter: "",
     openai: "",
-    anthropic: "",
+    falai: "",
+    vertex: "",
   },
   customPrompt: "",
 };
@@ -112,7 +113,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (!raw) {
         return;
       }
@@ -134,7 +135,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const sanitizedApiKeys: Record<Providers, string> = {
         openrouter: "",
         openai: "",
-        anthropic: "",
+        falai: "",
+        vertex: "",
       };
 
       if (persisted.apiKeys) {
@@ -166,7 +168,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-      window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toPersist));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toPersist));
     } catch (err) {
       console.error("Failed to persist settings", err);
     }
