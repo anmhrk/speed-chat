@@ -384,20 +384,22 @@ function ChatItem({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onClick={async () => {
-              try {
-                await deleteChat(chat.id);
-              } catch (error) {
-                console.error(error);
-                toast.error("Failed to delete chat");
-              }
-
-              if (chat.id === chatIdParams) {
-                router.push("/");
-              }
-              queryClient.invalidateQueries({
-                queryKey: ["chats"],
-              });
+            onClick={() => {
+              toast.promise(
+                deleteChat(chat.id).finally(() => {
+                  queryClient.invalidateQueries({
+                    queryKey: ["chats"],
+                  });
+                  if (chat.id === chatIdParams) {
+                    router.push("/");
+                  }
+                }),
+                {
+                  loading: "Deleting chat...",
+                  success: "Chat deleted",
+                  error: "Failed to delete chat",
+                },
+              );
             }}
           >
             <Trash2 />

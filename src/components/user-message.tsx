@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "./ui/textarea";
 import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
+import { deleteFiles } from "@/lib/uploadthing";
 
 interface UserMessageProps {
   message: Message;
@@ -31,6 +32,9 @@ export function UserMessage({
   const [editedMessage, setEditedMessage] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const originalMessagesRef = useRef<Message[]>(allMessages);
+  const [removedAttachmentUrls, setRemovedAttachmentUrls] = useState<string[]>(
+    [],
+  );
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -53,27 +57,45 @@ export function UserMessage({
     }, 50);
   };
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     setIsEditing(false);
 
     const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id
+      (m) => m.id === message.id,
     );
 
-    // Remove all messages after the edited message including the edited message
+    const currentEditedMessage = allMessages[editedMessageIndex];
+
+    const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
+    const futureAttachments = messagesToCheck.flatMap((m) =>
+      m.experimental_attachments?.map((a) => a.url),
+    );
+
+    const urlsToDelete = [
+      ...removedAttachmentUrls,
+      ...futureAttachments,
+    ].filter((url): url is string => Boolean(url));
+
+    if (urlsToDelete.length > 0) {
+      deleteFiles(urlsToDelete);
+    }
+
     allMessages.splice(editedMessageIndex);
 
-    setMessages(allMessages);
     append({
       id: message.id,
       role: "user",
       content: editedMessage,
+      experimental_attachments:
+        currentEditedMessage.experimental_attachments ?? [],
     });
+    setRemovedAttachmentUrls([]);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedMessage(message.content);
+    setRemovedAttachmentUrls([]);
 
     // Revert to the snapshot captured at the start of editing if attachments were
     // removed while the user was editing but they decide to cancel
@@ -90,7 +112,7 @@ export function UserMessage({
         <div
           className={cn(
             isEditing ? "bg-primary/20 w-full" : "bg-accent",
-            "rounded-lg px-4 py-3"
+            "rounded-lg px-4 py-3",
           )}
         >
           <div className="break-words whitespace-pre-wrap">
@@ -129,7 +151,7 @@ export function UserMessage({
             <div className="flex flex-wrap gap-2 mt-4 relative">
               {message.experimental_attachments
                 ?.filter((attachment) =>
-                  attachment.contentType?.startsWith("image/")
+                  attachment.contentType?.startsWith("image/"),
                 )
                 .map((attachment, index) => (
                   <div
@@ -156,18 +178,25 @@ export function UserMessage({
                           e.stopPropagation();
                           e.preventDefault();
 
+                          setRemovedAttachmentUrls((prev) => [
+                            ...prev,
+                            attachment.url,
+                          ]);
+
                           const messageWithoutAttachment = {
                             ...message,
                             experimental_attachments:
                               message.experimental_attachments?.filter(
-                                (a) => a.url !== attachment.url
+                                (a) => a.url !== attachment.url,
                               ),
                           };
 
                           setMessages(
                             allMessages.map((m) =>
-                              m.id === message.id ? messageWithoutAttachment : m
-                            )
+                              m.id === message.id
+                                ? messageWithoutAttachment
+                                : m,
+                            ),
                           );
                         }}
                       >

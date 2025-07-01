@@ -245,7 +245,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
               return oldData.map((chatItem) =>
                 chatItem.id === newChatId
                   ? { ...chatItem, title: result.title }
-                  : chatItem
+                  : chatItem,
               );
             });
           }

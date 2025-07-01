@@ -86,21 +86,21 @@ export function ChatInput({
         setFiles([]);
         setFileMetadata({});
       },
-    }
+    },
   );
 
   const processFiles = useCallback(
     (selectedFiles: File[]) => {
       const maxFileSize = Number(
-        routeConfig?.image?.maxFileSize.replace("MB", "")
+        routeConfig?.image?.maxFileSize.replace("MB", ""),
       );
 
       if (selectedFiles.length > 0) {
         if (
           !selectedFiles.some((file) =>
             ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(
-              file.type
-            )
+              file.type,
+            ),
           )
         ) {
           toast.error("Only PNG, JPEG, JPG, and WebP are supported");
@@ -109,13 +109,13 @@ export function ChatInput({
 
         // Filter out duplicates
         const uniqueFiles = selectedFiles.filter(
-          (file) => !files.some((f) => f.name === file.name)
+          (file) => !files.some((f) => f.name === file.name),
         );
 
         const duplicateCount = selectedFiles.length - uniqueFiles.length;
         if (duplicateCount > 0) {
           toast.info(
-            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
+            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`,
           );
         }
 
@@ -127,7 +127,7 @@ export function ChatInput({
 
         // File size limit check
         const exceedsSizeLimit = uniqueFiles.some(
-          (file) => file.size > maxFileSize * 1024 * 1024
+          (file) => file.size > maxFileSize * 1024 * 1024,
         );
 
         if (exceedsSizeLimit) {
@@ -141,7 +141,7 @@ export function ChatInput({
         }
       }
     },
-    [files, routeConfig, startUpload]
+    [files, routeConfig, startUpload],
   );
 
   // Process files from parent component dropzone
@@ -263,7 +263,7 @@ export function ChatInput({
                       >
                         {(() => {
                           const effort = REASONING_EFFORTS.find(
-                            (e) => e.id === reasoningEffort
+                            (e) => e.id === reasoningEffort,
                           );
                           if (effort) {
                             const IconComponent = effort.icon;
@@ -388,7 +388,7 @@ const FilePreview = ({
             />
             {isUploading && !fileMetadata[file.name] && (
               <div className="absolute top-0 right-0 left-0 bottom-0 flex items-center justify-center bg-black/50 rounded-md">
-                <Loader2 className="size-6 animate-spin" />
+                <Loader2 className="size-6 animate-spin text-white" />
               </div>
             )}
             {!(isUploading && !fileMetadata[file.name]) && (
@@ -400,7 +400,7 @@ const FilePreview = ({
                   toast.promise(
                     deleteFiles([fileMetadata[file.name].url]).finally(() => {
                       setFiles((prev) =>
-                        prev.filter((f) => f.name !== file.name)
+                        prev.filter((f) => f.name !== file.name),
                       );
                       setFileMetadata((prev) => {
                         const { [file.name]: _, ...rest } = prev;
@@ -411,7 +411,7 @@ const FilePreview = ({
                       loading: "Deleting file...",
                       success: "File deleted",
                       error: "Failed to delete file",
-                    }
+                    },
                   );
                 }}
               >
@@ -421,7 +421,7 @@ const FilePreview = ({
           </div>
         );
       }),
-    [files, isUploading, fileMetadata]
+    [files, isUploading, fileMetadata],
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;

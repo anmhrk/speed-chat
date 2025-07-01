@@ -63,7 +63,7 @@ export async function createChat(chatId: string) {
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[]
+  newMessages: Message[],
 ) {
   await db.transaction(async (tx) => {
     const desiredIds = new Set<string>([
@@ -79,14 +79,6 @@ export async function saveMessages(
     // Delete messages that exist in the DB but are no longer present on the client
     // Need to keep client and db in sync
     for (const existingMessage of existingMessages) {
-      if (existingMessage.experimental_attachments) {
-        const fileUrls = existingMessage.experimental_attachments.map(
-          (attachment) => attachment.url
-        );
-
-        await deleteFiles(fileUrls);
-      }
-
       if (!desiredIds.has(existingMessage.id)) {
         await tx.delete(messages).where(eq(messages.id, existingMessage.id));
       }
@@ -97,18 +89,6 @@ export async function saveMessages(
       const existing = existingMessages.find((m) => m.id === newMessage.id);
 
       if (existing) {
-        if (
-          newMessage.experimental_attachments &&
-          existing.experimental_attachments &&
-          existing.experimental_attachments !==
-            newMessage.experimental_attachments
-        ) {
-          const fileUrls = existing.experimental_attachments.map(
-            (attachment) => attachment.url
-          );
-          await deleteFiles(fileUrls);
-        }
-
         await tx
           .update(messages)
           .set({
@@ -161,12 +141,12 @@ async function deleteAllImages(userId: string) {
     .where(
       inArray(
         messages.chatId,
-        allChats.map((chat) => chat.id)
-      )
+        allChats.map((chat) => chat.id),
+      ),
     );
 
   const allFileUrls = allMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url)
+    message.experimental_attachments?.map((attachment) => attachment.url),
   );
 
   await deleteFiles(allFileUrls.filter((url) => url !== undefined));
@@ -179,7 +159,7 @@ export async function deleteChat(chatId: string) {
     .where(eq(messages.chatId, chatId));
 
   const allFileUrls = chatMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url)
+    message.experimental_attachments?.map((attachment) => attachment.url),
   );
 
   await deleteFiles(allFileUrls.filter((url) => url !== undefined));
