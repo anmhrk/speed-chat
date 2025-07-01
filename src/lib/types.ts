@@ -1,15 +1,29 @@
 import type { Message } from "ai";
 import type { LucideIcon } from "lucide-react";
-import type { IconType } from "react-icons";
 
-export type Models =
-  | "google/gemini-2.5-flash-preview-05-20"
-  | "google/gemini-2.5-pro-preview"
+export type BasicModels =
+  | "google/gemini-2.5-flash"
+  | "google/gemini-2.5-flash-lite-preview-06-17"
   | "gpt-4.1"
-  | "o4-mini"
+  | "gpt-4.1-mini"
+  | "gpt-4.1-nano"
   | "claude-4-sonnet-20250514"
   | "claude-4-opus-20250514"
-  | "claude-4-sonnet-20250514-thinking";
+  | "deepseek/deepseek-chat-v3-0324"
+  | "meta-llama/llama-4-maverick"
+  | "meta-llama/llama-4-scout";
+
+export type ReasoningModels =
+  | "google/gemini-2.5-pro"
+  | "claude-4-sonnet-20250514-thinking"
+  | "claude-4-opus-20250514-thinking"
+  | "o4-mini"
+  | "o3"
+  | "deepseek/deepseek-r1-0528";
+
+export type ImageModels = "gpt-image-1";
+
+export type Models = BasicModels | ReasoningModels | ImageModels;
 
 export type Providers = "openrouter" | "openai" | "anthropic";
 
@@ -18,7 +32,7 @@ export type ReasoningEfforts = "low" | "medium" | "high";
 export type ModelConfig = {
   id: Models;
   name: string;
-  icon: IconType;
+  icon: React.ReactNode;
   provider: Providers;
   default?: boolean;
   reasoning?: boolean;

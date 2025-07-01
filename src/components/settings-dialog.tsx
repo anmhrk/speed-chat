@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import type { ProviderConfig, Providers } from "@/lib/types";
 import { Separator } from "./ui/separator";
-import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
+import { useSettingsContext } from "@/contexts/settings-context";
 import { deleteAllChats, deleteUser } from "@/lib/db/actions";
 import { useQueryClient } from "@tanstack/react-query";
 import { signOut } from "@/lib/auth/auth-client";
@@ -138,7 +138,7 @@ function General({
   const handleDeleteAllChats = async () => {
     if (
       confirm(
-        `Are you sure you want to delete all ${chatsCount} chats? This action cannot be undone.`,
+        `Are you sure you want to delete all ${chatsCount} chats? This action cannot be undone.`
       )
     ) {
       try {
@@ -159,7 +159,7 @@ function General({
   const handleDeleteAccount = async () => {
     if (
       confirm(
-        "Are you sure you want to delete your account? This action cannot be undone.",
+        "Are you sure you want to delete your account? This action cannot be undone."
       )
     ) {
       try {
@@ -244,8 +244,7 @@ const providers: ProviderConfig[] = [
 ];
 
 function ApiKeys() {
-  const hasHydrated = useHasHydrated();
-  const { apiKeys, setApiKeys } = useSettingsStore();
+  const { apiKeys, setApiKeys } = useSettingsContext();
   const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
     openrouter: "",
     openai: "",
@@ -270,10 +269,8 @@ function ApiKeys() {
   };
 
   useEffect(() => {
-    if (hasHydrated) {
-      setLocalApiKeys(apiKeys);
-    }
-  }, [apiKeys, hasHydrated]);
+    setLocalApiKeys(apiKeys);
+  }, [apiKeys]);
 
   return (
     <div className="p-6 space-y-6">
@@ -350,8 +347,7 @@ function ApiKeys() {
 }
 
 function CustomPrompt() {
-  const hasHydrated = useHasHydrated();
-  const { customPrompt, setCustomPrompt } = useSettingsStore();
+  const { customPrompt, setCustomPrompt } = useSettingsContext();
   const [localPrompt, setLocalPrompt] = useState<string>("");
 
   const hasChanges = localPrompt !== customPrompt;
@@ -367,10 +363,8 @@ function CustomPrompt() {
   };
 
   useEffect(() => {
-    if (hasHydrated) {
-      setLocalPrompt(customPrompt);
-    }
-  }, [customPrompt, hasHydrated]);
+    setLocalPrompt(customPrompt);
+  }, [customPrompt]);
 
   return (
     <div className="p-6 space-y-6">

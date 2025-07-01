@@ -13,7 +13,7 @@ import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { createChat } from "@/lib/db/actions";
 import { Loader2, Upload } from "lucide-react";
-import { useHasApiKeys, useSettingsStore } from "@/stores/settings-store";
+import { useSettingsContext } from "@/contexts/settings-context";
 import { getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
@@ -34,8 +34,8 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ user, initialChatId }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customPrompt } = useSettingsStore();
-  const hasApiKeys = useHasApiKeys();
+  const { model, reasoningEffort, apiKeys, customPrompt, hasApiKeys } =
+    useSettingsContext();
   const queryClient = useQueryClient();
 
   const router = useRouter();
@@ -191,7 +191,9 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
     }
 
     if (temporaryChat) {
-      handleSubmit(e);
+      handleSubmit(e, {
+        experimental_attachments: attachments,
+      });
       return;
     }
 
@@ -245,7 +247,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
               return oldData.map((chatItem) =>
                 chatItem.id === newChatId
                   ? { ...chatItem, title: result.title }
-                  : chatItem,
+                  : chatItem
               );
             });
           }

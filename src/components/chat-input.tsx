@@ -15,8 +15,8 @@ import {
 } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useSettingsContext } from "@/contexts/settings-context";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
-import { useSettingsStore, useHasHydrated } from "@/stores/settings-store";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { useUploadThing } from "@/lib/utils";
@@ -47,14 +47,13 @@ export function ChatInput({
   droppedFiles,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const hasHydrated = useHasHydrated();
   const {
     model,
     setModel,
     reasoningEffort,
     setReasoningEffort,
     hasApiKeyForProvider,
-  } = useSettingsStore();
+  } = useSettingsContext();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -86,21 +85,21 @@ export function ChatInput({
         setFiles([]);
         setFileMetadata({});
       },
-    },
+    }
   );
 
   const processFiles = useCallback(
     (selectedFiles: File[]) => {
       const maxFileSize = Number(
-        routeConfig?.image?.maxFileSize.replace("MB", ""),
+        routeConfig?.image?.maxFileSize.replace("MB", "")
       );
 
       if (selectedFiles.length > 0) {
         if (
           !selectedFiles.some((file) =>
             ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(
-              file.type,
-            ),
+              file.type
+            )
           )
         ) {
           toast.error("Only PNG, JPEG, JPG, and WebP are supported");
@@ -109,13 +108,13 @@ export function ChatInput({
 
         // Filter out duplicates
         const uniqueFiles = selectedFiles.filter(
-          (file) => !files.some((f) => f.name === file.name),
+          (file) => !files.some((f) => f.name === file.name)
         );
 
         const duplicateCount = selectedFiles.length - uniqueFiles.length;
         if (duplicateCount > 0) {
           toast.info(
-            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`,
+            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
           );
         }
 
@@ -127,7 +126,7 @@ export function ChatInput({
 
         // File size limit check
         const exceedsSizeLimit = uniqueFiles.some(
-          (file) => file.size > maxFileSize * 1024 * 1024,
+          (file) => file.size > maxFileSize * 1024 * 1024
         );
 
         if (exceedsSizeLimit) {
@@ -141,7 +140,7 @@ export function ChatInput({
         }
       }
     },
-    [files, routeConfig, startUpload],
+    [files, routeConfig, startUpload]
   );
 
   // Process files from parent component dropzone
@@ -197,13 +196,10 @@ export function ChatInput({
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          {hasHydrated && model && reasoningEffort && (
+          {model && reasoningEffort && (
             <>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger
-                  variant="ghost"
-                  className="w-auto min-w-[100px] p-2 text-sm"
-                >
+                <SelectTrigger variant="ghost" className="w-auto p-2 text-sm">
                   {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
                 </SelectTrigger>
                 <SelectContent>
@@ -222,7 +218,7 @@ export function ChatInput({
                       >
                         <div className="flex w-70 items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <model.icon className="size-4" />
+                            {model.icon}
                             {model.name}
                             <div className="text-xs text-muted-foreground">
                               ({model.provider})
@@ -263,7 +259,7 @@ export function ChatInput({
                       >
                         {(() => {
                           const effort = REASONING_EFFORTS.find(
-                            (e) => e.id === reasoningEffort,
+                            (e) => e.id === reasoningEffort
                           );
                           if (effort) {
                             const IconComponent = effort.icon;
@@ -400,7 +396,7 @@ const FilePreview = ({
                   toast.promise(
                     deleteFiles([fileMetadata[file.name].url]).finally(() => {
                       setFiles((prev) =>
-                        prev.filter((f) => f.name !== file.name),
+                        prev.filter((f) => f.name !== file.name)
                       );
                       setFileMetadata((prev) => {
                         const { [file.name]: _, ...rest } = prev;
@@ -411,7 +407,7 @@ const FilePreview = ({
                       loading: "Deleting file...",
                       success: "File deleted",
                       error: "Failed to delete file",
-                    },
+                    }
                   );
                 }}
               >
@@ -421,7 +417,7 @@ const FilePreview = ({
           </div>
         );
       }),
-    [files, isUploading, fileMetadata],
+    [files, isUploading, fileMetadata]
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;
