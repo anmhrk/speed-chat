@@ -363,7 +363,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
             )}
           </div>
 
-          <div className="shrink-0 px-3">
+          <div className="shrink-0 px-3 pb-3">
             <ChatInput
               input={input}
               handleInputChange={handleInputChange}

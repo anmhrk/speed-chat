@@ -13,7 +13,7 @@ import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
 
 const VALID_MODEL_IDS = new Set(AVAILABLE_MODELS.map((m) => m.id));
 const VALID_REASONING_IDS = new Set(REASONING_EFFORTS.map((r) => r.id));
-const VALID_PROVIDERS = new Set(AVAILABLE_MODELS.map((m) => m.provider));
+const VALID_PROVIDERS = new Set(AVAILABLE_MODELS.map((m) => m.providerId));
 const DEFAULT_MODEL =
   AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
 const LOCAL_STORAGE_KEY = "settings";
@@ -24,6 +24,7 @@ interface SettingsState {
   apiKeys: Record<Providers, string>;
   customPrompt: string;
   hasApiKeys: boolean;
+  isHydrated: boolean;
 }
 
 interface SettingsActions {
@@ -57,6 +58,7 @@ const SettingsContext = createContext<SettingsContext | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PartialSettingsState>(INITIAL_STATE);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const hasApiKeyForProvider = useCallback(
     (provider: Providers) => {
@@ -78,26 +80,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       );
 
       const availableModels = AVAILABLE_MODELS.filter((model) =>
-        apiKeys[model.provider as Providers]?.trim()
+        apiKeys[model.providerId as Providers]?.trim()
       );
 
       let selectedModel = prev.model;
       const selectedModelProvider = AVAILABLE_MODELS.find(
         (m) => m.id === selectedModel
-      )?.provider;
+      )?.providerId;
       const defaultModel =
         AVAILABLE_MODELS.find((m) => m.default) ?? AVAILABLE_MODELS[0];
 
-      // Removed all API keys
-      if (!hasAnyKey) {
-        selectedModel = defaultModel.id;
-        // Removed API key for selected model
-      } else if (
-        selectedModel &&
-        selectedModelProvider &&
-        !apiKeys[selectedModelProvider]?.trim()
-      ) {
-        selectedModel = availableModels[0]?.id ?? defaultModel.id;
+      // Only change model if we're hydrated and not during initial load
+      if (isHydrated) {
+        // Removed all API keys
+        if (!hasAnyKey) {
+          selectedModel = defaultModel.id;
+          // Removed API key for selected model
+        } else if (
+          selectedModel &&
+          selectedModelProvider &&
+          !apiKeys[selectedModelProvider]?.trim()
+        ) {
+          selectedModel = availableModels[0]?.id ?? defaultModel.id;
+        }
       }
 
       return {
@@ -111,14 +116,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setCustomPrompt = (customPrompt: string) =>
     setState((prev) => ({ ...prev, customPrompt }));
 
+  // Hydrate from localStorage on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (!raw) {
+        setIsHydrated(true);
         return;
       }
 
-      const persisted: SettingsState = JSON.parse(raw);
+      const persisted: PartialSettingsState = JSON.parse(raw);
 
       // Sanitize persisted values
       const sanitizedModel =
@@ -147,19 +154,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      setState((prev) => ({
-        ...prev,
+      // Set state all at once to avoid multiple re-renders
+      setState({
         model: sanitizedModel,
         reasoningEffort: sanitizedReasoningEffort,
         apiKeys: sanitizedApiKeys,
         customPrompt: persisted.customPrompt || "",
-      }));
+      });
+
+      setIsHydrated(true);
     } catch (err) {
       console.error("Failed to hydrate settings", err);
+      setIsHydrated(true);
     }
   }, []);
 
+  // Persist to localStorage when state changes (but only after hydration)
   useEffect(() => {
+    if (!isHydrated) return;
+
     const toPersist: PartialSettingsState = {
       model: state.model,
       reasoningEffort: state.reasoningEffort,
@@ -172,10 +185,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Failed to persist settings", err);
     }
-  }, [state.model, state.reasoningEffort, state.apiKeys, state.customPrompt]);
+  }, [
+    state.model,
+    state.reasoningEffort,
+    state.apiKeys,
+    state.customPrompt,
+    isHydrated,
+  ]);
 
   const value: SettingsContext = {
     ...state,
+    isHydrated,
     hasApiKeys: Object.values(state.apiKeys).some(
       (key) => key && key.trim() !== ""
     ),

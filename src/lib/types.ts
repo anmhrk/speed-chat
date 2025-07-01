@@ -25,8 +25,6 @@ export type ReasoningModels =
 export type ImageModels =
   | "gpt-image-1"
   | "fal-ai/flux-pro/v1.1-ultra"
-  | "fal-ai/flux-pro/kontext/max"
-  | "fal-ai/flux-pro/kontext/max/text-to-image"
   | "imagen-4.0-generate-preview-06-06"
   | "imagen-4.0-fast-generate-preview-06-06"
   | "imagen-4.0-ultra-generate-preview-06-06";
@@ -41,9 +39,13 @@ export type ModelConfig = {
   id: Models;
   name: string;
   icon: React.ReactNode;
-  provider: Providers;
+  providerId: Providers;
+  providerName: string;
   default?: boolean;
   reasoning?: boolean;
+  imageInput?: boolean;
+  pdfInput?: boolean;
+  search?: boolean;
   imageGeneration?: boolean;
 };
 

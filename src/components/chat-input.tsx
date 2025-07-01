@@ -1,6 +1,16 @@
 "use client";
 
-import { ArrowUp, Globe, Loader2, Paperclip, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  Brain,
+  File,
+  Globe,
+  Images,
+  Loader2,
+  Paperclip,
+  Square,
+  X,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
@@ -13,7 +23,15 @@ import {
   SetStateAction,
   useCallback,
 } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+} from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSettingsContext } from "@/contexts/settings-context";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
@@ -24,6 +42,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -53,6 +72,7 @@ export function ChatInput({
     reasoningEffort,
     setReasoningEffort,
     hasApiKeyForProvider,
+    isHydrated,
   } = useSettingsContext();
 
   useEffect(() => {
@@ -175,7 +195,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-t-xl border border-b-0 p-2 max-w-3xl w-full mx-auto"
+      className="rounded-2xl bg-muted/20 dark:bg-muted/30 border p-2 max-w-3xl w-full mx-auto"
     >
       {files.length > 0 && (
         <MemoizedFilePreview
@@ -192,54 +212,145 @@ export function ChatInput({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder="Ask anything..."
-        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[70px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
+        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[75px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          {model && reasoningEffort && (
+          {isHydrated && model && reasoningEffort && (
             <>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger variant="ghost" className="w-auto p-2 text-sm">
-                  {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
+                <SelectTrigger variant="ghost">
+                  <div className="flex items-center gap-2.5">
+                    {AVAILABLE_MODELS.find((m) => m.id === model)?.icon}
+                    <span className="font-normal text-sm">
+                      {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
+                    </span>
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_MODELS.filter((m) => !m.imageGeneration)
-                    .sort((a, b) => {
-                      return a.id.localeCompare(b.id);
-                    })
-                    .map((model) => {
-                      const isDisabled = !hasApiKeyForProvider(model.provider);
+                <SelectContent className="min-w-[400px] p-2 border backdrop-blur-xl shadow-xl rounded-2xl">
+                  <ScrollArea className="h-[460px]">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="px-3 py-2">
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Chat Models
+                          </h4>
+                        </div>
+                        <div className="space-y-0.5">
+                          {AVAILABLE_MODELS.filter((m) => !m.imageGeneration)
+                            .sort((a, b) => {
+                              return a.id.localeCompare(b.id);
+                            })
+                            .map((model) => (
+                              <SelectItem
+                                key={model.id}
+                                value={model.id}
+                                className="rounded-xl mx-1 px-3 py-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0"
+                                disabled={
+                                  !hasApiKeyForProvider(model.providerId)
+                                }
+                              >
+                                <div className="flex items-center justify-between w-90">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                      {model.icon}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-sm">
+                                        {model.name}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground capitalize">
+                                        {model.providerName}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {model.reasoning && (
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-600 dark:from-blue-900/30 dark:to-blue-800/40 dark:text-blue-400 shadow-sm">
+                                            <Brain className="h-3.5 w-3.5" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Has reasoning capabilities
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {model.pdfInput && (
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 dark:from-purple-900/30 dark:to-purple-800/40 dark:text-purple-400 shadow-sm">
+                                            <File className="h-3.5 w-3.5" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          PDF attachment support
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {model.imageInput && (
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-cyan-100 to-cyan-200 text-cyan-600 dark:from-cyan-900/30 dark:to-cyan-800/40 dark:text-cyan-400 shadow-sm">
+                                            <Images className="h-3.5 w-3.5" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Image attachment support
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </div>
+                      </div>
 
-                      const selectItem = (
-                        <SelectItem
-                          key={model.id}
-                          value={model.id}
-                          disabled={isDisabled}
-                        >
-                          <div className="flex w-fit items-center gap-2">
-                            <div className="flex items-center gap-2">
-                              {model.icon}
-                              {model.name}
-                            </div>
-                          </div>
-                        </SelectItem>
-                      );
+                      <SelectSeparator />
 
-                      if (isDisabled) {
-                        return (
-                          <Tooltip key={model.id}>
-                            <TooltipTrigger asChild>
-                              <div className="w-full">{selectItem}</div>
-                            </TooltipTrigger>
-                            <TooltipContent className="text-xs">
-                              API key not set for provider
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      }
-
-                      return selectItem;
-                    })}
+                      <div className="space-y-1">
+                        <div className="px-3 py-2">
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Image Models
+                          </h4>
+                        </div>
+                        <div className="space-y-0.5">
+                          {AVAILABLE_MODELS.filter((m) => m.imageGeneration)
+                            .sort((a, b) => {
+                              return a.id.localeCompare(b.id);
+                            })
+                            .map((model) => (
+                              <SelectItem
+                                key={model.id}
+                                value={model.id}
+                                className="rounded-xl mx-1 px-3 py-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0"
+                                disabled={
+                                  !hasApiKeyForProvider(model.providerId)
+                                }
+                              >
+                                <div className="flex items-center w-90">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                      {model.icon}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-sm">
+                                        {model.name}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground capitalize">
+                                        {model.providerName}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
                 </SelectContent>
               </Select>
 
@@ -274,13 +385,12 @@ export function ChatInput({
                   </Tooltip>
                   <SelectContent>
                     {REASONING_EFFORTS.map((effort) => (
-                      <SelectItem
-                        key={effort.id}
-                        value={effort.id}
-                        className="flex items-center gap-2"
-                      >
-                        <effort.icon className="size-4" />
-                        {effort.id.charAt(0).toUpperCase() + effort.id.slice(1)}
+                      <SelectItem key={effort.id} value={effort.id}>
+                        <div className="flex items-center gap-2">
+                          <effort.icon className="size-4" />
+                          {effort.id.charAt(0).toUpperCase() +
+                            effort.id.slice(1)}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -289,35 +399,41 @@ export function ChatInput({
             </>
           )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <Toggle
+          {AVAILABLE_MODELS.find((m) => m.id === model)?.search && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Toggle
+                    variant="outline"
+                    className="gap-1.5 rounded-full px-3 py-2 font-normal"
+                  >
+                    <Globe className="size-4" />
+                    <span className="hidden md:block">Search</span>
+                  </Toggle>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Enable web search</TooltipContent>
+            </Tooltip>
+          )}
+
+          {AVAILABLE_MODELS.find((m) => m.id === model)?.imageInput && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
                   variant="outline"
                   className="gap-1.5 rounded-full px-3 py-2 font-normal"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <Globe className="size-4" />
-                  <span className="hidden md:block">Search</span>
-                </Toggle>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Enable web search</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5 rounded-full px-3 py-2 font-normal"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="size-4" />
-                <span className="hidden md:block">Attach</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Only images are supported currently</TooltipContent>
-          </Tooltip>
+                  <Paperclip className="size-4" />
+                  <span className="hidden md:block">Attach</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Only images are supported currently
+              </TooltipContent>
+            </Tooltip>
+          )}
 
           <input
             ref={fileInputRef}
