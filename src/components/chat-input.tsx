@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  ArrowUp,
-  Brain,
-  File,
-  Globe,
-  Images,
-  Loader2,
-  Paperclip,
-  Square,
-  X,
-} from "lucide-react";
+import { ArrowUp, Globe, Loader2, Paperclip, Square, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import {
@@ -23,18 +13,9 @@ import {
   SetStateAction,
   useCallback,
 } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-} from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSettingsContext } from "@/contexts/settings-context";
-import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
+import { AVAILABLE_MODELS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { useUploadThing } from "@/lib/utils";
@@ -42,7 +23,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
-import { ScrollArea } from "./ui/scroll-area";
+import { ModelPicker } from "./model-picker";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -66,14 +47,7 @@ export function ChatInput({
   droppedFiles,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    model,
-    setModel,
-    reasoningEffort,
-    setReasoningEffort,
-    hasApiKeyForProvider,
-    isHydrated,
-  } = useSettingsContext();
+  const { model } = useSettingsContext();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -216,189 +190,7 @@ export function ChatInput({
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          {isHydrated && model && reasoningEffort && (
-            <>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger variant="ghost">
-                  <div className="flex items-center gap-2.5">
-                    {AVAILABLE_MODELS.find((m) => m.id === model)?.icon}
-                    <span className="font-normal text-sm">
-                      {AVAILABLE_MODELS.find((m) => m.id === model)?.name}
-                    </span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="min-w-[400px] p-2 border backdrop-blur-xl shadow-xl rounded-2xl">
-                  <ScrollArea className="h-[460px]">
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <div className="px-3 py-2">
-                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Chat Models
-                          </h4>
-                        </div>
-                        <div className="space-y-0.5">
-                          {AVAILABLE_MODELS.filter((m) => !m.imageGeneration)
-                            .sort((a, b) => {
-                              return a.id.localeCompare(b.id);
-                            })
-                            .map((model) => (
-                              <SelectItem
-                                key={model.id}
-                                value={model.id}
-                                className="rounded-xl mx-1 px-3 py-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0"
-                                disabled={
-                                  !hasApiKeyForProvider(model.providerId)
-                                }
-                              >
-                                <div className="flex items-center justify-between w-90">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex-shrink-0">
-                                      {model.icon}
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="font-medium text-sm">
-                                        {model.name}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground capitalize">
-                                        {model.providerName}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {model.reasoning && (
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-600 dark:from-blue-900/30 dark:to-blue-800/40 dark:text-blue-400 shadow-sm">
-                                            <Brain className="h-3.5 w-3.5" />
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Has reasoning capabilities
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                    {model.pdfInput && (
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 dark:from-purple-900/30 dark:to-purple-800/40 dark:text-purple-400 shadow-sm">
-                                            <File className="h-3.5 w-3.5" />
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          PDF attachment support
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                    {model.imageInput && (
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-cyan-100 to-cyan-200 text-cyan-600 dark:from-cyan-900/30 dark:to-cyan-800/40 dark:text-cyan-400 shadow-sm">
-                                            <Images className="h-3.5 w-3.5" />
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Image attachment support
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </div>
-                      </div>
-
-                      <SelectSeparator />
-
-                      <div className="space-y-1">
-                        <div className="px-3 py-2">
-                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Image Models
-                          </h4>
-                        </div>
-                        <div className="space-y-0.5">
-                          {AVAILABLE_MODELS.filter((m) => m.imageGeneration)
-                            .sort((a, b) => {
-                              return a.id.localeCompare(b.id);
-                            })
-                            .map((model) => (
-                              <SelectItem
-                                key={model.id}
-                                value={model.id}
-                                className="rounded-xl mx-1 px-3 py-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0"
-                                disabled={
-                                  !hasApiKeyForProvider(model.providerId)
-                                }
-                              >
-                                <div className="flex items-center w-90">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex-shrink-0">
-                                      {model.icon}
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="font-medium text-sm">
-                                        {model.name}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground capitalize">
-                                        {model.providerName}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
-
-              {AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning && (
-                <Select
-                  value={reasoningEffort}
-                  onValueChange={setReasoningEffort}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SelectTrigger
-                        className="w-auto rounded-full text-sm flex"
-                        hideChevron
-                      >
-                        {(() => {
-                          const effort = REASONING_EFFORTS.find(
-                            (e) => e.id === reasoningEffort
-                          );
-                          if (effort) {
-                            const IconComponent = effort.icon;
-                            return <IconComponent className="size-4" />;
-                          }
-                          return null;
-                        })()}
-                        <span className="hidden md:block">
-                          {reasoningEffort!.charAt(0).toUpperCase() +
-                            reasoningEffort!.slice(1)}
-                        </span>
-                      </SelectTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>Set reasoning effort</TooltipContent>
-                  </Tooltip>
-                  <SelectContent>
-                    {REASONING_EFFORTS.map((effort) => (
-                      <SelectItem key={effort.id} value={effort.id}>
-                        <div className="flex items-center gap-2">
-                          <effort.icon className="size-4" />
-                          {effort.id.charAt(0).toUpperCase() +
-                            effort.id.slice(1)}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </>
-          )}
-
+          <ModelPicker />
           {AVAILABLE_MODELS.find((m) => m.id === model)?.search && (
             <Tooltip>
               <TooltipTrigger asChild>

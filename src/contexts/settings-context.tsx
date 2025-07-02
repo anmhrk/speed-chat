@@ -23,6 +23,7 @@ interface SettingsState {
   reasoningEffort: ReasoningEfforts;
   apiKeys: Record<Providers, string>;
   customPrompt: string;
+  favoriteModels: Models[];
   hasApiKeys: boolean;
   isHydrated: boolean;
 }
@@ -32,6 +33,8 @@ interface SettingsActions {
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
   setApiKeys: (apiKeys: Record<Providers, string>) => void;
   setCustomPrompt: (prompt: string) => void;
+  toggleFavoriteModel: (model: Models) => void;
+  isFavoriteModel: (model: Models) => boolean;
   hasApiKeyForProvider: (provider: Providers) => boolean;
 }
 
@@ -39,7 +42,7 @@ type SettingsContext = SettingsState & SettingsActions;
 
 type PartialSettingsState = Pick<
   SettingsState,
-  "model" | "reasoningEffort" | "apiKeys" | "customPrompt"
+  "model" | "reasoningEffort" | "apiKeys" | "customPrompt" | "favoriteModels"
 >;
 
 const INITIAL_STATE: PartialSettingsState = {
@@ -52,6 +55,7 @@ const INITIAL_STATE: PartialSettingsState = {
     vertex: "",
   },
   customPrompt: "",
+  favoriteModels: [],
 };
 
 const SettingsContext = createContext<SettingsContext | null>(null);
@@ -67,6 +71,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     },
     [state.apiKeys]
   );
+
+  const isFavoriteModel = useCallback(
+    (model: Models) => {
+      return state.favoriteModels.includes(model);
+    },
+    [state.favoriteModels]
+  );
+
+  const toggleFavoriteModel = useCallback((model: Models) => {
+    setState((prev) => ({
+      ...prev,
+      favoriteModels: prev.favoriteModels.includes(model)
+        ? prev.favoriteModels.filter((m) => m !== model)
+        : [...prev.favoriteModels, model],
+    }));
+  }, []);
 
   const setModel = (model: Models) => setState((prev) => ({ ...prev, model }));
 
@@ -90,7 +110,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const defaultModel =
         AVAILABLE_MODELS.find((m) => m.default) ?? AVAILABLE_MODELS[0];
 
-      // Only change model if we're hydrated and not during initial load
       if (isHydrated) {
         // Removed all API keys
         if (!hasAnyKey) {
@@ -116,7 +135,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setCustomPrompt = (customPrompt: string) =>
     setState((prev) => ({ ...prev, customPrompt }));
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -154,12 +172,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      // Set state all at once to avoid multiple re-renders
+      const sanitizedFavoriteModels = (persisted.favoriteModels || []).filter(
+        (model) => VALID_MODEL_IDS.has(model)
+      );
+
       setState({
         model: sanitizedModel,
         reasoningEffort: sanitizedReasoningEffort,
         apiKeys: sanitizedApiKeys,
         customPrompt: persisted.customPrompt || "",
+        favoriteModels: sanitizedFavoriteModels,
       });
 
       setIsHydrated(true);
@@ -169,7 +191,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Persist to localStorage when state changes (but only after hydration)
+  // Persist to localStorage when state changes
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -178,6 +200,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       reasoningEffort: state.reasoningEffort,
       apiKeys: state.apiKeys,
       customPrompt: state.customPrompt,
+      favoriteModels: state.favoriteModels,
     };
 
     try {
@@ -190,6 +213,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     state.reasoningEffort,
     state.apiKeys,
     state.customPrompt,
+    state.favoriteModels,
     isHydrated,
   ]);
 
@@ -203,6 +227,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setReasoningEffort,
     setApiKeys,
     setCustomPrompt,
+    toggleFavoriteModel,
+    isFavoriteModel,
     hasApiKeyForProvider,
   };
 
@@ -213,7 +239,7 @@ export function useSettingsContext(): SettingsContext {
   const context = useContext(SettingsContext);
   if (!context) {
     throw new Error(
-      "useSettingsStore must be used within a SettingsProvider component"
+      "useSettingsContext must be used within a SettingsProvider component"
     );
   }
   return context;
