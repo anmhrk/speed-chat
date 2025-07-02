@@ -1,7 +1,7 @@
 import type { Message } from "ai";
 import type { LucideIcon } from "lucide-react";
 
-export type BasicModels =
+type BasicModels =
   | "google/gemini-2.5-flash"
   | "google/gemini-2.5-flash-lite-preview-06-17"
   | "openai/gpt-4.1"
@@ -14,7 +14,7 @@ export type BasicModels =
   | "meta-llama/llama-4-scout"
   | "x-ai/grok-3";
 
-export type ReasoningModels =
+type ReasoningModels =
   | "google/gemini-2.5-pro"
   | "anthropic/claude-sonnet-4-thinking" // not valid id, just placeholder to identify thinking version
   | "anthropic/claude-opus-4-thinking" // same as above
@@ -22,7 +22,7 @@ export type ReasoningModels =
   | "deepseek/deepseek-r1-0528"
   | "x-ai/grok-3-mini";
 
-export type ImageModels =
+type ImageModels =
   | "gpt-image-1"
   | "fal-ai/flux-pro/v1.1-ultra"
   | "imagen-4.0-generate-preview-06-06"
@@ -54,6 +54,13 @@ export type ReasoningEffortConfig = {
   icon: LucideIcon;
 };
 
+export type APIKeys = Record<Exclude<Providers, "vertex">, string> & {
+  vertex: {
+    clientEmail: string;
+    privateKey: string;
+  };
+};
+
 export type ProviderConfig = {
   id: Providers;
   name: string;
@@ -61,20 +68,27 @@ export type ProviderConfig = {
   url: string;
 };
 
+export type Customization = {
+  name: string;
+  whatYouDo: string;
+  traits: string[];
+  additionalInfo: string;
+};
+
 export type ChatRequest = {
   messages: Message[];
   chatId: string;
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: Record<Providers, string>;
+  apiKeys: APIKeys;
   temporaryChat: boolean;
-  customPrompt: string;
+  customization: Customization;
 };
 
 export type TitleRequest = {
   chatId: string;
   prompt: string;
-  apiKeys: Record<Providers, string>;
+  apiKeys: APIKeys;
 };
 
 export type FileMetadata = {

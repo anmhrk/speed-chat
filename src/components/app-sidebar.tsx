@@ -19,9 +19,7 @@ import {
   PenBox,
   LogIn,
   Loader2,
-  LogOut,
   Search,
-  Settings,
   MessageSquare,
   MoreHorizontal,
   Pencil,
@@ -31,7 +29,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "better-auth";
-import { signIn, signOut } from "@/lib/auth/auth-client";
+import { signIn } from "@/lib/auth/auth-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +37,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { SettingsDialog } from "./settings-dialog";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -57,20 +54,9 @@ import type { Chat } from "@/lib/db/schema";
 interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
-  settingsDialogOpen: boolean;
-  setSettingsDialogOpen: (open: boolean) => void;
-  dialogActiveItem: string;
-  setDialogActiveItem: (item: string) => void;
 }
 
-export function AppSidebar({
-  user,
-  chatIdParams,
-  settingsDialogOpen,
-  setSettingsDialogOpen,
-  dialogActiveItem,
-  setDialogActiveItem,
-}: AppSidebarProps) {
+export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -115,15 +101,6 @@ export function AppSidebar({
                 Search chats
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            {isSignedIn && (
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setSettingsDialogOpen(true)}>
-                  <Settings />
-                  Settings
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarHeader>
@@ -181,53 +158,21 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SettingsDialog
-        open={settingsDialogOpen}
-        onOpenChange={setSettingsDialogOpen}
-        chatsCount={chats?.length || 0}
-        dialogActiveItem={dialogActiveItem}
-        setDialogActiveItem={setDialogActiveItem}
-      />
-
       <SidebarFooter>
         {isSignedIn ? (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex h-12 w-full items-center justify-start gap-3 rounded-lg p-2 transition-colors"
-                >
-                  <Image
-                    src={user?.image || ""}
-                    alt="User"
-                    width={32}
-                    height={32}
-                    className="rounded-full object-cover cursor-pointer"
-                  />
-                  <span className="text-sm truncate font-normal">
-                    {user?.name}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem
-                  onClick={() =>
-                    void signOut({
-                      fetchOptions: {
-                        onSuccess: () => {
-                          router.push("/");
-                        },
-                      },
-                    })
-                  }
-                >
-                  <LogOut className="mr-2 size-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <Link
+            href="/settings"
+            className="flex h-12 w-full items-center justify-start gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
+          >
+            <Image
+              src={user?.image || ""}
+              alt="User"
+              width={32}
+              height={32}
+              className="rounded-full object-cover cursor-pointer"
+            />
+            <span className="text-sm truncate font-normal">{user?.name}</span>
+          </Link>
         ) : (
           <Button
             variant="ghost"
@@ -302,7 +247,7 @@ function ChatItem({
                   return oldData.map((chatItem) =>
                     chatItem.id === chat.id
                       ? { ...chatItem, title: newChatTitle }
-                      : chatItem,
+                      : chatItem
                   );
                 });
                 try {
@@ -351,7 +296,7 @@ function ChatItem({
                         ...chatItem,
                         isPinned: !chatItem.isPinned,
                       }
-                    : chatItem,
+                    : chatItem
                 );
               });
 
@@ -398,7 +343,7 @@ function ChatItem({
                   loading: "Deleting chat...",
                   success: "Chat deleted",
                   error: "Failed to delete chat",
-                },
+                }
               );
             }}
           >

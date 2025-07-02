@@ -63,7 +63,7 @@ export async function createChat(chatId: string) {
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[],
+  newMessages: Message[]
 ) {
   await db.transaction(async (tx) => {
     const desiredIds = new Set<string>([
@@ -141,15 +141,15 @@ async function deleteAllImages(userId: string) {
     .where(
       inArray(
         messages.chatId,
-        allChats.map((chat) => chat.id),
-      ),
+        allChats.map((chat) => chat.id)
+      )
     );
 
   const allFileUrls = allMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url),
+    message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  await deleteFiles(allFileUrls.filter((url) => url !== undefined));
+  await deleteFiles(allFileUrls.filter((url): url is string => Boolean(url)));
 }
 
 export async function deleteChat(chatId: string) {
@@ -159,10 +159,10 @@ export async function deleteChat(chatId: string) {
     .where(eq(messages.chatId, chatId));
 
   const allFileUrls = chatMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url),
+    message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  await deleteFiles(allFileUrls.filter((url) => url !== undefined));
+  await deleteFiles(allFileUrls.filter((url): url is string => Boolean(url)));
   await db.delete(chats).where(eq(chats.id, chatId));
 }
 

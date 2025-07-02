@@ -1,19 +1,19 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Ghost, Moon, Sun } from "lucide-react";
+import { Ghost, Github } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { useTheme } from "next-themes";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useRouter } from "next/navigation";
 import { Toggle } from "./ui/toggle";
+import { ThemeToggle } from "./theme-toggle";
+import { Button } from "./ui/button";
+import Link from "next/link";
 
 export function Header({ temporaryChat }: { temporaryChat: boolean }) {
-  const { theme, setTheme } = useTheme();
   const router = useRouter();
 
   return (
@@ -26,15 +26,17 @@ export function Header({ temporaryChat }: { temporaryChat: boolean }) {
               variant="ghost"
               size="icon"
               className="rounded-full"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              asChild
             >
-              <Moon className="size-5 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Sun className="absolute size-5 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-              <span className="sr-only">Toggle Theme</span>
+              <Link href="https://github.com/anmhrk/speed-chat" target="_blank">
+                <Github className="size-5" />
+                <span className="sr-only">GitHub</span>
+              </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Toggle Theme</TooltipContent>
+          <TooltipContent>View repo on GitHub</TooltipContent>
         </Tooltip>
+        <ThemeToggle />
         <Tooltip>
           <TooltipTrigger asChild>
             <div>

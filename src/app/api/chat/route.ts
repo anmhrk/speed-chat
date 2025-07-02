@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       reasoningEffort,
       apiKeys,
       temporaryChat,
-      customPrompt,
+      customization,
     } = body;
 
     const user = await getUser();
@@ -90,9 +90,26 @@ export async function POST(request: NextRequest) {
         - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
 
         ${
-          customPrompt &&
-          `\n\nThis is a user-provided extension to the system prompt. You may use this to tailor your response:
-            \n${customPrompt}\n`
+          customization &&
+          `
+          *Below are some customization options set by the user. You may use these to tailor your response to be more personalized:*
+          ${
+            customization.name &&
+            `- Name/nickname of the user: ${customization.name}`
+          }
+          ${
+            customization.whatYouDo &&
+            `- What the user does: ${customization.whatYouDo}`
+          }
+          ${
+            customization.traits.length > 0 &&
+            `- Traits the user wants you to have: ${customization.traits.join(", ")}`
+          }
+          ${
+            customization.additionalInfo &&
+            `- Additional info the user wants you to know: ${customization.additionalInfo}`
+          }
+        `
         }
         `,
       experimental_transform: [

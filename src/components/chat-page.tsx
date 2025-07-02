@@ -31,10 +31,11 @@ const promptSuggestions = [
 interface ChatPageProps {
   user: User | null;
   initialChatId: string;
+  greeting?: string;
 }
 
-export function ChatPage({ user, initialChatId }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customPrompt, hasApiKeys } =
+export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
+  const { model, reasoningEffort, apiKeys, customization, hasApiKeys } =
     useSettingsContext();
   const queryClient = useQueryClient();
 
@@ -45,8 +46,6 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [dontFetchId, setDontFetchId] = useState("");
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-  const [dialogActiveItem, setDialogActiveItem] = useState("General");
   const [fileMetadata, setFileMetadata] = useState<
     Record<string, FileMetadata>
   >({});
@@ -137,7 +136,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       reasoningEffort,
       apiKeys,
       temporaryChat,
-      customPrompt,
+      customization,
     },
     onError: (error) => {
       console.error(error);
@@ -177,10 +176,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
       toast("Please add API keys to chat", {
         action: {
           label: "Add keys",
-          onClick: () => {
-            setSettingsDialogOpen(true);
-            setDialogActiveItem("API Keys");
-          },
+          onClick: () => router.push("/settings/api-keys"),
         },
       });
       return;
@@ -281,14 +277,7 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
 
   return (
     <>
-      <AppSidebar
-        user={user}
-        chatIdParams={chatId ?? ""}
-        settingsDialogOpen={settingsDialogOpen}
-        setSettingsDialogOpen={setSettingsDialogOpen}
-        dialogActiveItem={dialogActiveItem}
-        setDialogActiveItem={setDialogActiveItem}
-      />
+      <AppSidebar user={user} chatIdParams={chatId ?? ""} />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
           <input {...getInputProps()} />
@@ -339,15 +328,13 @@ export function ChatPage({ user, initialChatId }: ChatPageProps) {
                   ) : (
                     <>
                       <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        {user
-                          ? `How can I help you, ${user.name.split(" ")[0]}?`
-                          : "How can I help you?"}
+                        {user ? greeting : "How can I help you?"}
                       </h1>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 w-full">
                         {promptSuggestions.map((suggestion, index) => (
                           <div
                             key={index}
-                            className="border-border bg-card hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
+                            className="border-border bg-secondary/40 dark:bg-card hover:bg-muted dark:hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
                             onClick={() => setInput(suggestion)}
                           >
                             <span className="text-muted-foreground text-sm">

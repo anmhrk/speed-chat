@@ -9,7 +9,13 @@ import React, {
   type ReactNode,
 } from "react";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
-import type { Models, Providers, ReasoningEfforts } from "@/lib/types";
+import type {
+  APIKeys,
+  Customization,
+  Models,
+  Providers,
+  ReasoningEfforts,
+} from "@/lib/types";
 
 const VALID_MODEL_IDS = new Set(AVAILABLE_MODELS.map((m) => m.id));
 const VALID_REASONING_IDS = new Set(REASONING_EFFORTS.map((r) => r.id));
@@ -21,8 +27,8 @@ const LOCAL_STORAGE_KEY = "settings";
 interface SettingsState {
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: Record<Providers, string>;
-  customPrompt: string;
+  apiKeys: APIKeys;
+  customization: Customization;
   favoriteModels: Models[];
   hasApiKeys: boolean;
   isHydrated: boolean;
@@ -31,8 +37,8 @@ interface SettingsState {
 interface SettingsActions {
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  setApiKeys: (apiKeys: Record<Providers, string>) => void;
-  setCustomPrompt: (prompt: string) => void;
+  setApiKeys: (apiKeys: APIKeys) => void;
+  setCustomization: (customization: Customization) => void;
   toggleFavoriteModel: (model: Models) => void;
   isFavoriteModel: (model: Models) => boolean;
   hasApiKeyForProvider: (provider: Providers) => boolean;
@@ -42,7 +48,7 @@ type SettingsContext = SettingsState & SettingsActions;
 
 type PartialSettingsState = Pick<
   SettingsState,
-  "model" | "reasoningEffort" | "apiKeys" | "customPrompt" | "favoriteModels"
+  "model" | "reasoningEffort" | "apiKeys" | "customization" | "favoriteModels"
 >;
 
 const INITIAL_STATE: PartialSettingsState = {
@@ -52,9 +58,17 @@ const INITIAL_STATE: PartialSettingsState = {
     openrouter: "",
     openai: "",
     falai: "",
-    vertex: "",
+    vertex: {
+      clientEmail: "",
+      privateKey: "",
+    },
   },
-  customPrompt: "",
+  customization: {
+    name: "",
+    whatYouDo: "",
+    traits: [],
+    additionalInfo: "",
+  },
   favoriteModels: [],
 };
 
@@ -67,7 +81,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const hasApiKeyForProvider = useCallback(
     (provider: Providers) => {
       const key = state.apiKeys[provider];
-      return !!(key && key.trim() !== "");
+      if (provider === "vertex") {
+        const vertexKey = key as { clientEmail: string; privateKey: string };
+        return !!(vertexKey.clientEmail.trim() && vertexKey.privateKey.trim());
+      }
+      return !!(key && (key as string).trim() !== "");
     },
     [state.apiKeys]
   );
@@ -93,15 +111,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setReasoningEffort = (reasoningEffort: ReasoningEfforts) =>
     setState((prev) => ({ ...prev, reasoningEffort }));
 
-  const setApiKeys = (apiKeys: Record<Providers, string>) => {
+  const setApiKeys = (apiKeys: APIKeys) => {
     setState((prev) => {
-      const hasAnyKey = Object.values(apiKeys).some(
-        (key) => key && key.toString().trim() !== ""
-      );
+      const hasAnyKey = Object.entries(apiKeys).some(([provider, key]) => {
+        if (provider === "vertex") {
+          const vertexKey = key as { clientEmail: string; privateKey: string };
+          return vertexKey.clientEmail.trim() && vertexKey.privateKey.trim();
+        }
+        return key && (key as string).trim() !== "";
+      });
 
-      const availableModels = AVAILABLE_MODELS.filter((model) =>
-        apiKeys[model.providerId as Providers]?.trim()
-      );
+      const availableModels = AVAILABLE_MODELS.filter((model) => {
+        const provider = model.providerId;
+        if (provider === "vertex") {
+          const vertexKey = apiKeys[provider] as {
+            clientEmail: string;
+            privateKey: string;
+          };
+          return vertexKey.clientEmail.trim() && vertexKey.privateKey.trim();
+        }
+        return (apiKeys[provider] as string)?.trim();
+      });
 
       let selectedModel = prev.model;
       const selectedModelProvider = AVAILABLE_MODELS.find(
@@ -115,12 +145,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (!hasAnyKey) {
           selectedModel = defaultModel.id;
           // Removed API key for selected model
-        } else if (
-          selectedModel &&
-          selectedModelProvider &&
-          !apiKeys[selectedModelProvider]?.trim()
-        ) {
-          selectedModel = availableModels[0]?.id ?? defaultModel.id;
+        } else if (selectedModel && selectedModelProvider) {
+          const hasKeyForProvider = (() => {
+            if (selectedModelProvider === "vertex") {
+              const vertexKey = apiKeys[selectedModelProvider] as {
+                clientEmail: string;
+                privateKey: string;
+              };
+              return (
+                vertexKey.clientEmail.trim() && vertexKey.privateKey.trim()
+              );
+            }
+            return (apiKeys[selectedModelProvider] as string)?.trim();
+          })();
+
+          if (!hasKeyForProvider) {
+            selectedModel = availableModels[0]?.id ?? defaultModel.id;
+          }
         }
       }
 
@@ -132,8 +173,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const setCustomPrompt = (customPrompt: string) =>
-    setState((prev) => ({ ...prev, customPrompt }));
+  const setCustomization = (customization: Customization) =>
+    setState((prev) => ({ ...prev, customization }));
 
   useEffect(() => {
     try {
@@ -143,7 +184,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const persisted: PartialSettingsState = JSON.parse(raw);
+      let persisted: PartialSettingsState;
+      try {
+        persisted = JSON.parse(raw);
+      } catch (parseError) {
+        console.error(
+          "Failed to parse settings JSON, clearing corrupted data",
+          parseError
+        );
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        setIsHydrated(true);
+        return;
+      }
 
       // Sanitize persisted values
       const sanitizedModel =
@@ -157,17 +209,35 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? persisted.reasoningEffort
           : INITIAL_STATE.reasoningEffort;
 
-      const sanitizedApiKeys: Record<Providers, string> = {
+      const sanitizedApiKeys: APIKeys = {
         openrouter: "",
         openai: "",
         falai: "",
-        vertex: "",
+        vertex: {
+          clientEmail: "",
+          privateKey: "",
+        },
       };
 
       if (persisted.apiKeys) {
         Object.entries(persisted.apiKeys).forEach(([provider, key]) => {
           if (VALID_PROVIDERS.has(provider as Providers)) {
-            sanitizedApiKeys[provider as Providers] = key || "";
+            if (provider === "vertex") {
+              if (
+                typeof key === "object" &&
+                key !== null &&
+                "clientEmail" in key &&
+                "privateKey" in key
+              ) {
+                sanitizedApiKeys.vertex = {
+                  clientEmail: key.clientEmail || "",
+                  privateKey: key.privateKey || "",
+                };
+              }
+            } else {
+              sanitizedApiKeys[provider as Exclude<Providers, "vertex">] =
+                (key as string) || "";
+            }
           }
         });
       }
@@ -176,11 +246,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         (model) => VALID_MODEL_IDS.has(model)
       );
 
+      const sanitizedCustomization = persisted.customization
+        ? {
+            ...persisted.customization,
+            traits: Array.isArray(persisted.customization.traits)
+              ? persisted.customization.traits.filter(
+                  (trait): trait is string => typeof trait === "string"
+                )
+              : INITIAL_STATE.customization.traits,
+          }
+        : INITIAL_STATE.customization;
+
       setState({
         model: sanitizedModel,
         reasoningEffort: sanitizedReasoningEffort,
         apiKeys: sanitizedApiKeys,
-        customPrompt: persisted.customPrompt || "",
+        customization: sanitizedCustomization,
         favoriteModels: sanitizedFavoriteModels,
       });
 
@@ -199,7 +280,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       model: state.model,
       reasoningEffort: state.reasoningEffort,
       apiKeys: state.apiKeys,
-      customPrompt: state.customPrompt,
+      customization: state.customization,
       favoriteModels: state.favoriteModels,
     };
 
@@ -212,7 +293,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     state.model,
     state.reasoningEffort,
     state.apiKeys,
-    state.customPrompt,
+    state.customization,
     state.favoriteModels,
     isHydrated,
   ]);
@@ -220,13 +301,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const value: SettingsContext = {
     ...state,
     isHydrated,
-    hasApiKeys: Object.values(state.apiKeys).some(
-      (key) => key && key.trim() !== ""
-    ),
+    hasApiKeys: Object.entries(state.apiKeys).some(([provider, key]) => {
+      if (provider === "vertex") {
+        const vertexKey = key as { clientEmail: string; privateKey: string };
+        return vertexKey.clientEmail.trim() && vertexKey.privateKey.trim();
+      }
+      return key && (key as string).trim() !== "";
+    }),
     setModel,
     setReasoningEffort,
     setApiKeys,
-    setCustomPrompt,
+    setCustomization,
     toggleFavoriteModel,
     isFavoriteModel,
     hasApiKeyForProvider,

@@ -33,9 +33,9 @@ export function Messages({
   const getViewport = useCallback(
     () =>
       scrollAreaRef.current?.querySelector(
-        '[data-slot="scroll-area-viewport"]',
+        '[data-slot="scroll-area-viewport"]'
       ) as HTMLDivElement | null,
-    [],
+    []
   );
 
   const scrollToBottom = useCallback(() => {
