@@ -50,13 +50,15 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
 import type { Chat } from "@/lib/db/schema";
+import { UseChatHelpers } from "@ai-sdk/react";
 
 interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
+  status: UseChatHelpers["status"];
 }
 
-export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
+export function AppSidebar({ user, chatIdParams, status }: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -107,14 +109,7 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup className="flex flex-1 flex-col">
-          {isLoadingChats ? (
-            <div className="flex flex-1 flex-col items-center justify-center">
-              <Loader2 className="size-5 animate-spin mb-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading chats...
-              </span>
-            </div>
-          ) : chats && chats.length > 0 ? (
+          {isLoadingChats ? null : chats && chats.length > 0 ? (
             <>
               {chats.filter((chat) => chat.isPinned).length > 0 && (
                 <>
@@ -127,6 +122,7 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
+                          status={status}
                         />
                       ))}
                   </SidebarMenu>
@@ -143,6 +139,7 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
+                          status={status}
                         />
                       ))}
                   </SidebarMenu>
@@ -201,9 +198,11 @@ export function AppSidebar({ user, chatIdParams }: AppSidebarProps) {
 function ChatItem({
   chat,
   chatIdParams,
+  status,
 }: {
   chat: Chat;
   chatIdParams: string;
+  status: UseChatHelpers["status"];
 }) {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -264,94 +263,105 @@ function ChatItem({
             className="border-none focus-visible:ring-0 !bg-transparent w-full px-0"
           />
         ) : (
-          <Link href={`/chat/${chat.id}`}>
+          <Link
+            href={`/chat/${chat.id}`}
+            className="flex items-center gap-2 w-full"
+          >
             <span className="truncate">{chat.title}</span>
           </Link>
         )}
       </SidebarMenuButton>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction showOnHover className="!top-2 cursor-pointer">
-            <MoreHorizontal />
-            <span className="sr-only">Chat Actions</span>
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="w-fit rounded-lg"
-          side={isMobile ? "bottom" : "right"}
-          align={isMobile ? "end" : "start"}
-          onCloseAutoFocus={(e) => {
-            if (isRenamingChat) {
-              e.preventDefault();
-            }
-          }}
-        >
-          <DropdownMenuItem
-            onClick={async () => {
-              queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-                if (!oldData) return oldData;
-                return oldData.map((chatItem) =>
-                  chatItem.id === chat.id
-                    ? {
-                        ...chatItem,
-                        isPinned: !chatItem.isPinned,
-                      }
-                    : chatItem
-                );
-              });
-
-              // Update db in background but show optimistic update immediately
-              try {
-                handlePinChat(chat.id, chat.isPinned);
-              } catch (error) {
-                console.error(error);
-                toast.error("Failed to pin chat");
+      {chat.id === chatIdParams &&
+      (status === "submitted" || status === "streaming") ? (
+        <SidebarMenuAction className="!top-2">
+          <Loader2 className="size-4 animate-spin" />
+          <span className="sr-only">Loading</span>
+        </SidebarMenuAction>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuAction showOnHover className="!top-2 cursor-pointer">
+              <MoreHorizontal />
+              <span className="sr-only">Chat Actions</span>
+            </SidebarMenuAction>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-fit rounded-lg"
+            side={isMobile ? "bottom" : "right"}
+            align={isMobile ? "end" : "start"}
+            onCloseAutoFocus={(e) => {
+              if (isRenamingChat) {
+                e.preventDefault();
               }
             }}
           >
-            {chat.isPinned ? <PinOff /> : <Pin />}
-            <span>{chat.isPinned ? "Unpin" : "Pin"}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              setIsRenamingChat(true);
-              setRenamingChatId(chat.id);
-              setNewChatTitle(chat.title);
-              setTimeout(() => {
-                renameInputRef.current?.focus();
-                renameInputRef.current?.select();
-              }, 100);
-            }}
-          >
-            <Pencil />
-            <span>Rename</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => {
-              toast.promise(
-                deleteChat(chat.id).finally(() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["chats"],
-                  });
-                  if (chat.id === chatIdParams) {
-                    router.push("/");
-                  }
-                }),
-                {
-                  loading: "Deleting chat...",
-                  success: "Chat deleted",
-                  error: "Failed to delete chat",
+            <DropdownMenuItem
+              onClick={async () => {
+                queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
+                  if (!oldData) return oldData;
+                  return oldData.map((chatItem) =>
+                    chatItem.id === chat.id
+                      ? {
+                          ...chatItem,
+                          isPinned: !chatItem.isPinned,
+                        }
+                      : chatItem
+                  );
+                });
+
+                // Update db in background but show optimistic update immediately
+                try {
+                  handlePinChat(chat.id, chat.isPinned);
+                } catch (error) {
+                  console.error(error);
+                  toast.error("Failed to pin chat");
                 }
-              );
-            }}
-          >
-            <Trash2 />
-            <span>Delete</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              }}
+            >
+              {chat.isPinned ? <PinOff /> : <Pin />}
+              <span>{chat.isPinned ? "Unpin" : "Pin"}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setIsRenamingChat(true);
+                setRenamingChatId(chat.id);
+                setNewChatTitle(chat.title);
+                setTimeout(() => {
+                  renameInputRef.current?.focus();
+                  renameInputRef.current?.select();
+                }, 100);
+              }}
+            >
+              <Pencil />
+              <span>Rename</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => {
+                toast.promise(
+                  deleteChat(chat.id).finally(() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["chats"],
+                    });
+                    if (chat.id === chatIdParams) {
+                      router.push("/");
+                    }
+                  }),
+                  {
+                    loading: "Deleting chat...",
+                    success: "Chat deleted",
+                    error: "Failed to delete chat",
+                  }
+                );
+              }}
+            >
+              <Trash2 />
+              <span>Delete</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </SidebarMenuItem>
   );
 }

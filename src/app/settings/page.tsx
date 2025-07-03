@@ -26,7 +26,6 @@ export default function GeneralPage() {
         setDeletingAllChats(true);
         await deleteAllChats();
         queryClient.invalidateQueries({ queryKey: ["chats"] });
-        router.push("/");
         toast.success("All chats deleted successfully!");
       } catch (error) {
         console.error(error);

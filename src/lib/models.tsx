@@ -138,7 +138,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <DeepSeek />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    imageInput: true,
     search: true,
   },
   {

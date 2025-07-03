@@ -12,7 +12,7 @@ import { SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { createChat } from "@/lib/db/actions";
-import { Loader2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/contexts/settings-context";
 import { getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,7 +78,6 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
   });
 
   // Sync the chatId from the URL with the state
-  // useParams was being weird so using usePathname instead
   useEffect(() => {
     if (pathname === "/") {
       setChatId(null);
@@ -277,7 +276,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
 
   return (
     <>
-      <AppSidebar user={user} chatIdParams={chatId ?? ""} />
+      <AppSidebar user={user} chatIdParams={chatId ?? ""} status={status} />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
           <input {...getInputProps()} />
@@ -295,16 +294,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
 
           <Header temporaryChat={temporaryChat} />
           <div className="flex-1 min-h-0 relative">
-            {isLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="size-5 animate-spin" />
-                  <span className="text-muted-foreground text-sm">
-                    Loading messages..
-                  </span>
-                </div>
-              </div>
-            ) : messages.length > 0 ? (
+            {isLoading ? null : messages.length > 0 ? (
               <Messages
                 allMessages={messages}
                 status={status}
@@ -360,6 +350,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
               fileMetadata={fileMetadata}
               setFileMetadata={setFileMetadata}
               droppedFiles={droppedFiles}
+              user={user}
             />
           </div>
         </div>

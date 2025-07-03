@@ -24,6 +24,7 @@ import Image from "next/image";
 import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
 import { ModelPicker } from "./model-picker";
+import type { User } from "better-auth";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -34,6 +35,7 @@ interface ChatInputProps {
   fileMetadata: Record<string, FileMetadata>;
   setFileMetadata: Dispatch<SetStateAction<Record<string, FileMetadata>>>;
   droppedFiles?: File[];
+  user: User | null;
 }
 
 export function ChatInput({
@@ -45,6 +47,7 @@ export function ChatInput({
   fileMetadata,
   setFileMetadata,
   droppedFiles,
+  user,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { model } = useSettingsContext();
@@ -211,18 +214,23 @@ export function ChatInput({
           {AVAILABLE_MODELS.find((m) => m.id === model)?.imageInput && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-1.5 rounded-full px-3 py-2 font-normal"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Paperclip className="size-4" />
-                  <span className="hidden md:block">Attach</span>
-                </Button>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-1.5 rounded-full px-3 py-2 font-normal"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!user}
+                  >
+                    <Paperclip className="size-4" />
+                    <span className="hidden md:block">Attach</span>
+                  </Button>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
-                Only images are supported currently
+                {user
+                  ? "Only images are supported currently"
+                  : "Please login first"}
               </TooltipContent>
             </Tooltip>
           )}

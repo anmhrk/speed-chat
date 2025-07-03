@@ -82,7 +82,10 @@ export function Messages({
   }, [scrollToBottom]);
 
   return (
-    <>
+    <div className="relative h-full">
+      {/* Top shadow */}
+      <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
+
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="flex w-full flex-col gap-10 max-w-[750px] mx-auto py-16 px-5 md:px-0">
           {allMessages.map((message) => (
@@ -112,17 +115,21 @@ export function Messages({
           )}
         </div>
       </ScrollArea>
+
+      {/* Bottom shadow */}
+      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+
       {showScrollToBottomButton && (
         <Button
           onClick={scrollToBottom}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 rounded-full shadow-lg"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 rounded-full shadow-lg"
           size="sm"
         >
           <ArrowDown className="size-4" />
           Scroll to bottom
         </Button>
       )}
-    </>
+    </div>
   );
 }
 

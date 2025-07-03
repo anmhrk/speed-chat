@@ -89,29 +89,22 @@ export async function POST(request: NextRequest) {
         - Inline code should be wrapped in backticks: \`content\`
         - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
 
-        ${
-          customization &&
-          `
-          *Below are some customization options set by the user. You may use these to tailor your response to be more personalized:*
-          ${
-            customization.name &&
-            `- Name/nickname of the user: ${customization.name}`
-          }
-          ${
-            customization.whatYouDo &&
-            `- What the user does: ${customization.whatYouDo}`
-          }
-          ${
-            customization.traits.length > 0 &&
-            `- Traits the user wants you to have: ${customization.traits.join(", ")}`
-          }
-          ${
-            customization.additionalInfo &&
-            `- Additional info the user wants you to know: ${customization.additionalInfo}`
-          }
-        `
-        }
-        `,
+      ${(() => {
+        const customItems = [
+          customization.name &&
+            `- Name/nickname of the user: ${customization.name}`,
+          customization.whatYouDo &&
+            `- What the user does: ${customization.whatYouDo}`,
+          customization.traits.length > 0 &&
+            `- Traits the user wants you to have: ${customization.traits.join(", ")}`,
+          customization.additionalInfo &&
+            `- Additional info the user wants you to know: ${customization.additionalInfo}`,
+        ].filter(Boolean);
+
+        return customItems.length > 0
+          ? `*Below are some customization options set by the user. You may use these to tailor your response to be more personalized:*\n${customItems.join("\n")}`
+          : "";
+      })()}`,
       experimental_transform: [
         smoothStream({
           chunking: "word",
@@ -140,17 +133,7 @@ export async function POST(request: NextRequest) {
           const newMessages = appendResponseMessages({
             messages: [latestUserMessage],
             responseMessages: response.messages,
-          }).map((m) => ({
-            ...m,
-            // Overriding id for consistency because different providers send different id formats
-            id:
-              m.role === "assistant"
-                ? createIdGenerator({
-                    prefix: "assistant",
-                    size: 16,
-                  })()
-                : m.id,
-          }));
+          });
 
           await saveMessages(chatId, messageIds, newMessages);
         } catch (error) {
