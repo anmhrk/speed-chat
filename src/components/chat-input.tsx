@@ -14,7 +14,7 @@ import {
   useCallback,
 } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/components/settings-provider";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -25,6 +25,7 @@ import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata } from "@/lib/types";
 import { ModelPicker } from "./model-picker";
 import type { User } from "better-auth";
+import { useRouter } from "next/navigation";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -50,7 +51,8 @@ export function ChatInput({
   user,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { model } = useSettingsContext();
+  const { model, apiKeys } = useSettingsContext();
+  const router = useRouter();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -169,9 +171,35 @@ export function ChatInput({
     }
   };
 
+  const handleImageSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const start = Date.now() / 1000;
+    console.log("starting image generation at ", start);
+    const response = await fetch("/api/generate-image", {
+      method: "POST",
+      body: JSON.stringify({
+        model,
+        apiKeys: apiKeys,
+        prompt: input,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json()) as { error: string };
+      console.error(error);
+      return;
+    }
+
+    const { imageUrl } = await response.json();
+    const end = Date.now() / 1000;
+    console.log("image generation took ", end - start, "s");
+    router.push(imageUrl);
+  };
+
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleImageSubmit}
       className="rounded-2xl bg-muted/20 dark:bg-muted/30 border p-2 max-w-3xl w-full mx-auto"
     >
       {files.length > 0 && (

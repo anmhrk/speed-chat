@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/components/settings-provider";
 import { Customization } from "@/lib/types";
 import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";

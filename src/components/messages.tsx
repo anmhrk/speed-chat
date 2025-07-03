@@ -84,7 +84,7 @@ export function Messages({
   return (
     <div className="relative h-full">
       {/* Top shadow */}
-      <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
+      <div className="absolute max-w-[750px] mx-auto top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
 
       <ScrollArea className="h-full" ref={scrollAreaRef}>
         <div className="flex w-full flex-col gap-10 max-w-[750px] mx-auto py-16 px-5 md:px-0">
@@ -117,7 +117,7 @@ export function Messages({
       </ScrollArea>
 
       {/* Bottom shadow */}
-      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+      <div className="absolute max-w-[750px] mx-auto bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
 
       {showScrollToBottomButton && (
         <Button

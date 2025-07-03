@@ -1,6 +1,6 @@
 "use client";
 
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/components/settings-provider";
 import type { APIKeys, ProviderConfig, Providers } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

@@ -13,7 +13,7 @@ import { AppSidebar } from "./app-sidebar";
 import { Messages } from "./messages";
 import { createChat } from "@/lib/db/actions";
 import { Upload } from "lucide-react";
-import { useSettingsContext } from "@/contexts/settings-context";
+import { useSettingsContext } from "@/components/settings-provider";
 import { getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
@@ -35,7 +35,7 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customization, hasApiKeys } =
+  const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
     useSettingsContext();
   const queryClient = useQueryClient();
 
@@ -171,7 +171,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
       return;
     }
 
-    if (!hasApiKeys) {
+    if (!hasAnyKey()) {
       toast("Please add API keys to chat", {
         action: {
           label: "Add keys",
