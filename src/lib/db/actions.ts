@@ -145,11 +145,22 @@ async function deleteAllImages(userId: string) {
       )
     );
 
-  const allFileUrls = allMessages.flatMap((message) =>
+  const attachmentUrls = allMessages.flatMap((message) =>
     message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  await deleteFiles(allFileUrls.filter((url): url is string => Boolean(url)));
+  const toolInvocationUrls = allMessages.flatMap((message) =>
+    message.parts?.map((part) =>
+      part.type === "tool-invocation"
+        ? (part.toolInvocation as any).result.imageUrl
+        : null
+    )
+  );
+
+  await deleteFiles([
+    ...attachmentUrls.filter((url): url is string => Boolean(url)),
+    ...toolInvocationUrls.filter((url): url is string => Boolean(url)),
+  ]);
 }
 
 export async function deleteChat(chatId: string) {
@@ -158,11 +169,21 @@ export async function deleteChat(chatId: string) {
     .from(messages)
     .where(eq(messages.chatId, chatId));
 
-  const allFileUrls = chatMessages.flatMap((message) =>
+  const attachmentUrls = chatMessages.flatMap((message) =>
     message.experimental_attachments?.map((attachment) => attachment.url)
   );
+  const toolInvocationUrls = chatMessages.flatMap((message) =>
+    message.parts?.map((part) =>
+      part.type === "tool-invocation"
+        ? (part.toolInvocation as any).result.imageUrl
+        : null
+    )
+  );
 
-  await deleteFiles(allFileUrls.filter((url): url is string => Boolean(url)));
+  await deleteFiles([
+    ...attachmentUrls.filter((url): url is string => Boolean(url)),
+    ...toolInvocationUrls.filter((url): url is string => Boolean(url)),
+  ]);
   await db.delete(chats).where(eq(chats.id, chatId));
 }
 

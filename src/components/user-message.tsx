@@ -33,7 +33,7 @@ export function UserMessage({
   const editRef = useRef<HTMLTextAreaElement>(null);
   const originalMessagesRef = useRef<Message[]>(allMessages);
   const [removedAttachmentUrls, setRemovedAttachmentUrls] = useState<string[]>(
-    [],
+    []
   );
 
   const handleCopy = () => {
@@ -61,19 +61,27 @@ export function UserMessage({
     setIsEditing(false);
 
     const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id,
+      (m) => m.id === message.id
     );
 
     const currentEditedMessage = allMessages[editedMessageIndex];
 
     const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
-    const futureAttachments = messagesToCheck.flatMap((m) =>
-      m.experimental_attachments?.map((a) => a.url),
+    const futureAttachmentUrls = messagesToCheck.flatMap((m) =>
+      m.experimental_attachments?.map((a) => a.url)
+    );
+    const futureToolInvocationUrls = messagesToCheck.flatMap((m) =>
+      m.parts?.map((part) =>
+        part.type === "tool-invocation"
+          ? (part.toolInvocation as any).result.imageUrl
+          : null
+      )
     );
 
     const urlsToDelete = [
       ...removedAttachmentUrls,
-      ...futureAttachments,
+      ...futureAttachmentUrls,
+      ...futureToolInvocationUrls,
     ].filter((url): url is string => Boolean(url));
 
     if (urlsToDelete.length > 0) {
@@ -112,7 +120,7 @@ export function UserMessage({
         <div
           className={cn(
             isEditing ? "bg-primary/20 w-full" : "bg-accent",
-            "rounded-lg px-4 py-3",
+            "rounded-lg px-4 py-3"
           )}
         >
           <div className="break-words whitespace-pre-wrap">
@@ -147,11 +155,11 @@ export function UserMessage({
             )}
           </div>
 
-         {message.experimental_attachments && (
+          {message.experimental_attachments && (
             <div className="flex flex-wrap gap-2 mt-4 relative">
               {message.experimental_attachments
                 ?.filter((attachment) =>
-                  attachment.contentType?.startsWith("image/"),
+                  attachment.contentType?.startsWith("image/")
                 )
                 .map((attachment, index) => (
                   <div
@@ -163,7 +171,7 @@ export function UserMessage({
                       alt={attachment.name ?? "Attachment"}
                       width={800}
                       height={600}
-                       className="rounded-md max-w-full h-auto cursor-pointer"
+                      className="rounded-md max-w-full h-auto cursor-pointer"
                       loading="lazy"
                       onClick={() => window.open(attachment.url, "_blank")}
                     />
@@ -187,16 +195,14 @@ export function UserMessage({
                             ...message,
                             experimental_attachments:
                               message.experimental_attachments?.filter(
-                                (a) => a.url !== attachment.url,
+                                (a) => a.url !== attachment.url
                               ),
                           };
 
                           setMessages(
                             allMessages.map((m) =>
-                              m.id === message.id
-                                ? messageWithoutAttachment
-                                : m,
-                            ),
+                              m.id === message.id ? messageWithoutAttachment : m
+                            )
                           );
                         }}
                       >
