@@ -19,20 +19,15 @@ type ReasoningModels =
   | "anthropic/claude-sonnet-4-thinking" // not valid id, just placeholder to identify thinking version
   | "anthropic/claude-opus-4-thinking" // same as above
   | "openai/o4-mini"
-  | "o3"
+  | "o3" // using openai provider for o3 because of additional integration requirement in openrouter, just verify org and it works. same with gpt image 1
   | "deepseek/deepseek-r1-0528"
   | "x-ai/grok-3-mini";
 
-type ImageModels =
-  | "gpt-image-1"
-  | "fal-ai/flux-pro/v1.1-ultra"
-  | "imagen-4.0-generate-preview-06-06"
-  | "imagen-4.0-fast-generate-preview-06-06"
-  | "imagen-4.0-ultra-generate-preview-06-06";
+type ImageModels = "gpt-image-1" | "fal-ai/flux-pro/v1.1-ultra";
 
 export type Models = BasicModels | ReasoningModels | ImageModels;
 
-export type Providers = "openrouter" | "openai" | "falai" | "vertex";
+export type Providers = "openrouter" | "openai" | "falai";
 
 export type ReasoningEfforts = "low" | "medium" | "high";
 
@@ -55,13 +50,6 @@ export type ReasoningEffortConfig = {
   icon: LucideIcon;
 };
 
-export type APIKeys = Record<Exclude<Providers, "vertex">, string> & {
-  vertex: {
-    clientEmail: string;
-    privateKey: string;
-  };
-};
-
 export type ProviderConfig = {
   id: Providers;
   name: string;
@@ -81,24 +69,15 @@ export type ChatRequest = {
   chatId: string;
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: APIKeys;
+  apiKeys: Record<Providers, string>;
   temporaryChat: boolean;
   customization: Customization;
-};
-
-export type ImageRequest = {
-  messages: Message[];
-  chatId: string;
-  model: Models;
-  apiKeys: APIKeys;
-  temporaryChat: boolean;
-  prompt: string;
 };
 
 export type TitleRequest = {
   chatId: string;
   prompt: string;
-  apiKeys: APIKeys;
+  apiKeys: Record<Providers, string>;
 };
 
 export type FileMetadata = {

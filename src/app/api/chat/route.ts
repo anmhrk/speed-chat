@@ -15,9 +15,8 @@ import {
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
-import { createVertex } from "@ai-sdk/google-vertex/edge";
 import { createFal } from "@ai-sdk/fal";
-import type { Models, ChatRequest, APIKeys, Providers } from "@/lib/types";
+import type { Models, ChatRequest, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { getUser } from "@/lib/auth/get-user";
 import { saveMessages } from "@/lib/db/actions";
@@ -166,17 +165,11 @@ export async function POST(request: NextRequest) {
         toolChoice: "required",
       }),
       toolCallStreaming: true,
-      onFinish: async ({ response, toolResults }) => {
+      onFinish: async ({ response }) => {
         try {
           if (temporaryChat) {
             return;
           }
-
-          const imageUrl = toolResults.find(
-            (tr) => tr.toolName === "generateImage"
-          )?.result.imageUrl;
-
-          console.log(imageUrl);
 
           const messageIds = messages.slice(0, -1).map((m) => m.id);
           const latestUserMessage = messages[messages.length - 1];
@@ -216,7 +209,7 @@ export async function POST(request: NextRequest) {
               : `Error: ${error.message}`;
           }
         } else if (ToolExecutionError.isInstance(error)) {
-          errorContent = `Error: ${error.message}`;
+          errorContent = `${error.message}`;
         } else {
           errorContent = "An unknown error occurred. Please try again.";
         }
@@ -255,7 +248,7 @@ export async function POST(request: NextRequest) {
 
 function buildImageModel(
   model: Models,
-  apiKeys: APIKeys,
+  apiKeys: Record<Providers, string>,
   provider: Providers
 ): ImageModel {
   if (provider === "openai") {
@@ -263,16 +256,6 @@ function buildImageModel(
       apiKey: apiKeys.openai,
     });
     return openai.image(model);
-  } else if (provider === "vertex") {
-    const vertex = createVertex({
-      googleCredentials: {
-        clientEmail: apiKeys.vertex.clientEmail,
-        privateKey: apiKeys.vertex.privateKey,
-      },
-      location: "",
-      project: "",
-    });
-    return vertex.image(model);
   } else if (provider === "falai") {
     const fal = createFal({
       apiKey: apiKeys.falai,

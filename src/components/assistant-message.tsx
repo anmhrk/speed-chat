@@ -29,7 +29,6 @@ import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
-import Image from "next/image";
 import Link from "next/link";
 
 interface AssistantMessageProps {
@@ -94,13 +93,10 @@ export const AssistantMessage = memo(function AssistantMessage({
                     >
                       {part.toolInvocation.state === "result" ? (
                         <div className="relative group/image">
-                          <Image
+                          <img
                             src={(part.toolInvocation as any).result.imageUrl}
                             alt="Generated Image"
-                            width={400}
-                            height={400}
-                            className="rounded-md max-w-full h-auto cursor-pointer"
-                            loading="lazy"
+                            className="rounded-md w-full max-w-[400px] h-auto aspect-auto cursor-pointer"
                           />
 
                           <div className="absolute top-1 right-1 flex gap-1.5">

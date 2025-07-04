@@ -10,7 +10,6 @@ import {
 } from "react";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import type {
-  APIKeys,
   Customization,
   Models,
   Providers,
@@ -24,7 +23,7 @@ const LOCAL_STORAGE_KEY = "saved_settings";
 interface SettingsState {
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: APIKeys;
+  apiKeys: Record<Providers, string>;
   customization: Customization;
   favoriteModels: Models[];
   isHydrated: boolean;
@@ -33,7 +32,7 @@ interface SettingsState {
 interface SettingsActions {
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  setApiKeys: (apiKeys: APIKeys) => void;
+  setApiKeys: (apiKeys: Record<Providers, string>) => void;
   setCustomization: (customization: Customization) => void;
   toggleFavoriteModel: (model: Models) => void;
   isFavoriteModel: (model: Models) => boolean;
@@ -55,10 +54,6 @@ const INITIAL_STATE: PartialSettingsState = {
     openrouter: "",
     openai: "",
     falai: "",
-    vertex: {
-      clientEmail: "",
-      privateKey: "",
-    },
   },
   customization: {
     name: "",
@@ -76,22 +71,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   const hasAnyKey = useCallback(() => {
-    const { openrouter, openai, falai, vertex } = state.apiKeys;
-    return !!(
-      openrouter.trim() ||
-      openai.trim() ||
-      falai.trim() ||
-      (vertex.clientEmail.trim() && vertex.privateKey.trim())
-    );
+    const { openrouter, openai, falai } = state.apiKeys;
+    return !!(openrouter.trim() || openai.trim() || falai.trim());
   }, [state.apiKeys]);
 
   const hasApiKeyForProvider = useCallback(
     (provider: Providers) => {
       const key = state.apiKeys[provider];
-      if (provider === "vertex") {
-        const vertexKey = key as { clientEmail: string; privateKey: string };
-        return !!(vertexKey.clientEmail.trim() && vertexKey.privateKey.trim());
-      }
       return !!(key && (key as string).trim() !== "");
     },
     [state.apiKeys]
@@ -118,25 +104,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setReasoningEffort = (reasoningEffort: ReasoningEfforts) =>
     setState((prev) => ({ ...prev, reasoningEffort }));
 
-  const setApiKeys = (apiKeys: APIKeys) => {
+  const setApiKeys = (apiKeys: Record<Providers, string>) => {
     setState((prev) => {
       const hasAnyKey = Object.entries(apiKeys).some(([provider, key]) => {
-        if (provider === "vertex") {
-          const vertexKey = key as { clientEmail: string; privateKey: string };
-          return vertexKey.clientEmail.trim() && vertexKey.privateKey.trim();
-        }
         return key && (key as string).trim() !== "";
       });
 
       const availableModels = AVAILABLE_MODELS.filter((model) => {
         const provider = model.providerId;
-        if (provider === "vertex") {
-          const vertexKey = apiKeys[provider] as {
-            clientEmail: string;
-            privateKey: string;
-          };
-          return vertexKey.clientEmail.trim() && vertexKey.privateKey.trim();
-        }
         return (apiKeys[provider] as string)?.trim();
       });
 
@@ -154,15 +129,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           // Removed API key for selected model
         } else if (selectedModel && selectedModelProvider) {
           const hasKeyForProvider = (() => {
-            if (selectedModelProvider === "vertex") {
-              const vertexKey = apiKeys[selectedModelProvider] as {
-                clientEmail: string;
-                privateKey: string;
-              };
-              return (
-                vertexKey.clientEmail.trim() && vertexKey.privateKey.trim()
-              );
-            }
             return (apiKeys[selectedModelProvider] as string)?.trim();
           })();
 
@@ -217,35 +183,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? persisted.reasoningEffort
           : INITIAL_STATE.reasoningEffort;
 
-      const sanitizedApiKeys: APIKeys = {
+      const sanitizedApiKeys: Record<Providers, string> = {
         openrouter: "",
         openai: "",
         falai: "",
-        vertex: {
-          clientEmail: "",
-          privateKey: "",
-        },
       };
 
       if (persisted.apiKeys) {
         Object.entries(persisted.apiKeys).forEach(([provider, key]) => {
           if (AVAILABLE_MODELS.some((m) => m.providerId === provider)) {
-            if (provider === "vertex") {
-              if (
-                typeof key === "object" &&
-                key !== null &&
-                "clientEmail" in key &&
-                "privateKey" in key
-              ) {
-                sanitizedApiKeys.vertex = {
-                  clientEmail: key.clientEmail || "",
-                  privateKey: key.privateKey || "",
-                };
-              }
-            } else {
-              sanitizedApiKeys[provider as Exclude<Providers, "vertex">] =
-                (key as string) || "";
-            }
+            sanitizedApiKeys[provider as Providers] = (key as string) || "";
           }
         });
       }

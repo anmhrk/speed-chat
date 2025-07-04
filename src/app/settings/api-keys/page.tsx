@@ -1,7 +1,7 @@
 "use client";
 
 import { useSettingsContext } from "@/components/settings-provider";
-import type { APIKeys, ProviderConfig, Providers } from "@/lib/types";
+import type { ProviderConfig, Providers } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,19 @@ const providers: ProviderConfig[] = [
   {
     id: "openrouter",
     name: "OpenRouter",
-    placeholder: "sk-or-...",
+    placeholder: "OPENROUTER_API_KEY",
     url: "https://openrouter.ai/settings/keys",
   },
   {
     id: "openai",
     name: "OpenAI",
-    placeholder: "sk-...",
+    placeholder: "OPENAI_API_KEY",
     url: "https://platform.openai.com/api-keys",
   },
   {
     id: "falai",
     name: "FalAI",
-    placeholder: "sk-...",
+    placeholder: "FALAI_API_KEY",
     url: "https://fal.ai/dashboard/keys",
   },
 ];
@@ -33,48 +33,21 @@ const providers: ProviderConfig[] = [
 export default function ApiKeysPage() {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const { apiKeys, setApiKeys } = useSettingsContext();
-  const [localApiKeys, setLocalApiKeys] = useState<APIKeys>({
+  const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
     openrouter: "",
     openai: "",
     falai: "",
-    vertex: {
-      clientEmail: "",
-      privateKey: "",
-    },
   });
-  const [editingKeys, setEditingKeys] = useState<
-    Record<Exclude<Providers, "vertex">, boolean> & {
-      vertex: {
-        clientEmail: boolean;
-        privateKey: boolean;
-      };
-    }
-  >({
+  const [editingKeys, setEditingKeys] = useState<Record<Providers, boolean>>({
     openrouter: true,
     openai: true,
     falai: true,
-    vertex: {
-      clientEmail: true,
-      privateKey: true,
-    },
   });
 
   const hasChanges = JSON.stringify(localApiKeys) !== JSON.stringify(apiKeys);
 
   const handleSave = async () => {
     try {
-      if (localApiKeys.vertex.clientEmail || localApiKeys.vertex.privateKey) {
-        if (
-          !localApiKeys.vertex.clientEmail ||
-          !localApiKeys.vertex.privateKey
-        ) {
-          toast.error(
-            "Please fill in both client email and private key for Vertex"
-          );
-          return;
-        }
-      }
-
       setApiKeys(localApiKeys);
       toast.success("API keys saved successfully!");
     } catch (error) {
@@ -90,26 +63,12 @@ export default function ApiKeysPage() {
     }, 50);
   };
 
-  const handleVertexEditClick = (field: "clientEmail" | "privateKey") => {
-    setEditingKeys((prev) => ({
-      ...prev,
-      vertex: { ...prev.vertex, [field]: true },
-    }));
-    setTimeout(() => {
-      inputRefs.current[`vertex-${field}`]?.focus();
-    }, 50);
-  };
-
   useEffect(() => {
     setLocalApiKeys(apiKeys);
     setEditingKeys({
       openrouter: !apiKeys.openrouter,
       openai: !apiKeys.openai,
       falai: !apiKeys.falai,
-      vertex: {
-        clientEmail: !apiKeys.vertex.clientEmail,
-        privateKey: !apiKeys.vertex.privateKey,
-      },
     });
   }, [apiKeys]);
 
@@ -166,103 +125,6 @@ export default function ApiKeysPage() {
           )}
         </div>
       ))}
-
-      <div className="space-y-2">
-        <div className="space-y-8">
-          <div className="space-y-1">
-            <Label htmlFor="vertex-client-email" className="text-sm">
-              Vertex Client Email
-            </Label>
-            {!editingKeys.vertex.clientEmail &&
-            localApiKeys.vertex.clientEmail ? (
-              <ApiKeySet
-                onClick={() => handleVertexEditClick("clientEmail")}
-                message="Client email is set"
-              />
-            ) : (
-              <Input
-                ref={(el) => {
-                  inputRefs.current["vertex-clientEmail"] = el;
-                }}
-                id="vertex-client-email"
-                type="email"
-                placeholder="service-account@project.iam.gserviceaccount.com"
-                value={localApiKeys.vertex.clientEmail}
-                onChange={(e) =>
-                  setLocalApiKeys((prev) => ({
-                    ...prev,
-                    vertex: {
-                      ...prev.vertex,
-                      clientEmail: e.target.value,
-                    },
-                  }))
-                }
-                onBlur={() => {
-                  if (apiKeys.vertex.clientEmail) {
-                    setEditingKeys((prev) => ({
-                      ...prev,
-                      vertex: { ...prev.vertex, clientEmail: false },
-                    }));
-                  }
-                }}
-              />
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="vertex-private-key" className="text-sm">
-              Vertex Private Key
-            </Label>
-            {!editingKeys.vertex.privateKey &&
-            localApiKeys.vertex.privateKey ? (
-              <ApiKeySet
-                onClick={() => handleVertexEditClick("privateKey")}
-                message="Private key is set"
-              />
-            ) : (
-              <Input
-                ref={(el) => {
-                  inputRefs.current["vertex-privateKey"] = el;
-                }}
-                id="vertex-private-key"
-                type="password"
-                placeholder="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-                value={localApiKeys.vertex.privateKey}
-                onChange={(e) =>
-                  setLocalApiKeys((prev) => ({
-                    ...prev,
-                    vertex: {
-                      ...prev.vertex,
-                      privateKey: e.target.value,
-                    },
-                  }))
-                }
-                onBlur={() => {
-                  if (apiKeys.vertex.privateKey) {
-                    setEditingKeys((prev) => ({
-                      ...prev,
-                      vertex: { ...prev.vertex, privateKey: false },
-                    }));
-                  }
-                }}
-              />
-            )}
-          </div>
-        </div>
-        {!apiKeys.vertex.clientEmail && !apiKeys.vertex.privateKey && (
-          <p className="text-muted-foreground text-sm">
-            Get your Vertex service account credentials from{" "}
-            <a
-              href="https://console.cloud.google.com/apis/credentials"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              console.cloud.google.com/apis/credentials
-            </a>
-            .
-          </p>
-        )}
-      </div>
 
       <div className="flex justify-end gap-2">
         <Button onClick={handleSave} disabled={!hasChanges}>

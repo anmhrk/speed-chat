@@ -211,28 +211,4 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     providerName: "FalAI",
     imageGeneration: true,
   },
-  {
-    id: "imagen-4.0-generate-preview-06-06",
-    name: "Imagen 4",
-    icon: <Google />,
-    providerId: "vertex",
-    providerName: "Vertex",
-    imageGeneration: true,
-  },
-  {
-    id: "imagen-4.0-fast-generate-preview-06-06",
-    name: "Imagen 4 Fast",
-    icon: <Google />,
-    providerId: "vertex",
-    providerName: "Vertex",
-    imageGeneration: true,
-  },
-  {
-    id: "imagen-4.0-ultra-generate-preview-06-06",
-    name: "Imagen 4 Ultra",
-    icon: <Google />,
-    providerId: "vertex",
-    providerName: "Vertex",
-    imageGeneration: true,
-  },
 ];
