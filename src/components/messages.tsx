@@ -13,7 +13,6 @@ interface MessagesProps {
   reload: UseChatHelpers["reload"];
   append: UseChatHelpers["append"];
   setMessages: UseChatHelpers["setMessages"];
-  isGeneratingImage: boolean;
 }
 
 export function Messages({
@@ -22,7 +21,6 @@ export function Messages({
   reload,
   append,
   setMessages,
-  isGeneratingImage,
 }: MessagesProps) {
   const showLoading =
     status === "submitted" &&
@@ -110,9 +108,6 @@ export function Messages({
               )}
             </div>
           ))}
-          {isGeneratingImage && (
-            <div className="w-full">Generating image...</div>
-          )}
           {showLoading && (
             <div className="w-full">
               <AssistantMessageLoader />

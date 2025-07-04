@@ -6,19 +6,19 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Messages } from "@/components/messages";
 import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/settings-provider";
-import { getMessages } from "@/lib/db/actions";
-import { useQuery } from "@tanstack/react-query";
+import { createChat, getMessages } from "@/lib/db/actions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Attachment } from "@ai-sdk/ui-utils";
 import type { FileMetadata } from "@/lib/types";
 import { useDropzone } from "react-dropzone";
-import { useUnifiedSubmit } from "@/hooks/use-unified-submit";
+import { Chat } from "@/lib/db/schema";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -34,10 +34,11 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customization } =
+  const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
     useSettingsContext();
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const chatIdParams = pathname.split("/chat/")[1];
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
@@ -62,10 +63,10 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
     }
   }, [fileMetadata, attachments]);
 
-  const handleFileDrop = useCallback((files: File[]) => {
+  const handleFileDrop = (files: File[]) => {
     setDroppedFiles(files);
     setTimeout(() => setDroppedFiles([]), 100);
-  }, []);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFileDrop,
@@ -105,38 +106,6 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
     }
   }, [isError, error, router]);
 
-  const handleError = (error: Error, type: "chat" | "image") => {
-    console.error(error);
-
-    const errorMessage = {
-      id: `error-${crypto.randomUUID()}`,
-      role: "assistant",
-      content: error.message,
-      createdAt: new Date(),
-      parts: [{ type: "text", text: error.message }],
-    } as Message;
-
-    if (type === "chat") {
-      setMessages((prev) => {
-        // On error an empty assistant message is created, so we replace it with the error message
-        const lastMessage = prev[prev.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          (!lastMessage.content || lastMessage.content.trim() === "")
-        ) {
-          return [...prev.slice(0, -1), errorMessage];
-        } else {
-          // Fallback
-          return [...prev, errorMessage];
-        }
-      });
-    } else {
-      setMessages((prev) => {
-        return [...prev, errorMessage];
-      });
-    }
-  };
-
   const {
     messages,
     input,
@@ -167,28 +136,131 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
       customization,
     },
     onError: (error) => {
-      handleError(error, "chat");
+      console.error(error);
+
+      const errorMessage = {
+        id: `error-${crypto.randomUUID()}`,
+        role: "assistant",
+        content: error.message,
+        createdAt: new Date(),
+        parts: [{ type: "text", text: error.message }],
+      } as Message;
+
+      setMessages((prev) => {
+        // On error an empty assistant message is created, so we replace it with the error message
+        const lastMessage = prev[prev.length - 1];
+        if (
+          lastMessage?.role === "assistant" &&
+          (!lastMessage.content || lastMessage.content.trim() === "")
+        ) {
+          return [...prev.slice(0, -1), errorMessage];
+        } else {
+          // Fallback
+          return [...prev, errorMessage];
+        }
+      });
     },
   });
 
-  const { handleUnifiedSubmit, isGeneratingImage } = useUnifiedSubmit({
-    input,
-    setInput,
-    chatId: chatId ?? "",
-    setChatId,
-    setDontFetchId,
-    setMessages,
-    handleSubmit,
-    user,
-    temporaryChat,
-    attachments,
-    handleError,
-    messages,
-  });
+  const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!user) {
+      toast.error("Please login to chat");
+      return;
+    }
+
+    if (!hasAnyKey()) {
+      toast("Please add API keys to chat", {
+        action: {
+          label: "Add keys",
+          onClick: () => router.push("/settings/api-keys"),
+        },
+      });
+      return;
+    }
+
+    if (!input.trim()) {
+      return;
+    }
+
+    if (temporaryChat) {
+      handleSubmit(e, { experimental_attachments: attachments });
+      setFileMetadata({});
+      return;
+    }
+
+    if (!chatId) {
+      const newChatId = crypto.randomUUID();
+      setChatId(newChatId);
+      setDontFetchId(newChatId);
+
+      createChat(newChatId).catch((error) => {
+        toast.error("Failed to create chat");
+        console.error(error);
+      });
+
+      queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
+        const newChat: Chat = {
+          id: newChatId,
+          userId: user!.id,
+          title: "New chat",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isPinned: false,
+        };
+        return oldData ? [newChat, ...oldData] : [newChat];
+      });
+
+      window.history.replaceState({}, "", `/chat/${newChatId}`);
+
+      fetch("/api/generate-title", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chatId: newChatId,
+          prompt: input.trim(),
+          apiKeys,
+        }),
+      })
+        .then((result) => result.json())
+        .then((result: { success: boolean; title: string }) => {
+          if (result.success) {
+            queryClient.setQueryData(
+              ["chats"],
+              (oldData: Chat[] | undefined) => {
+                if (!oldData) return oldData;
+                return oldData.map((chatItem) =>
+                  chatItem.id === newChatId
+                    ? { ...chatItem, title: result.title }
+                    : chatItem
+                );
+              }
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to generate title:", error);
+        });
+
+      handleSubmit(e, { experimental_attachments: attachments });
+    } else {
+      handleSubmit(e, { experimental_attachments: attachments });
+    }
+    setFileMetadata({});
+  };
+
+  const isMessageLoading = status === "submitted" || status === "streaming";
 
   return (
     <>
-      <AppSidebar user={user} chatIdParams={chatId ?? ""} status={status} />
+      <AppSidebar
+        user={user}
+        chatIdParams={chatId ?? ""}
+        isMessageLoading={isMessageLoading}
+      />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
           <input {...getInputProps()} />
@@ -213,7 +285,6 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
                 reload={reload}
                 append={append}
                 setMessages={setMessages}
-                isGeneratingImage={isGeneratingImage}
               />
             ) : (
               <div className="h-full flex items-center justify-center px-3">
@@ -257,13 +328,9 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
             <ChatInput
               input={input}
               handleInputChange={handleInputChange}
-              handleSubmit={handleUnifiedSubmit}
+              handleSubmit={handleChatSubmit}
               stop={stop}
-              isLoading={
-                status === "submitted" ||
-                status === "streaming" ||
-                isGeneratingImage
-              }
+              isLoading={isMessageLoading}
               fileMetadata={fileMetadata}
               setFileMetadata={setFileMetadata}
               droppedFiles={droppedFiles}

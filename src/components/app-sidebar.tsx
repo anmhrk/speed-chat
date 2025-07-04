@@ -50,15 +50,18 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
 import type { Chat } from "@/lib/db/schema";
-import { UseChatHelpers } from "@ai-sdk/react";
 
 interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
-  status: UseChatHelpers["status"];
+  isMessageLoading: boolean;
 }
 
-export function AppSidebar({ user, chatIdParams, status }: AppSidebarProps) {
+export function AppSidebar({
+  user,
+  chatIdParams,
+  isMessageLoading,
+}: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -122,7 +125,7 @@ export function AppSidebar({ user, chatIdParams, status }: AppSidebarProps) {
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
-                          status={status}
+                          isMessageLoading={isMessageLoading}
                         />
                       ))}
                   </SidebarMenu>
@@ -139,7 +142,7 @@ export function AppSidebar({ user, chatIdParams, status }: AppSidebarProps) {
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
-                          status={status}
+                          isMessageLoading={isMessageLoading}
                         />
                       ))}
                   </SidebarMenu>
@@ -198,11 +201,11 @@ export function AppSidebar({ user, chatIdParams, status }: AppSidebarProps) {
 function ChatItem({
   chat,
   chatIdParams,
-  status,
+  isMessageLoading,
 }: {
   chat: Chat;
   chatIdParams: string;
-  status: UseChatHelpers["status"];
+  isMessageLoading: boolean;
 }) {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -271,8 +274,7 @@ function ChatItem({
           </Link>
         )}
       </SidebarMenuButton>
-      {chat.id === chatIdParams &&
-      (status === "submitted" || status === "streaming") ? (
+      {chat.id === chatIdParams && isMessageLoading ? (
         <SidebarMenuAction className="!top-2">
           <Loader2 className="size-4 animate-spin" />
           <span className="sr-only">Loading</span>

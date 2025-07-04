@@ -7,6 +7,7 @@ import {
   Download,
   Text,
   WrapText,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo, useMemo, useCallback } from "react";
@@ -29,6 +30,7 @@ import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface AssistantMessageProps {
   message: Message;
@@ -83,48 +85,92 @@ export const AssistantMessage = memo(function AssistantMessage({
                 );
               }
 
+              if (part.type === "tool-invocation") {
+                if (part.toolInvocation.toolName === "generateImage") {
+                  return (
+                    <div
+                      key={partIndex}
+                      className="flex flex-wrap gap-2 mt-4 w-full relative max-w-[66.67%]"
+                    >
+                      {part.toolInvocation.state === "result" ? (
+                        <div className="relative group/image">
+                          <Image
+                            src={(part.toolInvocation as any).result.imageUrl}
+                            alt="Generated Image"
+                            width={400}
+                            height={400}
+                            className="rounded-md max-w-full h-auto cursor-pointer"
+                            loading="lazy"
+                          />
+
+                          <div className="absolute top-1 right-1 flex gap-1.5">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="rounded-full h-7 w-7 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover/image:opacity-100 transition-opacity"
+                                  asChild
+                                >
+                                  <Link
+                                    href={
+                                      (part.toolInvocation as any).result
+                                        .imageUrl
+                                    }
+                                    target="_blank"
+                                  >
+                                    <ExternalLink className="size-4" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">
+                                Open in new tab
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="rounded-full h-7 w-7 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover/image:opacity-100 transition-opacity"
+                                  onMouseDown={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+
+                                    const response = await fetch(
+                                      (part.toolInvocation as any).result
+                                        .imageUrl
+                                    );
+                                    const blob = await response.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = "image";
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                >
+                                  <Download className="size-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">
+                                Download image
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>Generating image...</div>
+                      )}
+                    </div>
+                  );
+                }
+              }
+
               return null;
             })}
-
-            {message.experimental_attachments && (
-              <div className="flex flex-wrap gap-2 mt-4 relative">
-                {message.experimental_attachments
-                  ?.filter((attachment) =>
-                    attachment.contentType?.startsWith("image/")
-                  )
-                  .map((attachment, index) => (
-                    <div
-                      key={`${message.id}-attachment-${index}`}
-                      className="relative"
-                    >
-                      <Image
-                        src={attachment.url}
-                        alt={attachment.name ?? "Attachment"}
-                        width={800}
-                        height={600}
-                        className="rounded-md max-w-full h-auto cursor-pointer"
-                        loading="lazy"
-                        onClick={() => window.open(attachment.url, "_blank")}
-                      />
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute rounded-full top-1 right-1 h-8 w-8 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        data-attachment-remove
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-
-                          // TODO: Download image
-                        }}
-                      >
-                        <Download className="size-5" />
-                      </Button>
-                    </div>
-                  ))}
-              </div>
-            )}
           </div>
         )}
 

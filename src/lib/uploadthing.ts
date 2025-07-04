@@ -9,8 +9,8 @@ export async function deleteFiles(urls: string[]) {
   await utapi.deleteFiles(keys);
 }
 
-export async function uploadBase64Image(base64: string) {
-  const file = new File([Buffer.from(base64, "base64")], `image.png`, {
+export async function uploadBase64Image(name: string, base64: string) {
+  const file = new File([Buffer.from(base64, "base64")], name, {
     type: "image/png",
   });
 

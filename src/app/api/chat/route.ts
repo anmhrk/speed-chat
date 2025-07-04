@@ -4,18 +4,28 @@ import {
   APICallError,
   InvalidPromptError,
   RetryError,
+  ToolExecutionError,
   createIdGenerator,
   smoothStream,
   appendResponseMessages,
   type LanguageModelV1,
+  experimental_generateImage as generateImage,
+  type ImageModel,
+  tool,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { Models, ChatRequest } from "@/lib/types";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createVertex } from "@ai-sdk/google-vertex/edge";
+import { createFal } from "@ai-sdk/fal";
+import type { Models, ChatRequest, APIKeys, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
-import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
 import { saveMessages } from "@/lib/db/actions";
-import { createOpenAI } from "@ai-sdk/openai";
+import { uploadBase64Image } from "@/lib/uploadthing";
+import { z } from "zod";
+import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
+
+type DimensionFormat = "size" | "aspectRatio";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,10 +46,16 @@ export async function POST(request: NextRequest) {
       throw new Error("Unauthorized");
     }
 
+    let aiModel: LanguageModelV1;
+    let imageModel: ImageModel;
     let modelId = model;
-    if (model.includes("thinking")) {
-      modelId = model.replace("-thinking", "") as Models;
-    }
+    let dimensionFormat: DimensionFormat;
+
+    const isImageModel =
+      AVAILABLE_MODELS.find((m) => m.id === modelId)?.imageGeneration === true;
+
+    const isReasoningModel =
+      AVAILABLE_MODELS.find((m) => m.id === modelId)?.reasoning === true;
 
     const headers =
       process.env.NODE_ENV === "production"
@@ -49,11 +65,8 @@ export async function POST(request: NextRequest) {
           }
         : undefined;
 
-    const isReasoningModel =
-      AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning === true;
-
     const openrouter = createOpenRouter({
-      apiKey: apiKeys.openrouter,
+      apiKey: apiKeys.openrouter ?? process.env.OPENROUTER_API_KEY,
       ...(isReasoningModel && {
         extraBody: {
           include_reasoning: true,
@@ -62,16 +75,31 @@ export async function POST(request: NextRequest) {
       ...(headers && { headers }),
     });
 
-    const openai = createOpenAI({
-      apiKey: apiKeys.openai,
-    });
+    if (isImageModel) {
+      const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
+      const provider = modelConfig?.providerId;
 
-    let aiModel: LanguageModelV1;
+      if (provider === "openai") {
+        dimensionFormat = "size";
+      } else {
+        dimensionFormat = "aspectRatio";
+      }
 
-    if (modelId === "o3") {
-      aiModel = openai(modelId);
+      aiModel = openrouter.chat("google/gemini-2.5-flash");
+      imageModel = buildImageModel(model, apiKeys, provider!);
     } else {
-      aiModel = openrouter.chat(modelId);
+      if (model.includes("thinking")) {
+        modelId = model.replace("-thinking", "") as Models;
+      }
+
+      if (modelId.includes("o3")) {
+        const openai = createOpenAI({
+          apiKey: apiKeys.openai,
+        });
+        aiModel = openai(modelId);
+      } else {
+        aiModel = openrouter.chat(modelId);
+      }
     }
 
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
@@ -85,39 +113,9 @@ export async function POST(request: NextRequest) {
 
     const chatStream = streamText({
       model: aiModel,
-      system: `
-        You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful and respectful.
-        If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
-        The current date and time including timezone for the user is ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}.
-
-        *Instructions for when generating mathematical expressions:*
-        - Always use LaTeX
-        - Inline math should be wrapped in single dollar signs: $content$
-        - Display math should be wrapped in double dollar signs: $$content$$
-        - Use proper LaTeX syntax within the delimiters.
-        - DO NOT output LaTeX as a code block.
-          
-        *Instructions for when generating code:*
-        - Ensure it is properly formatted using Prettier with a print width of 80 characters
-        - Inline code should be wrapped in backticks: \`content\`
-        - Block code should be wrapped in triple backticks: \`\`\`content\`\`\` with the language extension indicated
-
-      ${(() => {
-        const customItems = [
-          customization.name &&
-            `- Name/nickname of the user: ${customization.name}`,
-          customization.whatYouDo &&
-            `- What the user does: ${customization.whatYouDo}`,
-          customization.traits.length > 0 &&
-            `- Traits the user wants you to have: ${customization.traits.join(", ")}`,
-          customization.additionalInfo &&
-            `- Additional info the user wants you to know: ${customization.additionalInfo}`,
-        ].filter(Boolean);
-
-        return customItems.length > 0
-          ? `*Below are some customization options set by the user. You may use these to tailor your response to be more personalized:*\n${customItems.join("\n")}`
-          : "";
-      })()}`,
+      system: isImageModel
+        ? imageGenerationPrompt(messages[messages.length - 1].content)
+        : chatPrompt(modelName!, customization),
       experimental_transform: [
         smoothStream({
           chunking: "word",
@@ -137,11 +135,48 @@ export async function POST(request: NextRequest) {
           },
         },
       }),
-      onFinish: async ({ response }) => {
+      ...(isImageModel && {
+        tools: {
+          generateImage: tool({
+            description: "Generate an image based on the user's prompt",
+            parameters: z.object({
+              prompt: z
+                .string()
+                .describe("The prompt to generate an image from"),
+            }),
+            execute: async ({ prompt }) => {
+              const { image } = await generateImage({
+                model: imageModel,
+                prompt,
+                ...(dimensionFormat === "size"
+                  ? { size: "1024x1024" }
+                  : { aspectRatio: "1:1" }),
+              });
+
+              const userMessageId = messages[messages.length - 1].id;
+              const imageName = `image-${userMessageId}.png`;
+              const imageUrl = await uploadBase64Image(imageName, image.base64);
+
+              return { imageUrl };
+            },
+          }),
+        },
+      }),
+      ...(isImageModel && {
+        toolChoice: "required",
+      }),
+      toolCallStreaming: true,
+      onFinish: async ({ response, toolResults }) => {
         try {
           if (temporaryChat) {
             return;
           }
+
+          const imageUrl = toolResults.find(
+            (tr) => tr.toolName === "generateImage"
+          )?.result.imageUrl;
+
+          console.log(imageUrl);
 
           const messageIds = messages.slice(0, -1).map((m) => m.id);
           const latestUserMessage = messages[messages.length - 1];
@@ -180,6 +215,8 @@ export async function POST(request: NextRequest) {
               ? `Error: ${lastErrorMatch[1].trim()}`
               : `Error: ${error.message}`;
           }
+        } else if (ToolExecutionError.isInstance(error)) {
+          errorContent = `Error: ${error.message}`;
         } else {
           errorContent = "An unknown error occurred. Please try again.";
         }
@@ -214,4 +251,34 @@ export async function POST(request: NextRequest) {
     console.log("[Chat API] Error:", error);
     throw error;
   }
+}
+
+function buildImageModel(
+  model: Models,
+  apiKeys: APIKeys,
+  provider: Providers
+): ImageModel {
+  if (provider === "openai") {
+    const openai = createOpenAI({
+      apiKey: apiKeys.openai,
+    });
+    return openai.image(model);
+  } else if (provider === "vertex") {
+    const vertex = createVertex({
+      googleCredentials: {
+        clientEmail: apiKeys.vertex.clientEmail,
+        privateKey: apiKeys.vertex.privateKey,
+      },
+      location: "",
+      project: "",
+    });
+    return vertex.image(model);
+  } else if (provider === "falai") {
+    const fal = createFal({
+      apiKey: apiKeys.falai,
+    });
+    return fal.image(model);
+  }
+
+  throw new Error("Invalid model");
 }
