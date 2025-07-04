@@ -1,30 +1,29 @@
 "use client";
 
-import { ArrowUp, Globe, Loader2, Paperclip, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  Globe,
+  Loader2,
+  Paperclip,
+  Square,
+  X,
+  FileIcon,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useMemo,
-  memo,
-  Dispatch,
-  SetStateAction,
-  useCallback,
-} from "react";
+import { useEffect, useRef, useMemo, memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSettingsContext } from "@/components/settings-provider";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { useUploadThing } from "@/lib/utils";
-import { toast } from "sonner";
 import Image from "next/image";
-import { deleteFiles } from "@/lib/uploadthing";
-import type { FileMetadata } from "@/lib/types";
 import { ModelPicker } from "./model-picker";
 import type { User } from "better-auth";
+import type { FileMetadata } from "@/lib/types";
+import { Dispatch, SetStateAction } from "react";
+import Link from "next/link";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -32,10 +31,15 @@ interface ChatInputProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   stop: UseChatHelpers["stop"];
   isLoading: boolean;
-  fileMetadata: Record<string, FileMetadata>;
-  setFileMetadata: Dispatch<SetStateAction<Record<string, FileMetadata>>>;
-  droppedFiles?: File[];
   user: User | null;
+  files: File[];
+  setFiles: Dispatch<SetStateAction<File[]>>;
+  fileMetadata: Record<string, FileMetadata>;
+  isUploading: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  removeFile: (fileName: string) => void;
+  acceptsPdf: boolean;
 }
 
 export function ChatInput({
@@ -44,10 +48,15 @@ export function ChatInput({
   handleSubmit,
   stop,
   isLoading,
-  fileMetadata,
-  setFileMetadata,
-  droppedFiles,
   user,
+  files,
+  setFiles,
+  fileMetadata,
+  isUploading,
+  fileInputRef,
+  handleFileChange,
+  removeFile,
+  acceptsPdf,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { model } = useSettingsContext();
@@ -58,100 +67,6 @@ export function ChatInput({
     }
   }, []);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]);
-
-  const { startUpload, routeConfig, isUploading } = useUploadThing(
-    "imageUploader",
-    {
-      onClientUploadComplete: (res) => {
-        res.forEach((file) => {
-          setFileMetadata((prev) => ({
-            ...prev,
-            [file.name]: {
-              url: file.ufsUrl,
-              name: file.name,
-              extension: file.type.split("/")[1],
-            },
-          }));
-        });
-      },
-      onUploadError: (error: Error) => {
-        console.error(error);
-        toast.error("Failed to upload files");
-        setFiles([]);
-        setFileMetadata({});
-      },
-    }
-  );
-
-  const processFiles = useCallback(
-    (selectedFiles: File[]) => {
-      const maxFileSize = Number(
-        routeConfig?.image?.maxFileSize.replace("MB", "")
-      );
-
-      if (selectedFiles.length > 0) {
-        if (
-          !selectedFiles.some((file) =>
-            ["image/png", "image/jpeg", "image/jpg", "image/webp"].includes(
-              file.type
-            )
-          )
-        ) {
-          toast.error("Only PNG, JPEG, JPG, and WebP are supported");
-          return;
-        }
-
-        // Filter out duplicates
-        const uniqueFiles = selectedFiles.filter(
-          (file) => !files.some((f) => f.name === file.name)
-        );
-
-        const duplicateCount = selectedFiles.length - uniqueFiles.length;
-        if (duplicateCount > 0) {
-          toast.info(
-            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
-          );
-        }
-
-        // Check if adding these files would exceed the limit
-        if (files.length + uniqueFiles.length > 5) {
-          toast.error("Too many images uploaded. Max 5 per message");
-          return;
-        }
-
-        // File size limit check
-        const exceedsSizeLimit = uniqueFiles.some(
-          (file) => file.size > maxFileSize * 1024 * 1024
-        );
-
-        if (exceedsSizeLimit) {
-          toast.error("File size exceeds the limit");
-          return;
-        }
-
-        if (uniqueFiles.length > 0) {
-          setFiles((prev) => [...prev, ...uniqueFiles]);
-          startUpload(uniqueFiles);
-        }
-      }
-    },
-    [files, routeConfig, startUpload]
-  );
-
-  // Process files from parent component dropzone
-  useEffect(() => {
-    if (droppedFiles && droppedFiles.length > 0) {
-      processFiles(droppedFiles);
-    }
-  }, [droppedFiles]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const allSelectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    processFiles(allSelectedFiles);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -161,7 +76,6 @@ export function ChatInput({
       }
 
       (e.target as HTMLTextAreaElement).form?.requestSubmit();
-      setFiles([]);
     }
 
     if (e.key === "Escape") {
@@ -177,10 +91,9 @@ export function ChatInput({
       {files.length > 0 && (
         <MemoizedFilePreview
           files={files}
-          setFiles={setFiles}
           fileMetadata={fileMetadata}
-          setFileMetadata={setFileMetadata}
           isUploading={isUploading}
+          removeFile={removeFile}
         />
       )}
       <Textarea
@@ -193,7 +106,7 @@ export function ChatInput({
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          <ModelPicker />
+          <ModelPicker hasFilesUploaded={files.length > 0} />
           {AVAILABLE_MODELS.find((m) => m.id === model)?.search && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -238,7 +151,9 @@ export function ChatInput({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png, image/jpeg, image/jpg, image/webp"
+            accept={`image/png, image/jpeg, image/jpg, image/webp${
+              acceptsPdf ? ", application/pdf" : ""
+            }`}
             multiple
             className="hidden"
             onChange={handleFileChange}
@@ -270,31 +185,42 @@ export function ChatInput({
 
 const FilePreview = ({
   files,
-  setFiles,
-  setFileMetadata,
   fileMetadata,
   isUploading,
+  removeFile,
 }: {
   files: File[];
-  setFiles: Dispatch<SetStateAction<File[]>>;
-  setFileMetadata: Dispatch<SetStateAction<Record<string, FileMetadata>>>;
   fileMetadata: Record<string, FileMetadata>;
   isUploading: boolean;
+  removeFile: (fileName: string) => void;
 }) => {
   const previews = useMemo(
     () =>
       files.map((file) => {
         return (
           <div className="relative group" key={file.name}>
-            <Image
-              src={URL.createObjectURL(file)}
-              alt="Uploaded file"
-              width={80}
-              height={80}
-              className="rounded-md object-cover w-20 h-20 cursor-pointer"
-              loading="lazy"
-              onClick={() => window.open(URL.createObjectURL(file), "_blank")}
-            />
+            {file.type.startsWith("image/") ? (
+              <Image
+                src={URL.createObjectURL(file)}
+                alt="Uploaded file"
+                width={80}
+                height={80}
+                className="rounded-md object-cover w-20 h-20 cursor-pointer"
+                loading="lazy"
+                onClick={() => window.open(URL.createObjectURL(file), "_blank")}
+              />
+            ) : (
+              <Link
+                href={URL.createObjectURL(file)}
+                target="_blank"
+                className="flex flex-col items-center justify-between w-20 h-20 rounded-md bg-background hover:bg-background/60 transition-colors cursor-pointer text-xs gap-1 p-2"
+              >
+                <FileIcon className="size-6 flex-shrink-0 mt-3" />
+                <span className="truncate max-w-full text-center">
+                  {file.name ?? "File"}
+                </span>
+              </Link>
+            )}
             {isUploading && !fileMetadata[file.name] && (
               <div className="absolute top-0 right-0 left-0 bottom-0 flex items-center justify-center bg-black/50 rounded-md">
                 <Loader2 className="size-6 animate-spin text-white" />
@@ -305,24 +231,7 @@ const FilePreview = ({
                 variant="ghost"
                 size="icon"
                 className="absolute rounded-full top-0 right-0 h-6 w-6 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={async () => {
-                  toast.promise(
-                    deleteFiles([fileMetadata[file.name].url]).finally(() => {
-                      setFiles((prev) =>
-                        prev.filter((f) => f.name !== file.name)
-                      );
-                      setFileMetadata((prev) => {
-                        const { [file.name]: _, ...rest } = prev;
-                        return rest;
-                      });
-                    }),
-                    {
-                      loading: "Deleting file...",
-                      success: "File deleted",
-                      error: "Failed to delete file",
-                    }
-                  );
-                }}
+                onClick={() => removeFile(file.name)}
               >
                 <X className="size-4" />
               </Button>

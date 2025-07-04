@@ -15,10 +15,8 @@ import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/settings-provider";
 import { createChat, getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Attachment } from "@ai-sdk/ui-utils";
-import type { FileMetadata } from "@/lib/types";
-import { useDropzone } from "react-dropzone";
 import { Chat } from "@/lib/db/schema";
+import { useAttachments } from "@/hooks/use-attachments";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -44,36 +42,21 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [dontFetchId, setDontFetchId] = useState("");
-  const [fileMetadata, setFileMetadata] = useState<
-    Record<string, FileMetadata>
-  >({});
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-
-  // Sync attachments with fileMetadata state
-  useEffect(() => {
-    const newAttachments = Object.values(fileMetadata).map((file) => ({
-      name: file.name,
-      contentType: `image/${file.extension}`,
-      url: file.url,
-    }));
-
-    if (JSON.stringify(attachments) !== JSON.stringify(newAttachments)) {
-      setAttachments(newAttachments);
-    }
-  }, [fileMetadata, attachments]);
-
-  const handleFileDrop = (files: File[]) => {
-    setDroppedFiles(files);
-    setTimeout(() => setDroppedFiles([]), 100);
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleFileDrop,
-    noClick: true,
-    noKeyboard: true,
-    multiple: true,
-  });
+  const {
+    fileMetadata,
+    attachments,
+    getRootProps,
+    getInputProps,
+    isDragActive,
+    clearFiles,
+    files,
+    setFiles,
+    isUploading,
+    fileInputRef,
+    handleFileChange,
+    removeFile,
+    acceptsPdf,
+  } = useAttachments(model);
 
   // Sync the chatId from the URL with the state
   useEffect(() => {
@@ -186,7 +169,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
 
     if (temporaryChat) {
       handleSubmit(e, { experimental_attachments: attachments });
-      setFileMetadata({});
+      clearFiles();
       return;
     }
 
@@ -249,7 +232,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
     } else {
       handleSubmit(e, { experimental_attachments: attachments });
     }
-    setFileMetadata({});
+    clearFiles();
   };
 
   const isMessageLoading = status === "submitted" || status === "streaming";
@@ -331,10 +314,15 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
               handleSubmit={handleChatSubmit}
               stop={stop}
               isLoading={isMessageLoading}
-              fileMetadata={fileMetadata}
-              setFileMetadata={setFileMetadata}
-              droppedFiles={droppedFiles}
               user={user}
+              files={files}
+              setFiles={setFiles}
+              fileMetadata={fileMetadata}
+              isUploading={isUploading}
+              fileInputRef={fileInputRef}
+              handleFileChange={handleFileChange}
+              removeFile={removeFile}
+              acceptsPdf={acceptsPdf}
             />
           </div>
         </div>

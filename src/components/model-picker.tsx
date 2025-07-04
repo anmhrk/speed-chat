@@ -19,7 +19,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import type { ModelConfig, Models } from "@/lib/types";
 
-export function ModelPicker() {
+export function ModelPicker({
+  hasFilesUploaded,
+}: {
+  hasFilesUploaded: boolean;
+}) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const {
@@ -67,7 +71,10 @@ export function ModelPicker() {
       key={modelItem.id}
       value={`${modelItem.name} ${modelItem.providerName}`}
       onSelect={() => onModelSelect(modelItem.id)}
-      disabled={!hasApiKeyForProvider(modelItem.providerId)}
+      disabled={
+        !hasApiKeyForProvider(modelItem.providerId) ||
+        (modelItem.imageGeneration && hasFilesUploaded)
+      }
       className="group rounded-xl mx-1 p-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0 data-[disabled=true]:opacity-50 data-[disabled=true]:cursor-not-allowed relative"
     >
       <Button

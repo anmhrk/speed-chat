@@ -1,5 +1,6 @@
 import type { Message } from "ai";
-import { Check, Copy, Edit, X } from "lucide-react";
+import { Check, Copy, Edit, ExternalLink, FileIcon, X } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import {
@@ -156,61 +157,79 @@ export function UserMessage({
           </div>
 
           {message.experimental_attachments && (
-            <div className="flex flex-wrap gap-2 mt-4 relative">
-              {message.experimental_attachments
-                ?.filter((attachment) =>
-                  attachment.contentType?.startsWith("image/")
-                )
-                .map((attachment, index) => (
-                  <div
-                    key={`${message.id}-attachment-${index}`}
-                    className="relative"
-                  >
-                    <Image
+            <div
+              className={cn(
+                "mt-4 relative",
+                isEditing ? "flex flex-col gap-2" : "flex flex-wrap gap-2"
+              )}
+            >
+              {message.experimental_attachments.map((attachment, index) => (
+                <div
+                  key={`${message.id}-attachment-${index}`}
+                  className={cn(
+                    "flex items-center gap-2",
+                    isEditing && "justify-between w-full"
+                  )}
+                >
+                  {attachment.contentType?.startsWith("image/") ? (
+                    <img
                       src={attachment.url}
                       alt={attachment.name ?? "Attachment"}
-                      width={800}
-                      height={600}
-                      className="rounded-md max-w-full h-auto cursor-pointer"
-                      loading="lazy"
+                      className={cn(
+                        "rounded-md aspect-auto h-auto cursor-pointer",
+                        isEditing ? "max-w-[350px]" : "max-w-full"
+                      )}
                       onClick={() => window.open(attachment.url, "_blank")}
                     />
+                  ) : (
+                    <Link
+                      href={attachment.url}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background hover:bg-background/60 transition-colors cursor-pointer text-sm"
+                    >
+                      <FileIcon className="size-4 flex-shrink-0" />
+                      <span className="truncate max-w-[200px]">
+                        {attachment.name ?? "File"}
+                      </span>
+                      <ExternalLink className="size-4 flex-shrink-0" />
+                    </Link>
+                  )}
 
-                    {isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute rounded-full top-1 right-1 h-8 w-8 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        data-attachment-remove
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
+                  {isEditing && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full !bg-black/90 hover:!bg-black/90 text-white hover:text-white flex-shrink-0"
+                      data-attachment-remove
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
 
-                          setRemovedAttachmentUrls((prev) => [
-                            ...prev,
-                            attachment.url,
-                          ]);
+                        setRemovedAttachmentUrls((prev) => [
+                          ...prev,
+                          attachment.url,
+                        ]);
 
-                          const messageWithoutAttachment = {
-                            ...message,
-                            experimental_attachments:
-                              message.experimental_attachments?.filter(
-                                (a) => a.url !== attachment.url
-                              ),
-                          };
+                        const messageWithoutAttachment = {
+                          ...message,
+                          experimental_attachments:
+                            message.experimental_attachments?.filter(
+                              (a) => a.url !== attachment.url
+                            ),
+                        };
 
-                          setMessages(
-                            allMessages.map((m) =>
-                              m.id === message.id ? messageWithoutAttachment : m
-                            )
-                          );
-                        }}
-                      >
-                        <X className="size-5" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                        setMessages(
+                          allMessages.map((m) =>
+                            m.id === message.id ? messageWithoutAttachment : m
+                          )
+                        );
+                      }}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

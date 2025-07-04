@@ -7,7 +7,7 @@ const f = createUploadthing();
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
   // Define as many FileRoutes as you like, each with a unique routeSlug
-  imageUploader: f({
+  fileUploader: f({
     image: {
       /**
        * For full list of options and defaults, see the File Route API reference
@@ -15,6 +15,10 @@ export const ourFileRouter = {
        */
       maxFileSize: "4MB",
       maxFileCount: 5,
+    },
+    pdf: {
+      maxFileSize: "4MB",
+      maxFileCount: 2,
     },
   })
     // Set permissions and file types for this FileRoute

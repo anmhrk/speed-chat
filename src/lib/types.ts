@@ -81,6 +81,7 @@ export type TitleRequest = {
 };
 
 export type FileMetadata = {
+  type: "image" | "pdf";
   name: string;
   url: string;
   extension: string;
