@@ -1,25 +1,24 @@
 "use client";
 
-import { ChatInput } from "./chat-input";
-import { Header } from "./header";
+import { ChatInput } from "@/components/chat-input";
+import { Header } from "@/components/header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { SidebarInset } from "./ui/sidebar";
-import { AppSidebar } from "./app-sidebar";
-import { Messages } from "./messages";
-import { createChat } from "@/lib/db/actions";
+import { SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Messages } from "@/components/messages";
 import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/settings-provider";
 import { getMessages } from "@/lib/db/actions";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Chat } from "@/lib/db/schema";
+import { useQuery } from "@tanstack/react-query";
 import type { Attachment } from "@ai-sdk/ui-utils";
 import type { FileMetadata } from "@/lib/types";
 import { useDropzone } from "react-dropzone";
+import { useUnifiedSubmit } from "@/hooks/use-unified-submit";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -35,10 +34,8 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
+  const { model, reasoningEffort, apiKeys, customization } =
     useSettingsContext();
-  const queryClient = useQueryClient();
-
   const router = useRouter();
   const pathname = usePathname();
   const chatIdParams = pathname.split("/chat/")[1];
@@ -108,6 +105,38 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
     }
   }, [isError, error, router]);
 
+  const handleError = (error: Error, type: "chat" | "image") => {
+    console.error(error);
+
+    const errorMessage = {
+      id: `error-${crypto.randomUUID()}`,
+      role: "assistant",
+      content: error.message,
+      createdAt: new Date(),
+      parts: [{ type: "text", text: error.message }],
+    } as Message;
+
+    if (type === "chat") {
+      setMessages((prev) => {
+        // On error an empty assistant message is created, so we replace it with the error message
+        const lastMessage = prev[prev.length - 1];
+        if (
+          lastMessage?.role === "assistant" &&
+          (!lastMessage.content || lastMessage.content.trim() === "")
+        ) {
+          return [...prev.slice(0, -1), errorMessage];
+        } else {
+          // Fallback
+          return [...prev, errorMessage];
+        }
+      });
+    } else {
+      setMessages((prev) => {
+        return [...prev, errorMessage];
+      });
+    }
+  };
+
   const {
     messages,
     input,
@@ -138,141 +167,24 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
       customization,
     },
     onError: (error) => {
-      console.error(error);
-      const errorMessage = {
-        id: `error-${crypto.randomUUID()}`,
-        role: "assistant",
-        content: error.message,
-        createdAt: new Date(),
-        parts: [{ type: "text", text: error.message }],
-      } as Message;
-
-      setMessages((prev) => {
-        // On error an empty assistant message is created, so we replace it with the error message
-        const lastMessage = prev[prev.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          (!lastMessage.content || lastMessage.content.trim() === "")
-        ) {
-          return [...prev.slice(0, -1), errorMessage];
-        } else {
-          // Fallback
-          return [...prev, errorMessage];
-        }
-      });
+      handleError(error, "chat");
     },
   });
 
-  const handleChatSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!user) {
-      toast.error("Please login to chat");
-      return;
-    }
-
-    if (!hasAnyKey()) {
-      toast("Please add API keys to chat", {
-        action: {
-          label: "Add keys",
-          onClick: () => router.push("/settings/api-keys"),
-        },
-      });
-      return;
-    }
-
-    if (!input.trim()) {
-      return;
-    }
-
-    if (temporaryChat) {
-      handleSubmit(e, {
-        experimental_attachments: attachments,
-      });
-      return;
-    }
-
-    if (!chatId) {
-      const newChatId = crypto.randomUUID();
-      const userMessage = input.trim();
-
-      setChatId(newChatId);
-      setDontFetchId(newChatId);
-
-      createChat(newChatId);
-      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-        if (!oldData) return oldData;
-        return [
-          {
-            id: newChatId,
-            userId: user.id,
-            title: "New Chat",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            isPinned: false,
-          },
-          ...oldData,
-        ];
-      });
-
-      window.history.replaceState({}, "", `/chat/${newChatId}`);
-
-      const submitPromise = handleSubmit(e, {
-        experimental_attachments: attachments,
-      });
-      const titlePromise = (async () => {
-        try {
-          const response = await fetch("/api/generate-title", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              chatId: newChatId,
-              prompt: userMessage,
-              apiKeys,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-              if (!oldData) return oldData;
-              return oldData.map((chatItem) =>
-                chatItem.id === newChatId
-                  ? { ...chatItem, title: result.title }
-                  : chatItem
-              );
-            });
-          }
-        } catch (error) {
-          console.error(error);
-          // Fallback title is already set when chat is created, so just log for now
-        }
-      })();
-
-      // Send both requests in parallel
-      await Promise.all([submitPromise, titlePromise]);
-      setFileMetadata({});
-    } else {
-      // Bring chat to top of list
-      queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-        if (!oldData) return oldData;
-        const chatIndex = oldData.findIndex((chat) => chat.id === chatId);
-        if (chatIndex === -1) return oldData;
-
-        const newChats = [...oldData];
-        newChats.splice(chatIndex, 1);
-        newChats.unshift(oldData[chatIndex]);
-        return newChats;
-      });
-      handleSubmit(e, {
-        experimental_attachments: attachments,
-      });
-      setFileMetadata({});
-    }
-  };
+  const { handleUnifiedSubmit, isGeneratingImage } = useUnifiedSubmit({
+    input,
+    setInput,
+    chatId: chatId ?? "",
+    setChatId,
+    setDontFetchId,
+    setMessages,
+    handleSubmit,
+    user,
+    temporaryChat,
+    attachments,
+    handleError,
+    messages,
+  });
 
   return (
     <>
@@ -301,6 +213,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
                 reload={reload}
                 append={append}
                 setMessages={setMessages}
+                isGeneratingImage={isGeneratingImage}
               />
             ) : (
               <div className="h-full flex items-center justify-center px-3">
@@ -344,9 +257,13 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
             <ChatInput
               input={input}
               handleInputChange={handleInputChange}
-              handleSubmit={handleChatSubmit}
+              handleSubmit={handleUnifiedSubmit}
               stop={stop}
-              status={status}
+              isLoading={
+                status === "submitted" ||
+                status === "streaming" ||
+                isGeneratingImage
+              }
               fileMetadata={fileMetadata}
               setFileMetadata={setFileMetadata}
               droppedFiles={droppedFiles}

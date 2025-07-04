@@ -28,6 +28,7 @@ import { useTheme } from "next-themes";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
+import Image from "next/image";
 
 interface AssistantMessageProps {
   message: Message;
@@ -84,6 +85,46 @@ export const AssistantMessage = memo(function AssistantMessage({
 
               return null;
             })}
+
+            {message.experimental_attachments && (
+              <div className="flex flex-wrap gap-2 mt-4 relative">
+                {message.experimental_attachments
+                  ?.filter((attachment) =>
+                    attachment.contentType?.startsWith("image/")
+                  )
+                  .map((attachment, index) => (
+                    <div
+                      key={`${message.id}-attachment-${index}`}
+                      className="relative"
+                    >
+                      <Image
+                        src={attachment.url}
+                        alt={attachment.name ?? "Attachment"}
+                        width={800}
+                        height={600}
+                        className="rounded-md max-w-full h-auto cursor-pointer"
+                        loading="lazy"
+                        onClick={() => window.open(attachment.url, "_blank")}
+                      />
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute rounded-full top-1 right-1 h-8 w-8 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-attachment-remove
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+
+                          // TODO: Download image
+                        }}
+                      >
+                        <Download className="size-5" />
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -231,7 +272,7 @@ export const CodeBlock = memo(function CodeBlock({
         </div>
       </div>
     ),
-    [language, codeCopied, handleCodeCopy, wrapText, handleCodeDownload],
+    [language, codeCopied, handleCodeCopy, wrapText, handleCodeDownload]
   );
 
   return !isInline ? (

@@ -91,6 +91,17 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     search: true,
   },
   {
+    id: "o3",
+    name: "o3",
+    icon: <OpenAI />,
+    providerId: "openai",
+    providerName: "OpenAI",
+    reasoning: true,
+    imageInput: true,
+    pdfInput: true,
+    search: true,
+  },
+  {
     id: "anthropic/claude-sonnet-4",
     name: "Claude 4 Sonnet",
     icon: <Anthropic />,

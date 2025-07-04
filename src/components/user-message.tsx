@@ -147,7 +147,7 @@ export function UserMessage({
             )}
           </div>
 
-          {message.experimental_attachments && (
+         {message.experimental_attachments && (
             <div className="flex flex-wrap gap-2 mt-4 relative">
               {message.experimental_attachments
                 ?.filter((attachment) =>
@@ -163,7 +163,7 @@ export function UserMessage({
                       alt={attachment.name ?? "Attachment"}
                       width={800}
                       height={600}
-                      className="rounded-md max-w-full h-auto cursor-pointer"
+                       className="rounded-md max-w-full h-auto cursor-pointer"
                       loading="lazy"
                       onClick={() => window.open(attachment.url, "_blank")}
                     />

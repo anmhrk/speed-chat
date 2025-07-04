@@ -7,6 +7,7 @@ import {
   createIdGenerator,
   smoothStream,
   appendResponseMessages,
+  type LanguageModelV1,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { Models, ChatRequest } from "@/lib/types";
@@ -14,6 +15,7 @@ import { AVAILABLE_MODELS } from "@/lib/models";
 import { format } from "date-fns";
 import { getUser } from "@/lib/auth/get-user";
 import { saveMessages } from "@/lib/db/actions";
+import { createOpenAI } from "@ai-sdk/openai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +62,18 @@ export async function POST(request: NextRequest) {
       ...(headers && { headers }),
     });
 
-    const aiModel = openrouter.chat(modelId);
+    const openai = createOpenAI({
+      apiKey: apiKeys.openai,
+    });
+
+    let aiModel: LanguageModelV1;
+
+    if (modelId === "o3") {
+      aiModel = openai(modelId);
+    } else {
+      aiModel = openrouter.chat(modelId);
+    }
+
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
 
     const calculateThinkingBudget = () => {
@@ -118,6 +131,9 @@ export async function POST(request: NextRequest) {
               modelId.includes("openai") || modelId.includes("x-ai")
                 ? { effort: reasoningEffort }
                 : { max_tokens: calculateThinkingBudget() },
+          },
+          openai: {
+            reasoningEffort: reasoningEffort,
           },
         },
       }),

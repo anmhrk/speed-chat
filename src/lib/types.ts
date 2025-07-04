@@ -19,6 +19,7 @@ type ReasoningModels =
   | "anthropic/claude-sonnet-4-thinking" // not valid id, just placeholder to identify thinking version
   | "anthropic/claude-opus-4-thinking" // same as above
   | "openai/o4-mini"
+  | "o3"
   | "deepseek/deepseek-r1-0528"
   | "x-ai/grok-3-mini";
 
@@ -83,6 +84,15 @@ export type ChatRequest = {
   apiKeys: APIKeys;
   temporaryChat: boolean;
   customization: Customization;
+};
+
+export type ImageRequest = {
+  messages: Message[];
+  chatId: string;
+  model: Models;
+  apiKeys: APIKeys;
+  temporaryChat: boolean;
+  prompt: string;
 };
 
 export type TitleRequest = {
