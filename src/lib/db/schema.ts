@@ -54,10 +54,10 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
   updatedAt: timestamp("updated_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
 });
 
@@ -93,3 +93,14 @@ export const messages = pgTable("messages", {
   >(),
   createdAt: timestamp("created_at").notNull(),
 });
+
+export const memories = pgTable("memories", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  memory: text("memory").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+export type Memory = typeof memories.$inferSelect;

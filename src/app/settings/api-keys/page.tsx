@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Edit } from "lucide-react";
+import { Check, Edit, Key } from "lucide-react";
 
 const providers: ProviderConfig[] = [
   {
@@ -85,6 +85,12 @@ export default function ApiKeysPage() {
 
   return (
     <div className="space-y-8">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Key className="size-5" />
+          <h2 className="text-lg font-semibold">Configure API Keys</h2>
+        </div>
+      </div>
       {providers.map((provider) => (
         <div key={provider.id} className="space-y-2">
           <Label htmlFor={`${provider.id}-key`}>{provider.name} API Key</Label>

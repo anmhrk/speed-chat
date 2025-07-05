@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSettingsContext } from "@/components/settings-provider";
 import { Customization } from "@/lib/types";
-import { Plus, X } from "lucide-react";
+import { Palette, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,12 @@ export default function CustomizationPage() {
 
   return (
     <div className="space-y-8">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Palette className="size-5" />
+          <h2 className="text-lg font-semibold">Customize SpeedChat</h2>
+        </div>
+      </div>
       <div className="space-y-2">
         <Label htmlFor="name">What should SpeedChat call you?</Label>
         <Input

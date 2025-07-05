@@ -19,11 +19,12 @@ import { createFal } from "@ai-sdk/fal";
 import type { Models, ChatRequest, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { getUser } from "@/lib/auth/get-user";
-import { saveMessages } from "@/lib/db/actions";
+import { getMemories, addMemory, saveMessages } from "@/lib/db/actions";
 import { uploadBase64Image } from "@/lib/uploadthing";
 import { z } from "zod";
 import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
 import Exa from "exa-js";
+import { Memory } from "@/lib/db/schema";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
     let imageModel: ImageModel;
     let modelId = model;
     let dimensionFormat: DimensionFormat;
+    let storedMemories: Memory[] = [];
 
     const isImageModel =
       AVAILABLE_MODELS.find((m) => m.id === modelId)?.imageGeneration === true;
@@ -101,6 +103,8 @@ export async function POST(request: NextRequest) {
       } else {
         aiModel = openrouter.chat(modelId);
       }
+
+      storedMemories = await getMemories();
     }
 
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
@@ -116,7 +120,7 @@ export async function POST(request: NextRequest) {
       model: aiModel,
       system: isImageModel
         ? imageGenerationPrompt(messages[messages.length - 1].content)
-        : chatPrompt(modelName!, customization, searchEnabled),
+        : chatPrompt(modelName!, customization, searchEnabled, storedMemories),
       experimental_transform: [
         smoothStream({
           chunking: "word",
@@ -209,6 +213,27 @@ export async function POST(request: NextRequest) {
                   content: item.text || "No content available",
                   publishedDate: item.publishedDate || "Date not available",
                 })),
+              };
+            },
+          }),
+        }),
+        ...(!isImageModel && {
+          addMemory: tool({
+            description:
+              "Add a useful detail about the user to remember for future conversations. This helps personalize responses and maintain context across chats.",
+            parameters: z.object({
+              memory: z
+                .string()
+                .describe(
+                  "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
+                ),
+            }),
+            execute: async ({ memory }) => {
+              await addMemory(memory);
+
+              return {
+                success: true,
+                memory: memory,
               };
             },
           }),

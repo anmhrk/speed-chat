@@ -8,7 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "@/lib/auth/auth-client";
 import { Separator } from "@/components/ui/separator";
-import { Trash } from "lucide-react";
+import { Settings, Trash } from "lucide-react";
 
 export default function GeneralPage() {
   const queryClient = useQueryClient();
@@ -65,6 +65,12 @@ export default function GeneralPage() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Settings className="size-5" />
+          <h2 className="text-lg font-semibold">Settings</h2>
+        </div>
+      </div>
       <div className="flex items-center justify-between py-2">
         <div>
           <h4 className="font-medium">Delete All Chats</h4>

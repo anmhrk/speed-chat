@@ -9,6 +9,7 @@ import {
   WrapText,
   ExternalLink,
   Globe,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo, useMemo, useCallback } from "react";
@@ -31,6 +32,7 @@ import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface WebSearchResult {
   url: string;
@@ -111,10 +113,13 @@ export const AssistantMessage = memo(function AssistantMessage({
                     >
                       {part.toolInvocation.state === "result" ? (
                         <div className="relative group/image">
-                          <img
+                          <Image
                             src={(part.toolInvocation as any).result.imageUrl}
                             alt="Generated Image"
                             className="rounded-md w-full max-w-[400px] h-auto aspect-auto cursor-pointer"
+                            loading="lazy"
+                            width={400}
+                            height={300}
                           />
 
                           <div className="absolute top-1 right-1 flex gap-1.5">
@@ -185,6 +190,15 @@ export const AssistantMessage = memo(function AssistantMessage({
                 if (part.toolInvocation.toolName === "webSearch") {
                   return (
                     <WebSearchBlock
+                      key={partIndex}
+                      toolInvocation={part.toolInvocation}
+                    />
+                  );
+                }
+
+                if (part.toolInvocation.toolName === "addMemory") {
+                  return (
+                    <MemoryBlock
                       key={partIndex}
                       toolInvocation={part.toolInvocation}
                     />
@@ -501,5 +515,34 @@ const WebSearchBlock = memo(function WebSearchBlock({
         )}
       </CollapsibleContent>
     </Collapsible>
+  );
+});
+
+const MemoryBlock = memo(function MemoryBlock({
+  toolInvocation,
+}: {
+  toolInvocation: ToolInvocation;
+}) {
+  const isAdding = toolInvocation.state !== "result";
+  const memoryResult =
+    toolInvocation.state === "result"
+      ? (toolInvocation as any).result
+      : undefined;
+  const memoryText = memoryResult?.memory || toolInvocation.args?.memory || "";
+
+  return (
+    <div className="my-3 text-xs text-muted-foreground">
+      {isAdding ? (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin size-3 border border-muted-foreground border-t-transparent rounded-full" />
+          <span>Adding to memory...</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Brain className="size-3" />
+          <span>Memory added: {memoryText}</span>
+        </div>
+      )}
+    </div>
   );
 });

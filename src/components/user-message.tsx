@@ -172,7 +172,7 @@ export function UserMessage({
                   )}
                 >
                   {attachment.contentType?.startsWith("image/") ? (
-                    <img
+                    <Image
                       src={attachment.url}
                       alt={attachment.name ?? "Attachment"}
                       className={cn(
@@ -180,6 +180,8 @@ export function UserMessage({
                         isEditing ? "max-w-[350px]" : "max-w-full"
                       )}
                       onClick={() => window.open(attachment.url, "_blank")}
+                      width={400}
+                      height={300}
                     />
                   ) : (
                     <Link

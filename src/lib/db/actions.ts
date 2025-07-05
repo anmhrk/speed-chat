@@ -2,7 +2,7 @@
 
 import { getUser } from "../auth/get-user";
 import { db } from ".";
-import { chats, messages, user as userTable } from "./schema";
+import { chats, messages, memories, user as userTable } from "./schema";
 import type { Message } from "ai";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
@@ -207,4 +207,31 @@ export async function deleteUser() {
   await deleteAllImages(user.id);
   await db.delete(userTable).where(eq(userTable.id, user.id));
   // Everything else is deleted automatically due to cascade
+}
+
+export async function getMemories() {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return await db.select().from(memories).where(eq(memories.userId, user.id));
+}
+
+export async function addMemory(memory: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  await db.insert(memories).values({
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+    userId: user.id,
+    memory,
+  });
+}
+
+export async function deleteMemory(memoryId: string) {
+  await db.delete(memories).where(eq(memories.id, memoryId));
 }
