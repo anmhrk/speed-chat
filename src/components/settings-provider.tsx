@@ -14,6 +14,7 @@ import type {
   Models,
   Providers,
   ReasoningEfforts,
+  APIKeys,
 } from "@/lib/types";
 
 const DEFAULT_MODEL =
@@ -23,7 +24,7 @@ const LOCAL_STORAGE_KEY = "saved_settings";
 interface SettingsState {
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: Record<Providers, string>;
+  apiKeys: APIKeys;
   customization: Customization;
   favoriteModels: Models[];
   isHydrated: boolean;
@@ -32,7 +33,7 @@ interface SettingsState {
 interface SettingsActions {
   setModel: (model: Models) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEfforts) => void;
-  setApiKeys: (apiKeys: Record<Providers, string>) => void;
+  setApiKeys: (apiKeys: APIKeys) => void;
   setCustomization: (customization: Customization) => void;
   toggleFavoriteModel: (model: Models) => void;
   isFavoriteModel: (model: Models) => boolean;
@@ -54,6 +55,7 @@ const INITIAL_STATE: PartialSettingsState = {
     openrouter: "",
     openai: "",
     falai: "",
+    exa: "",
   },
   customization: {
     name: "",
@@ -72,7 +74,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const hasAnyKey = useCallback(() => {
     const { openrouter, openai, falai } = state.apiKeys;
-    return !!(openrouter.trim() || openai.trim() || falai.trim());
+    return !!(openrouter.trim() || openai.trim() || falai.trim()); // Don't include exa key cos this checks for model keys
   }, [state.apiKeys]);
 
   const hasApiKeyForProvider = useCallback(
@@ -104,11 +106,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setReasoningEffort = (reasoningEffort: ReasoningEfforts) =>
     setState((prev) => ({ ...prev, reasoningEffort }));
 
-  const setApiKeys = (apiKeys: Record<Providers, string>) => {
+  const setApiKeys = (apiKeys: APIKeys) => {
     setState((prev) => {
-      const hasAnyKey = Object.entries(apiKeys).some(([provider, key]) => {
-        return key && (key as string).trim() !== "";
-      });
+      const hasAnyKey = Object.values(apiKeys).some(
+        (key) => key && (key as string).trim() !== ""
+      );
 
       const availableModels = AVAILABLE_MODELS.filter((model) => {
         const provider = model.providerId;
@@ -183,16 +185,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? persisted.reasoningEffort
           : INITIAL_STATE.reasoningEffort;
 
-      const sanitizedApiKeys: Record<Providers, string> = {
+      const sanitizedApiKeys: APIKeys = {
         openrouter: "",
         openai: "",
         falai: "",
+        exa: "",
       };
 
       if (persisted.apiKeys) {
         Object.entries(persisted.apiKeys).forEach(([provider, key]) => {
-          if (AVAILABLE_MODELS.some((m) => m.providerId === provider)) {
-            sanitizedApiKeys[provider as Providers] = (key as string) || "";
+          if (
+            provider === "exa" ||
+            AVAILABLE_MODELS.some((m) => m.providerId === provider)
+          ) {
+            sanitizedApiKeys[provider as Providers | "exa"] =
+              (key as string) || "";
           }
         });
       }

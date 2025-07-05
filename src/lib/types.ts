@@ -31,6 +31,8 @@ export type Providers = "openrouter" | "openai" | "falai";
 
 export type ReasoningEfforts = "low" | "medium" | "high";
 
+export type APIKeys = Record<Providers | "exa", string>;
+
 export type ModelConfig = {
   id: Models;
   name: string;
@@ -51,7 +53,7 @@ export type ReasoningEffortConfig = {
 };
 
 export type ProviderConfig = {
-  id: Providers;
+  id: Providers | "exa";
   name: string;
   placeholder: string;
   url: string;
@@ -69,15 +71,16 @@ export type ChatRequest = {
   chatId: string;
   model: Models;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: Record<Providers, string>;
+  apiKeys: APIKeys;
   temporaryChat: boolean;
   customization: Customization;
+  searchEnabled: boolean;
 };
 
 export type TitleRequest = {
   chatId: string;
   prompt: string;
-  apiKeys: Record<Providers, string>;
+  apiKeys: APIKeys;
 };
 
 export type FileMetadata = {

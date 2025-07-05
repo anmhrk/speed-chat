@@ -1,7 +1,7 @@
 "use client";
 
 import { useSettingsContext } from "@/components/settings-provider";
-import type { ProviderConfig, Providers } from "@/lib/types";
+import type { APIKeys, ProviderConfig, Providers } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,20 +28,30 @@ const providers: ProviderConfig[] = [
     placeholder: "FALAI_API_KEY",
     url: "https://fal.ai/dashboard/keys",
   },
+  {
+    id: "exa",
+    name: "Exa",
+    placeholder: "EXA_API_KEY",
+    url: "https://dashboard.exa.ai/api-keys",
+  },
 ];
 
 export default function ApiKeysPage() {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const { apiKeys, setApiKeys } = useSettingsContext();
-  const [localApiKeys, setLocalApiKeys] = useState<Record<Providers, string>>({
+  const [localApiKeys, setLocalApiKeys] = useState<APIKeys>({
     openrouter: "",
     openai: "",
     falai: "",
+    exa: "",
   });
-  const [editingKeys, setEditingKeys] = useState<Record<Providers, boolean>>({
+  const [editingKeys, setEditingKeys] = useState<
+    Record<Providers | "exa", boolean>
+  >({
     openrouter: true,
     openai: true,
     falai: true,
+    exa: true,
   });
 
   const hasChanges = JSON.stringify(localApiKeys) !== JSON.stringify(apiKeys);
@@ -69,6 +79,7 @@ export default function ApiKeysPage() {
       openrouter: !apiKeys.openrouter,
       openai: !apiKeys.openai,
       falai: !apiKeys.falai,
+      exa: !apiKeys.exa,
     });
   }, [apiKeys]);
 

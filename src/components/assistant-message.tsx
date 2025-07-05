@@ -163,6 +163,19 @@ export const AssistantMessage = memo(function AssistantMessage({
                     </div>
                   );
                 }
+
+                if (part.toolInvocation.toolName === "webSearch") {
+                  return (
+                    <div
+                      key={partIndex}
+                      className="flex flex-wrap gap-2 mt-4 w-full relative max-w-[66.67%]"
+                    >
+                      {part.toolInvocation.state !== "result" && (
+                        <div>Searching the web...</div>
+                      )}
+                    </div>
+                  );
+                }
               }
 
               return null;
@@ -171,27 +184,32 @@ export const AssistantMessage = memo(function AssistantMessage({
         )}
 
         <div className="absolute top-full left-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-          {!isError && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCopy}
-                  className="h-8 w-8"
-                >
-                  {copied ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {copied ? "Copied!" : "Copy message"}
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {!isError &&
+            !message.parts?.some(
+              (part) =>
+                part.type === "tool-invocation" &&
+                part.toolInvocation.toolName === "generateImage"
+            ) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCopy}
+                    className="h-8 w-8"
+                  >
+                    {copied ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {copied ? "Copied!" : "Copy message"}
+                </TooltipContent>
+              </Tooltip>
+            )}
 
           {isLastMessage && (
             <Tooltip>

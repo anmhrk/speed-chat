@@ -8,7 +8,6 @@ import {
   Square,
   X,
   FileIcon,
-  ExternalLink,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -40,6 +39,8 @@ interface ChatInputProps {
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   removeFile: (fileName: string) => void;
   acceptsPdf: boolean;
+  searchEnabled: boolean;
+  setSearchEnabled: Dispatch<SetStateAction<boolean>>;
 }
 
 export function ChatInput({
@@ -57,6 +58,8 @@ export function ChatInput({
   handleFileChange,
   removeFile,
   acceptsPdf,
+  searchEnabled,
+  setSearchEnabled,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { model } = useSettingsContext();
@@ -114,6 +117,8 @@ export function ChatInput({
                   <Toggle
                     variant="outline"
                     className="gap-1.5 rounded-full px-3 py-2 font-normal"
+                    pressed={searchEnabled}
+                    onPressedChange={(pressed) => setSearchEnabled(pressed)}
                   >
                     <Globe className="size-4" />
                     <span className="hidden md:block">Search</span>
@@ -142,7 +147,7 @@ export function ChatInput({
               </TooltipTrigger>
               <TooltipContent>
                 {user
-                  ? "Only images are supported currently"
+                  ? `Only images ${acceptsPdf ? "and PDFs" : ""} are supported currently`
                   : "Please login first"}
               </TooltipContent>
             </Tooltip>

@@ -41,6 +41,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
+  const [searchEnabled, setSearchEnabled] = useState(false);
   const [dontFetchId, setDontFetchId] = useState("");
   const {
     fileMetadata,
@@ -117,6 +118,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
       apiKeys,
       temporaryChat,
       customization,
+      searchEnabled,
     },
     onError: (error) => {
       console.error(error);
@@ -323,6 +325,8 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
               handleFileChange={handleFileChange}
               removeFile={removeFile}
               acceptsPdf={acceptsPdf}
+              searchEnabled={searchEnabled}
+              setSearchEnabled={setSearchEnabled}
             />
           </div>
         </div>

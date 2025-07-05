@@ -23,6 +23,7 @@ import { saveMessages } from "@/lib/db/actions";
 import { uploadBase64Image } from "@/lib/uploadthing";
 import { z } from "zod";
 import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
+import Exa from "exa-js";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       apiKeys,
       temporaryChat,
       customization,
+      searchEnabled,
     } = body;
 
     const user = await getUser();
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
       model: aiModel,
       system: isImageModel
         ? imageGenerationPrompt(messages[messages.length - 1].content)
-        : chatPrompt(modelName!, customization),
+        : chatPrompt(modelName!, customization, searchEnabled),
       experimental_transform: [
         smoothStream({
           chunking: "word",
@@ -134,8 +136,8 @@ export async function POST(request: NextRequest) {
           },
         },
       }),
-      ...(isImageModel && {
-        tools: {
+      tools: {
+        ...(isImageModel && {
           generateImage: tool({
             description: "Generate an image based on the user's prompt",
             parameters: z.object({
@@ -159,11 +161,63 @@ export async function POST(request: NextRequest) {
               return { imageUrl };
             },
           }),
-        },
-      }),
+        }),
+        ...(searchEnabled && {
+          webSearch: tool({
+            description:
+              "Search the web for current information to help answer the user's question. Use this when you need up-to-date information or facts not in your training data.",
+            parameters: z.object({
+              query: z
+                .string()
+                .describe(
+                  "The search query to find information relevant to the user's question."
+                ),
+              resultCategory: z
+                .enum([
+                  "auto",
+                  "company",
+                  "research paper",
+                  "news",
+                  "pdf",
+                  "github",
+                  "personal site",
+                  "linkedin profile",
+                  "financial report",
+                ])
+                .describe("The category of the result to search for."),
+            }),
+            execute: async ({ query, resultCategory }) => {
+              const exa = new Exa(apiKeys.exa);
+
+              const result = await exa.searchAndContents(query, {
+                type: "auto",
+                category:
+                  resultCategory === "auto" ? undefined : resultCategory,
+                numResults: 8,
+                text: {
+                  maxCharacters: 800,
+                },
+              });
+
+              return {
+                query: query,
+                totalResults: result.results.length,
+                results: result.results.map((item, index) => ({
+                  rank: index + 1,
+                  title: item.title,
+                  url: item.url,
+                  content: item.text || "No content available",
+                  publishedDate: item.publishedDate || "Date not available",
+                })),
+              };
+            },
+          }),
+        }),
+      },
       ...(isImageModel && {
         toolChoice: "required",
       }),
+      maxSteps: 5,
       toolCallStreaming: true,
       onFinish: async ({ response }) => {
         try {
