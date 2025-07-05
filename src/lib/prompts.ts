@@ -27,8 +27,8 @@ export const chatPrompt = (
       `The user has enabled web search for this query. You will need to use the webSearch tool provided to you which will return a list of web results.
       You need to provide the tool with a query to search the web for, and the category of the results you want to search for.
       The category should be determined based on the query to provide best and most relevant results. If you feel like the query is not specific enough, you can use the "auto" category.
-      Synthesize the results and then provide a comprehensive answer based on the search results. Include relevant sources and URLs in your response.
-      If the search results don't fully answer the question, acknowledge the limitations.
+      Synthesize the results and then provide a comprehensive answer based on the search results. Include relevant sources and URLs in your response. The full sources will be shown to the user
+      anyway so just include the most important sources in your answer. If you think it's alright to not include sources, it's fine to not include them.
     `
     }
 

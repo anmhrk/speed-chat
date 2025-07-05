@@ -62,7 +62,7 @@ export function ChatInput({
   setSearchEnabled,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { model } = useSettingsContext();
+  const { model, apiKeys } = useSettingsContext();
 
   useEffect(() => {
     if (inputRef.current) {
@@ -119,13 +119,21 @@ export function ChatInput({
                     className="gap-1.5 rounded-full px-3 py-2 font-normal"
                     pressed={searchEnabled}
                     onPressedChange={(pressed) => setSearchEnabled(pressed)}
+                    disabled={!user || !apiKeys.exa}
                   >
                     <Globe className="size-4" />
                     <span className="hidden md:block">Search</span>
                   </Toggle>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>Enable web search</TooltipContent>
+
+              <TooltipContent>
+                {user
+                  ? apiKeys.exa
+                    ? "Enable web search"
+                    : "EXA_API_KEY not set"
+                  : "Please login first"}
+              </TooltipContent>
             </Tooltip>
           )}
 

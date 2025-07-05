@@ -85,6 +85,17 @@ export function Markdown({ children }: { children: React.ReactNode }) {
             {children}
           </td>
         ),
+
+        a: ({ children, href }) => (
+          <a
+            href={href}
+            className="dark:text-blue-400 text-blue-600 hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </a>
+        ),
       }}
     >
       {String(children)}

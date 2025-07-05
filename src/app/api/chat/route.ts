@@ -214,10 +214,8 @@ export async function POST(request: NextRequest) {
           }),
         }),
       },
-      ...(isImageModel && {
-        toolChoice: "required",
-      }),
-      maxSteps: 5,
+      ...(isImageModel && { toolChoice: "required" }),
+      ...(!isImageModel && { maxSteps: 10 }),
       toolCallStreaming: true,
       onFinish: async ({ response }) => {
         try {
