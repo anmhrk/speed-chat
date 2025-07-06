@@ -27,6 +27,7 @@ import {
   Pin,
   PinOff,
   GitBranch,
+  Share,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "better-auth";
@@ -44,7 +45,8 @@ import {
   deleteChat,
   getChats,
   getMessages,
-  handlePinChat,
+  pinChat,
+  shareChat,
   renameChatTitle,
 } from "@/lib/db/actions";
 import { toast } from "sonner";
@@ -325,7 +327,7 @@ function ChatItem({
 
                 // Update db in background but show optimistic update immediately
                 try {
-                  handlePinChat(chat.id, chat.isPinned);
+                  pinChat(chat.id);
                 } catch (error) {
                   console.error(error);
                   toast.error("Failed to pin chat");
@@ -348,6 +350,14 @@ function ChatItem({
             >
               <Pencil />
               <span>Rename</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                shareChat(chat.id);
+              }}
+            >
+              <Share />
+              <span>Share</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

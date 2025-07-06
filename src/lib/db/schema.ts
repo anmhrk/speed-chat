@@ -76,6 +76,9 @@ export const chats = pgTable("chats", {
   isPinned: boolean("is_pinned")
     .notNull()
     .$defaultFn(() => false),
+  isShared: boolean("is_shared")
+    .notNull()
+    .$defaultFn(() => false),
   isBranched: boolean("is_branched")
     .notNull()
     .$defaultFn(() => false),

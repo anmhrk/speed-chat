@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import {
   Check,
   Copy,
@@ -33,7 +35,6 @@ import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Link from "next/link";
-import Image from "next/image";
 import type {
   WebSearchToolInvocation,
   WebSearchResult,
@@ -126,7 +127,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                     >
                       {part.toolInvocation.state === "result" ? (
                         <div className="relative group/image">
-                          <Image
+                          <img
                             src={
                               (
                                 part.toolInvocation as ImageGenerationToolInvocation
@@ -134,9 +135,9 @@ export const AssistantMessage = memo(function AssistantMessage({
                             }
                             alt="Generated Image"
                             className="rounded-md w-full max-w-[400px] h-auto aspect-auto cursor-pointer"
-                            loading="lazy"
                             width={400}
                             height={300}
+                            loading="lazy"
                           />
 
                           <div className="absolute top-1 right-1 flex gap-1.5">
@@ -492,7 +493,7 @@ const WebSearchBlock = memo(function WebSearchBlock({
           {!isSearching && domains.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
               {domains.map((domain, index) => (
-                <Image
+                <img
                   key={`${domain}-${index}`}
                   src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
                   alt={`${domain} favicon`}
@@ -516,7 +517,7 @@ const WebSearchBlock = memo(function WebSearchBlock({
             {results.map((result: WebSearchResult, index: number) => (
               <div key={index} className="border-l-2 border-primary/20 pl-3">
                 <div className="flex items-start gap-2">
-                  <Image
+                  <img
                     src={`https://www.google.com/s2/favicons?domain=${
                       new URL(result.url).hostname
                     }&sz=32`}

@@ -29,15 +29,23 @@ interface ChatPageProps {
   user: User | null;
   initialChatId: string;
   greeting?: string;
+  isShared?: boolean;
+  didUserCreate?: boolean;
 }
 
-export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
+export function ChatPage({
+  user,
+  initialChatId,
+  greeting,
+  isShared,
+  didUserCreate,
+}: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
     useSettingsContext();
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
-  const chatIdParams = pathname.split("/chat/")[1];
+  const chatIdParams = pathname.split("/chat/")[1] ?? initialChatId;
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
@@ -193,6 +201,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
           createdAt: new Date(),
           updatedAt: new Date(),
           isPinned: false,
+          isShared: false,
           isBranched: false,
           parentChatId: null,
         };
@@ -247,6 +256,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
         user={user}
         chatIdParams={chatId ?? ""}
         isMessageStreaming={isMessageStreaming}
+        isShared={isShared}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">

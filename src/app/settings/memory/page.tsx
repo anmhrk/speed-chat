@@ -3,19 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { getMemories, deleteMemory } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash, Brain, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import type { Memory } from "@/lib/db/schema";
+import { toast } from "sonner";
 
 export default function MemoryPage() {
   const queryClient = useQueryClient();
-  const [deletingMemories, setDeletingMemories] = useState<Set<string>>(
-    new Set()
-  );
 
   const {
     data: memories = [],
@@ -25,50 +20,6 @@ export default function MemoryPage() {
     queryKey: ["memories"],
     queryFn: getMemories,
   });
-
-  const handleDeleteMemory = async (memoryId: string, memoryText: string) => {
-    if (
-      confirm(
-        `Are you sure you want to delete this memory? This action cannot be undone.\n\n"${memoryText}"`
-      )
-    ) {
-      try {
-        setDeletingMemories((prev) => new Set(prev).add(memoryId));
-        await deleteMemory(memoryId);
-        queryClient.invalidateQueries({ queryKey: ["memories"] });
-        toast.success("Memory deleted successfully!");
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to delete memory");
-      } finally {
-        setDeletingMemories((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(memoryId);
-          return newSet;
-        });
-      }
-    }
-  };
-
-  const handleClearAllMemories = async () => {
-    if (
-      confirm(
-        `Are you sure you want to delete all ${memories.length} memories? This action cannot be undone.`
-      )
-    ) {
-      try {
-        const deletePromises = memories.map((memory) =>
-          deleteMemory(memory.id)
-        );
-        await Promise.all(deletePromises);
-        queryClient.invalidateQueries({ queryKey: ["memories"] });
-        toast.success("All memories deleted successfully!");
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to delete all memories");
-      }
-    }
-  };
 
   if (isLoading) {
     return (
@@ -127,65 +78,46 @@ export default function MemoryPage() {
           </p>
         </div>
       ) : (
-        <>
-          <div className="space-y-4">
-            {memories.map((memory: Memory, index: number) => (
-              <div key={memory.id}>
-                <div className="flex items-start justify-between py-4">
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <p className="text-sm leading-relaxed break-words">
-                      {memory.memory}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="size-3" />
-                      <span>
-                        Added{" "}
-                        {format(
-                          new Date(memory.createdAt),
-                          "MMM d, yyyy 'at' h:mm a"
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteMemory(memory.id, memory.memory)}
-                    disabled={deletingMemories.has(memory.id)}
-                    className="ml-4 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash className="size-4" />
-                  </Button>
-                </div>
-                {index < memories.length - 1 && <Separator />}
-              </div>
-            ))}
-          </div>
-
-          {memories.length > 1 && (
-            <>
-              <Separator />
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <h4 className="font-medium text-destructive">
-                    Clear All Memories
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Remove all stored memories permanently
+        <div className="space-y-4">
+          {memories.map((memory: Memory) => (
+            <div key={memory.id}>
+              <div className="flex items-start justify-between py-4">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-sm leading-relaxed break-words">
+                    {memory.memory}
                   </p>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="size-3" />
+                    <span>
+                      Added{" "}
+                      {format(
+                        new Date(memory.createdAt),
+                        "MMM d, yyyy 'at' h:mm a"
+                      )}
+                    </span>
+                  </div>
                 </div>
                 <Button
-                  variant="destructive"
-                  onClick={handleClearAllMemories}
-                  disabled={deletingMemories.size > 0}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    queryClient.setQueryData(["memories"], (old: Memory[]) =>
+                      old.filter((m) => m.id !== memory.id)
+                    );
+                    try {
+                      deleteMemory(memory.id);
+                    } catch {
+                      toast.error(`Failed to delete memory: ${memory.memory}`);
+                    }
+                  }}
+                  className="ml-4 text-muted-foreground hover:text-destructive"
                 >
-                  <Trash className="mr-2 size-4" />
-                  Clear All
+                  <Trash className="size-4" />
                 </Button>
               </div>
-            </>
-          )}
-        </>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

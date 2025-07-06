@@ -7,6 +7,7 @@ import type { Message } from "ai";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
 
+// CHATS
 export async function getChats() {
   const user = await getUser();
   if (!user) {
@@ -123,31 +124,52 @@ export async function deleteAllChats() {
     throw new Error("Unauthorized");
   }
 
-  await deleteAllImages(user.id);
+  await deleteAllAttachments("all", user.id);
   await db.delete(chats).where(eq(chats.userId, user.id));
 }
 
-async function deleteAllImages(userId: string) {
-  const allChats = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.userId, userId));
+async function deleteAllAttachments(
+  type: "all" | "single",
+  userId?: string,
+  chatId?: string
+) {
+  let messagesToCheck: Message[] = [];
 
-  const allMessages = await db
-    .select()
-    .from(messages)
-    .where(
-      inArray(
-        messages.chatId,
-        allChats.map((chat) => chat.id)
-      )
-    );
+  if (type === "single" && chatId) {
+    const chatMessages = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.chatId, chatId));
 
-  const attachmentUrls = allMessages.flatMap((message) =>
+    messagesToCheck = chatMessages as Message[];
+  } else if (type === "all" && userId) {
+    const allChats = await db
+      .select()
+      .from(chats)
+      .where(eq(chats.userId, userId));
+
+    const allMessages = await db
+      .select()
+      .from(messages)
+      .where(
+        inArray(
+          messages.chatId,
+          allChats.map((chat) => chat.id)
+        )
+      );
+
+    messagesToCheck = allMessages as Message[];
+  }
+
+  if (messagesToCheck.length === 0) {
+    return;
+  }
+
+  const attachmentUrls = messagesToCheck.flatMap((message) =>
     message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  const toolInvocationUrls = allMessages.flatMap((message) =>
+  const toolInvocationUrls = messagesToCheck.flatMap((message) =>
     message.parts?.map((part) =>
       part.type === "tool-invocation"
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -162,28 +184,39 @@ async function deleteAllImages(userId: string) {
   ]);
 }
 
-export async function deleteChat(chatId: string) {
-  const chatMessages = await db
+export async function verifySharedChat(
+  chatId: string,
+  userId: string
+): Promise<{ success: boolean; didUserCreate: boolean }> {
+  const [chat] = await db
     .select()
-    .from(messages)
-    .where(eq(messages.chatId, chatId));
+    .from(chats)
+    .where(eq(chats.id, chatId))
+    .limit(1);
 
-  const attachmentUrls = chatMessages.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url)
-  );
-  const toolInvocationUrls = chatMessages.flatMap((message) =>
-    message.parts?.map((part) =>
-      part.type === "tool-invocation"
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (part.toolInvocation as any).result.imageUrl
-        : null
-    )
-  );
+  if (!chat.isShared) {
+    return {
+      success: false,
+      didUserCreate: false,
+    };
+  }
 
-  await deleteFiles([
-    ...attachmentUrls.filter((url): url is string => Boolean(url)),
-    ...toolInvocationUrls.filter((url): url is string => Boolean(url)),
-  ]);
+  if (chat.userId !== userId) {
+    return {
+      success: true,
+      didUserCreate: false,
+    };
+  }
+
+  return {
+    success: true,
+    didUserCreate: true,
+  };
+}
+
+// CHAT ACTIONS
+export async function deleteChat(chatId: string) {
+  await deleteAllAttachments("single", undefined, chatId);
   await db.delete(chats).where(eq(chats.id, chatId));
 }
 
@@ -191,49 +224,17 @@ export async function renameChatTitle(chatId: string, newTitle: string) {
   await db.update(chats).set({ title: newTitle }).where(eq(chats.id, chatId));
 }
 
-export async function handlePinChat(chatId: string, isPinned: boolean) {
+export async function pinChat(chatId: string) {
+  const [chat] = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.id, chatId))
+    .limit(1);
+
   await db
     .update(chats)
-    .set({ isPinned: !isPinned })
+    .set({ isPinned: !chat.isPinned })
     .where(eq(chats.id, chatId));
-}
-
-export async function deleteUser() {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  await deleteAllImages(user.id);
-  await db.delete(userTable).where(eq(userTable.id, user.id));
-  // Everything else is deleted automatically due to cascade
-}
-
-export async function getMemories() {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  return await db.select().from(memories).where(eq(memories.userId, user.id));
-}
-
-export async function addMemory(memory: string) {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  await db.insert(memories).values({
-    id: crypto.randomUUID(),
-    createdAt: new Date(),
-    userId: user.id,
-    memory,
-  });
-}
-
-export async function deleteMemory(memoryId: string) {
-  await db.delete(memories).where(eq(memories.id, memoryId));
 }
 
 export async function branchOffChat(parentChatId: string, newChatId: string) {
@@ -263,4 +264,57 @@ export async function branchOffChat(parentChatId: string, newChatId: string) {
       chatId: newChatId,
     }))
   );
+}
+
+export async function shareChat(chatId: string) {
+  const [chat] = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.id, chatId))
+    .limit(1);
+
+  await db
+    .update(chats)
+    .set({ isShared: !chat.isShared })
+    .where(eq(chats.id, chatId));
+}
+
+// MEMORIES
+export async function getMemories() {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return await db.select().from(memories).where(eq(memories.userId, user.id));
+}
+
+export async function addMemory(memory: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  await db.insert(memories).values({
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+    userId: user.id,
+    memory,
+  });
+}
+
+export async function deleteMemory(memoryId: string) {
+  await db.delete(memories).where(eq(memories.id, memoryId));
+}
+
+// USER
+export async function deleteUser() {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  await deleteAllAttachments("all", user.id);
+  await db.delete(userTable).where(eq(userTable.id, user.id));
+  // Everything else is deleted automatically due to cascade
 }
