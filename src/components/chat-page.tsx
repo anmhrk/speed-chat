@@ -193,6 +193,8 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
           createdAt: new Date(),
           updatedAt: new Date(),
           isPinned: false,
+          isBranched: false,
+          parentChatId: null,
         };
         return oldData ? [newChat, ...oldData] : [newChat];
       });
@@ -237,14 +239,14 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
     clearFiles();
   };
 
-  const isMessageLoading = status === "submitted" || status === "streaming";
+  const isMessageStreaming = status === "submitted" || status === "streaming";
 
   return (
     <>
       <AppSidebar
         user={user}
         chatIdParams={chatId ?? ""}
-        isMessageLoading={isMessageLoading}
+        isMessageStreaming={isMessageStreaming}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
@@ -270,6 +272,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
                 reload={reload}
                 append={append}
                 setMessages={setMessages}
+                chatId={chatId ?? ""}
               />
             ) : (
               <div className="h-full flex items-center justify-center px-3">
@@ -315,7 +318,7 @@ export function ChatPage({ user, initialChatId, greeting }: ChatPageProps) {
               handleInputChange={handleInputChange}
               handleSubmit={handleChatSubmit}
               stop={stop}
-              isLoading={isMessageLoading}
+              isMessageStreaming={isMessageStreaming}
               user={user}
               files={files}
               setFiles={setFiles}

@@ -29,7 +29,7 @@ interface ChatInputProps {
   handleInputChange: UseChatHelpers["handleInputChange"];
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   stop: UseChatHelpers["stop"];
-  isLoading: boolean;
+  isMessageStreaming: boolean;
   user: User | null;
   files: File[];
   setFiles: Dispatch<SetStateAction<File[]>>;
@@ -48,10 +48,9 @@ export function ChatInput({
   handleInputChange,
   handleSubmit,
   stop,
-  isLoading,
+  isMessageStreaming,
   user,
   files,
-  setFiles,
   fileMetadata,
   isUploading,
   fileInputRef,
@@ -173,7 +172,7 @@ export function ChatInput({
           />
         </div>
 
-        {isLoading ? (
+        {isMessageStreaming ? (
           <Button
             size="icon"
             onClick={stop}
@@ -252,7 +251,7 @@ const FilePreview = ({
           </div>
         );
       }),
-    [files, isUploading, fileMetadata]
+    [files, isUploading, fileMetadata, removeFile]
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;

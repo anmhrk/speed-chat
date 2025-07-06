@@ -76,6 +76,10 @@ export const chats = pgTable("chats", {
   isPinned: boolean("is_pinned")
     .notNull()
     .$defaultFn(() => false),
+  isBranched: boolean("is_branched")
+    .notNull()
+    .$defaultFn(() => false),
+  parentChatId: text("parent_chat_id"),
 });
 
 export type Chat = typeof chats.$inferSelect;

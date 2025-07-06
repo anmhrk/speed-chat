@@ -65,58 +65,56 @@ export async function saveMessages(
   messageIds: string[],
   newMessages: Message[]
 ) {
-  await db.transaction(async (tx) => {
-    const desiredIds = new Set<string>([
-      ...messageIds,
-      ...newMessages.map((m) => m.id),
-    ]);
+  const desiredIds = new Set<string>([
+    ...messageIds,
+    ...newMessages.map((m) => m.id),
+  ]);
 
-    const existingMessages = await tx
-      .select()
-      .from(messages)
-      .where(eq(messages.chatId, chatId));
+  const existingMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, chatId));
 
-    // Delete messages that exist in the DB but are no longer present on the client
-    // Need to keep client and db in sync
-    for (const existingMessage of existingMessages) {
-      if (!desiredIds.has(existingMessage.id)) {
-        await tx.delete(messages).where(eq(messages.id, existingMessage.id));
-      }
+  // Delete messages that exist in the DB but are no longer present on the client
+  // Need to keep client and db in sync
+  for (const existingMessage of existingMessages) {
+    if (!desiredIds.has(existingMessage.id)) {
+      await db.delete(messages).where(eq(messages.id, existingMessage.id));
     }
+  }
 
-    // Insert the new / edited messages coming from the client
-    for (const newMessage of newMessages) {
-      const existing = existingMessages.find((m) => m.id === newMessage.id);
+  // Insert the new / edited messages coming from the client
+  for (const newMessage of newMessages) {
+    const existing = existingMessages.find((m) => m.id === newMessage.id);
 
-      if (existing) {
-        await tx
-          .update(messages)
-          .set({
-            content: newMessage.content,
-            parts: newMessage.parts,
-            experimental_attachments: newMessage.experimental_attachments,
-          })
-          .where(eq(messages.id, newMessage.id));
-      } else {
-        await tx.insert(messages).values({
-          chatId,
-          id: newMessage.id,
+    if (existing) {
+      await db
+        .update(messages)
+        .set({
           content: newMessage.content,
-          role: newMessage.role,
           parts: newMessage.parts,
           experimental_attachments: newMessage.experimental_attachments,
-          createdAt: newMessage.createdAt
-            ? new Date(newMessage.createdAt)
-            : new Date(),
-        });
-      }
+        })
+        .where(eq(messages.id, newMessage.id));
+    } else {
+      await db.insert(messages).values({
+        chatId,
+        id: newMessage.id,
+        content: newMessage.content,
+        role: newMessage.role,
+        parts: newMessage.parts,
+        experimental_attachments: newMessage.experimental_attachments,
+        createdAt: newMessage.createdAt
+          ? new Date(newMessage.createdAt)
+          : new Date(),
+      });
     }
+  }
 
-    await tx
-      .update(chats)
-      .set({ updatedAt: new Date() })
-      .where(eq(chats.id, chatId));
-  });
+  await db
+    .update(chats)
+    .set({ updatedAt: new Date() })
+    .where(eq(chats.id, chatId));
 }
 
 export async function deleteAllChats() {
@@ -152,7 +150,8 @@ async function deleteAllImages(userId: string) {
   const toolInvocationUrls = allMessages.flatMap((message) =>
     message.parts?.map((part) =>
       part.type === "tool-invocation"
-        ? (part.toolInvocation as any).result.imageUrl
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (part.toolInvocation as any).result.imageUrl
         : null
     )
   );
@@ -175,7 +174,8 @@ export async function deleteChat(chatId: string) {
   const toolInvocationUrls = chatMessages.flatMap((message) =>
     message.parts?.map((part) =>
       part.type === "tool-invocation"
-        ? (part.toolInvocation as any).result.imageUrl
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (part.toolInvocation as any).result.imageUrl
         : null
     )
   );
@@ -234,4 +234,33 @@ export async function addMemory(memory: string) {
 
 export async function deleteMemory(memoryId: string) {
   await db.delete(memories).where(eq(memories.id, memoryId));
+}
+
+export async function branchOffChat(parentChatId: string, newChatId: string) {
+  const [parentChat] = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.id, parentChatId))
+    .limit(1);
+
+  const parentChatMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, parentChatId));
+
+  await db.insert(chats).values({
+    id: newChatId,
+    title: parentChat.title,
+    userId: parentChat.userId,
+    isBranched: true,
+    parentChatId,
+  });
+
+  await db.insert(messages).values(
+    parentChatMessages.map((message) => ({
+      ...message,
+      id: `${message.id}-branch`,
+      chatId: newChatId,
+    }))
+  );
 }

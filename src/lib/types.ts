@@ -1,4 +1,4 @@
-import type { Message } from "ai";
+import type { Message, ToolInvocation } from "ai";
 import type { LucideIcon } from "lucide-react";
 
 type BasicModels =
@@ -88,4 +88,35 @@ export type FileMetadata = {
   name: string;
   url: string;
   extension: string;
+};
+
+export type WebSearchResult = {
+  url: string;
+  title: string;
+  content: string;
+  rank: number;
+  publishedDate?: string;
+};
+
+export type WebSearchToolInvocation = ToolInvocation & {
+  toolName: "webSearch";
+  result?: {
+    query: string;
+    results: WebSearchResult[];
+    totalResults: number;
+  };
+};
+
+export type ImageGenerationToolInvocation = ToolInvocation & {
+  toolName: "imageGeneration";
+  result?: {
+    imageUrl: string;
+  };
+};
+
+export type MemoryToolInvocation = ToolInvocation & {
+  toolName: "memory";
+  result?: {
+    memory: string;
+  };
 };

@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Globe,
   Brain,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, memo, useMemo, useCallback } from "react";
@@ -33,37 +34,33 @@ import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Link from "next/link";
 import Image from "next/image";
-
-interface WebSearchResult {
-  url: string;
-  title: string;
-  content: string;
-  rank: number;
-  publishedDate?: string;
-}
-
-type WebSearchToolInvocation = ToolInvocation & {
-  toolName: "webSearch";
-  result?: {
-    query: string;
-    results: WebSearchResult[];
-    totalResults: number;
-  };
-};
+import type {
+  WebSearchToolInvocation,
+  WebSearchResult,
+  ImageGenerationToolInvocation,
+  MemoryToolInvocation,
+} from "@/lib/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { branchOffChat } from "@/lib/db/actions";
 
 interface AssistantMessageProps {
   message: Message;
   isLastMessage: boolean;
   reload: UseChatHelpers["reload"];
+  chatId: string;
 }
 
 export const AssistantMessage = memo(function AssistantMessage({
   message,
   isLastMessage,
   reload,
+  chatId,
 }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
   const isError = message.id.startsWith("error-");
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const handleCopy = () => {
     const plainText = removeMarkdown(message.content);
@@ -71,6 +68,22 @@ export const AssistantMessage = memo(function AssistantMessage({
     toast.success("Copied to clipboard");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBranchOffChat = async (parentChatId: string) => {
+    const newChatId = crypto.randomUUID();
+
+    toast.promise(
+      branchOffChat(parentChatId, newChatId).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["chats"] });
+        router.push(`/chat/${newChatId}`);
+      }),
+      {
+        loading: "Branching...",
+        success: "Chat branched off!",
+        error: "Failed to branch off chat",
+      }
+    );
   };
 
   return (
@@ -114,7 +127,11 @@ export const AssistantMessage = memo(function AssistantMessage({
                       {part.toolInvocation.state === "result" ? (
                         <div className="relative group/image">
                           <Image
-                            src={(part.toolInvocation as any).result.imageUrl}
+                            src={
+                              (
+                                part.toolInvocation as ImageGenerationToolInvocation
+                              ).result.imageUrl
+                            }
                             alt="Generated Image"
                             className="rounded-md w-full max-w-[400px] h-auto aspect-auto cursor-pointer"
                             loading="lazy"
@@ -133,8 +150,9 @@ export const AssistantMessage = memo(function AssistantMessage({
                                 >
                                   <Link
                                     href={
-                                      (part.toolInvocation as any).result
-                                        .imageUrl
+                                      (
+                                        part.toolInvocation as ImageGenerationToolInvocation
+                                      ).result.imageUrl
                                     }
                                     target="_blank"
                                   >
@@ -157,8 +175,9 @@ export const AssistantMessage = memo(function AssistantMessage({
                                     e.preventDefault();
 
                                     const response = await fetch(
-                                      (part.toolInvocation as any).result
-                                        .imageUrl
+                                      (
+                                        part.toolInvocation as ImageGenerationToolInvocation
+                                      ).result.imageUrl
                                     );
                                     const blob = await response.blob();
                                     const url = URL.createObjectURL(blob);
@@ -212,6 +231,37 @@ export const AssistantMessage = memo(function AssistantMessage({
         )}
 
         <div className="absolute top-full left-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+          {isLastMessage && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleBranchOffChat(chatId)}
+                  >
+                    <GitBranch className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Branch off chat</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => reload()}
+                    className="h-8 w-8"
+                  >
+                    <RotateCcw className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Retry message</TooltipContent>
+              </Tooltip>
+            </>
+          )}
           {!isError &&
             !message.parts?.some(
               (part) =>
@@ -238,22 +288,6 @@ export const AssistantMessage = memo(function AssistantMessage({
                 </TooltipContent>
               </Tooltip>
             )}
-
-          {isLastMessage && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => reload()}
-                  className="h-8 w-8"
-                >
-                  <RotateCcw className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Retry message</TooltipContent>
-            </Tooltip>
-          )}
         </div>
       </div>
     </div>
@@ -458,7 +492,7 @@ const WebSearchBlock = memo(function WebSearchBlock({
           {!isSearching && domains.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
               {domains.map((domain, index) => (
-                <img
+                <Image
                   key={`${domain}-${index}`}
                   src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
                   alt={`${domain} favicon`}
@@ -482,7 +516,7 @@ const WebSearchBlock = memo(function WebSearchBlock({
             {results.map((result: WebSearchResult, index: number) => (
               <div key={index} className="border-l-2 border-primary/20 pl-3">
                 <div className="flex items-start gap-2">
-                  <img
+                  <Image
                     src={`https://www.google.com/s2/favicons?domain=${
                       new URL(result.url).hostname
                     }&sz=32`}
@@ -526,7 +560,7 @@ const MemoryBlock = memo(function MemoryBlock({
   const isAdding = toolInvocation.state !== "result";
   const memoryResult =
     toolInvocation.state === "result"
-      ? (toolInvocation as any).result
+      ? (toolInvocation as MemoryToolInvocation).result
       : undefined;
   const memoryText = memoryResult?.memory || toolInvocation.args?.memory || "";
 

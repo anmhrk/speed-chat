@@ -26,6 +26,7 @@ import {
   Trash2,
   Pin,
   PinOff,
+  GitBranch,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "better-auth";
@@ -50,17 +51,18 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "./ui/input";
 import type { Chat } from "@/lib/db/schema";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
-  isMessageLoading: boolean;
+  isMessageStreaming: boolean;
 }
 
 export function AppSidebar({
   user,
   chatIdParams,
-  isMessageLoading,
+  isMessageStreaming,
 }: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
@@ -81,7 +83,7 @@ export function AppSidebar({
       toast.error("Failed to load chats");
       router.push("/");
     }
-  }, [isErrorChats]);
+  }, [isErrorChats, router]);
 
   return (
     <Sidebar>
@@ -125,7 +127,7 @@ export function AppSidebar({
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
-                          isMessageLoading={isMessageLoading}
+                          isMessageStreaming={isMessageStreaming}
                         />
                       ))}
                   </SidebarMenu>
@@ -142,7 +144,7 @@ export function AppSidebar({
                           key={chat.id}
                           chat={chat}
                           chatIdParams={chatIdParams}
-                          isMessageLoading={isMessageLoading}
+                          isMessageStreaming={isMessageStreaming}
                         />
                       ))}
                   </SidebarMenu>
@@ -201,11 +203,11 @@ export function AppSidebar({
 function ChatItem({
   chat,
   chatIdParams,
-  isMessageLoading,
+  isMessageStreaming,
 }: {
   chat: Chat;
   chatIdParams: string;
-  isMessageLoading: boolean;
+  isMessageStreaming: boolean;
 }) {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -270,11 +272,21 @@ function ChatItem({
             href={`/chat/${chat.id}`}
             className="flex items-center gap-2 w-full"
           >
+            {chat.isBranched && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <GitBranch className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Branched from {chat.parentChatId}
+                </TooltipContent>
+              </Tooltip>
+            )}
             <span className="truncate">{chat.title}</span>
           </Link>
         )}
       </SidebarMenuButton>
-      {chat.id === chatIdParams && isMessageLoading ? (
+      {chat.id === chatIdParams && isMessageStreaming ? (
         <SidebarMenuAction className="!top-2">
           <Loader2 className="size-4 animate-spin" />
           <span className="sr-only">Loading</span>

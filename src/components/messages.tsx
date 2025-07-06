@@ -13,6 +13,7 @@ interface MessagesProps {
   reload: UseChatHelpers["reload"];
   append: UseChatHelpers["append"];
   setMessages: UseChatHelpers["setMessages"];
+  chatId: string;
 }
 
 export function Messages({
@@ -21,6 +22,7 @@ export function Messages({
   reload,
   append,
   setMessages,
+  chatId,
 }: MessagesProps) {
   const showLoading =
     status === "submitted" &&
@@ -104,6 +106,7 @@ export function Messages({
                     message.id === allMessages[allMessages.length - 1]?.id
                   }
                   reload={reload}
+                  chatId={chatId}
                 />
               )}
             </div>
