@@ -4,7 +4,6 @@ export function useShortcuts(
   combinations: string[],
   callbacks: (() => void)[]
 ) {
-  // Store the latest callbacks in a ref so we don't need them in dependencies
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
 
@@ -49,5 +48,5 @@ export function useShortcuts(
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [combinations]); // Only depend on combinations, not callbacks
+  }, [combinations]);
 }
