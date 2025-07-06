@@ -7,6 +7,7 @@ import { chats } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { TitleRequest } from "@/lib/types";
 import { titleGenerationPrompt } from "@/lib/prompts";
+import { env } from "@/lib/env";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { chatId, prompt, apiKeys }: TitleRequest = await request.json();
 
     const openrouter = createOpenRouter({
-      apiKey: apiKeys.openrouter ?? process.env.OPENROUTER_API_KEY,
+      apiKey: apiKeys.openrouter ?? env.OPENROUTER_API_KEY,
     });
 
     const response = await generateText({

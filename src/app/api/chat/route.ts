@@ -25,6 +25,7 @@ import { z } from "zod";
 import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
 import Exa from "exa-js";
 import { Memory } from "@/lib/db/schema";
+import { env } from "@/lib/env";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -61,15 +62,15 @@ export async function POST(request: NextRequest) {
       AVAILABLE_MODELS.find((m) => m.id === modelId)?.reasoning === true;
 
     const headers =
-      process.env.NODE_ENV === "production"
+      env.NODE_ENV === "production"
         ? {
-            "HTTP-Referer": process.env.SITE_URL!,
+            "HTTP-Referer": env.SITE_URL!,
             "X-Title": "Speed Chat",
           }
         : undefined;
 
     const openrouter = createOpenRouter({
-      apiKey: apiKeys.openrouter ?? process.env.OPENROUTER_API_KEY,
+      apiKey: apiKeys.openrouter ?? env.OPENROUTER_API_KEY,
       ...(isReasoningModel && {
         extraBody: {
           include_reasoning: true,

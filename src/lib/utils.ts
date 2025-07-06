@@ -27,3 +27,8 @@ export const getRandomGreeting = (name: string) => {
 
   return randomGreeting;
 };
+
+export const isAppleDevice = () => {
+  if (typeof window === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+};

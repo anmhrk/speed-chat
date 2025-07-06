@@ -17,6 +17,7 @@ import { createChat, getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Chat } from "@/lib/db/schema";
 import { useAttachments } from "@/hooks/use-attachments";
+import { useShortcuts } from "@/hooks/use-shortcuts";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -66,6 +67,7 @@ export function ChatPage({
     removeFile,
     acceptsPdf,
   } = useAttachments(model);
+  const [isSearchChatsOpen, setIsSearchChatsOpen] = useState(false);
 
   // Sync the chatId from the URL with the state
   useEffect(() => {
@@ -154,6 +156,18 @@ export function ChatPage({
       });
     },
   });
+
+  useShortcuts(
+    ["cmd+k", "cmd+shift+o"],
+    [
+      () => {
+        setIsSearchChatsOpen(true);
+      },
+      () => {
+        router.push("/");
+      },
+    ]
+  );
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -255,6 +269,16 @@ export function ChatPage({
 
       handleSubmit(e, { experimental_attachments: attachments });
     } else {
+      // Put chat to the top of the list
+      queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
+        if (!oldData) return oldData;
+        const currentChat = oldData.find((chat) => chat.id === chatId);
+        if (currentChat) {
+          return [currentChat, ...oldData.filter((chat) => chat.id !== chatId)];
+        }
+        return oldData;
+      });
+
       handleSubmit(e, { experimental_attachments: attachments });
     }
     clearFiles();

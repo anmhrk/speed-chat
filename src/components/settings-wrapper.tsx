@@ -10,6 +10,7 @@ import { ThemeToggle } from "./theme-toggle";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { cn } from "@/lib/utils";
+import { isAppleDevice } from "@/lib/utils";
 
 const tabs = [
   {
@@ -43,6 +44,7 @@ export function SettingsWrapper({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const showCmdKey = isAppleDevice();
 
   const getCurrentTab = () => {
     if (pathname === "/settings") return "general";
@@ -103,18 +105,26 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">Search</span>
                 <div className="flex items-center gap-1">
-                  <ShortcutBox>
-                    <Command className="size-4" />
-                  </ShortcutBox>
+                  {showCmdKey ? (
+                    <ShortcutBox>
+                      <Command className="size-4" />
+                    </ShortcutBox>
+                  ) : (
+                    <ShortcutBox type="ctrl">Ctrl</ShortcutBox>
+                  )}
                   <ShortcutBox>K</ShortcutBox>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">New Chat</span>
                 <div className="flex items-center gap-1">
-                  <ShortcutBox>
-                    <Command className="size-4" />
-                  </ShortcutBox>
+                  {showCmdKey ? (
+                    <ShortcutBox>
+                      <Command className="size-4" />
+                    </ShortcutBox>
+                  ) : (
+                    <ShortcutBox type="ctrl">Ctrl</ShortcutBox>
+                  )}
                   <ShortcutBox type="shift">Shift</ShortcutBox>
                   <ShortcutBox>O</ShortcutBox>
                 </div>
@@ -122,9 +132,13 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">Toggle Sidebar</span>
                 <div className="flex items-center gap-1">
-                  <ShortcutBox>
-                    <Command className="size-4" />
-                  </ShortcutBox>
+                  {showCmdKey ? (
+                    <ShortcutBox>
+                      <Command className="size-4" />
+                    </ShortcutBox>
+                  ) : (
+                    <ShortcutBox type="ctrl">Ctrl</ShortcutBox>
+                  )}
                   <ShortcutBox>B</ShortcutBox>
                 </div>
               </div>
@@ -157,13 +171,13 @@ function ShortcutBox({
   type,
 }: {
   children: React.ReactNode;
-  type?: "shift";
+  type?: "shift" | "ctrl";
 }) {
   return (
     <kbd
       className={cn(
         "flex items-center justify-center h-7 text-md bg-primary/10 dark:bg-muted border border-border rounded-sm",
-        type === "shift" ? "w-fit px-2" : "w-7"
+        type === "shift" || type === "ctrl" ? "w-fit px-2" : "w-7"
       )}
     >
       {children}
