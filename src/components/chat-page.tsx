@@ -9,10 +9,10 @@ import { createIdGenerator, type Message } from "ai";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/sidebar";
 import { Messages } from "@/components/messages";
 import { Upload } from "lucide-react";
-import { useSettingsContext } from "@/components/settings-provider";
+import { useSettingsContext } from "@/components/providers/settings-provider";
 import { createChat, getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Chat } from "@/lib/db/schema";
@@ -29,7 +29,7 @@ interface ChatPageProps {
   user: User | null;
   initialChatId: string;
   greeting?: string;
-  isShared?: boolean;
+  isOnSharedPage?: boolean;
   didUserCreate?: boolean;
 }
 
@@ -37,7 +37,7 @@ export function ChatPage({
   user,
   initialChatId,
   greeting,
-  isShared,
+  isOnSharedPage,
   didUserCreate,
 }: ChatPageProps) {
   const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
@@ -85,7 +85,7 @@ export function ChatPage({
     queryKey: ["messages", chatId],
     queryFn: async () => {
       if (!chatId) return [];
-      return (await getMessages(chatId)) as Message[];
+      return (await getMessages(chatId, isOnSharedPage ?? false)) as Message[];
     },
     enabled: Boolean(chatId && chatId !== dontFetchId),
     staleTime: Infinity,
@@ -157,6 +157,18 @@ export function ChatPage({
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isOnSharedPage && !didUserCreate) {
+      toast.error("Please fork this shared chat to send messages");
+      return;
+    }
+
+    if (isOnSharedPage && didUserCreate) {
+      toast.error(
+        "You can't chat on a shared chat. Please go back to the original chat."
+      );
+      return;
+    }
 
     if (!user) {
       toast.error("Please login to chat");
@@ -256,7 +268,6 @@ export function ChatPage({
         user={user}
         chatIdParams={chatId ?? ""}
         isMessageStreaming={isMessageStreaming}
-        isShared={isShared}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
@@ -273,7 +284,13 @@ export function ChatPage({
             </div>
           )}
 
-          <Header temporaryChat={temporaryChat} />
+          <Header
+            chatId={chatId ?? ""}
+            user={user}
+            temporaryChat={temporaryChat}
+            isOnSharedPage={isOnSharedPage ?? false}
+            didUserCreate={didUserCreate ?? false}
+          />
           <div className="flex-1 min-h-0 relative">
             {isLoading ? null : messages.length > 0 ? (
               <Messages
@@ -283,6 +300,7 @@ export function ChatPage({
                 append={append}
                 setMessages={setMessages}
                 chatId={chatId ?? ""}
+                isOnSharedPage={isOnSharedPage ?? false}
               />
             ) : (
               <div className="h-full flex items-center justify-center px-3">
@@ -340,6 +358,7 @@ export function ChatPage({
               acceptsPdf={acceptsPdf}
               searchEnabled={searchEnabled}
               setSearchEnabled={setSearchEnabled}
+              isOnSharedPage={isOnSharedPage ?? false}
             />
           </div>
         </div>

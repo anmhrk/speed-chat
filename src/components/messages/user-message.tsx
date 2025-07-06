@@ -8,18 +8,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { deleteFiles } from "@/lib/uploadthing";
+import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
 
 interface UserMessageProps {
   message: Message;
   allMessages: Message[];
   append: UseChatHelpers["append"];
   setMessages: UseChatHelpers["setMessages"];
+  isOnSharedPage: boolean;
 }
 
 export function UserMessage({
@@ -27,8 +28,9 @@ export function UserMessage({
   allMessages,
   append,
   setMessages,
+  isOnSharedPage,
 }: UserMessageProps) {
-  const [copied, setCopied] = useState(false);
+  const { isCopied, copyToClipboard } = useCopyClipboard();
   const [isEditing, setIsEditing] = useState(false);
   const [editedMessage, setEditedMessage] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
@@ -36,13 +38,6 @@ export function UserMessage({
   const [removedAttachmentUrls, setRemovedAttachmentUrls] = useState<string[]>(
     []
   );
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
-    toast.success("Copied to clipboard");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleSelectEdit = () => {
     originalMessagesRef.current = allMessages;
@@ -237,29 +232,31 @@ export function UserMessage({
         </div>
 
         <div className="absolute top-full right-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSelectEdit}
-                className="h-8 w-8"
-              >
-                <Edit className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Edit message</TooltipContent>
-          </Tooltip>
+          {!isOnSharedPage && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSelectEdit}
+                  className="h-8 w-8"
+                >
+                  <Edit className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Edit message</TooltipContent>
+            </Tooltip>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleCopy}
+                onClick={() => copyToClipboard(message.content)}
                 className="h-8 w-8"
               >
-                {copied ? (
+                {isCopied ? (
                   <Check className="size-4" />
                 ) : (
                   <Copy className="size-4" />
@@ -267,7 +264,7 @@ export function UserMessage({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              {copied ? "Copied!" : "Copy message"}
+              {isCopied ? "Copied!" : "Copy message"}
             </TooltipContent>
           </Tooltip>
         </div>

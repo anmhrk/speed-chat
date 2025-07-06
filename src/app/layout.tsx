@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { QueryClientProvider } from "@/components/query-client-provider";
-import { SettingsProvider } from "@/components/settings-provider";
+import { QueryClientProvider } from "@/components/providers/query-client-provider";
+import { SettingsProvider } from "@/components/providers/settings-provider";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 
@@ -37,11 +37,6 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {process.env.NODE_ENV === "development" && (
-          <script src="https://unpkg.com/react-scan/dist/auto.global.js" />
-        )}
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} overscroll-none antialiased`}
       >

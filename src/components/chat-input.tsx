@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { useEffect, useRef, useMemo, memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useSettingsContext } from "@/components/settings-provider";
+import { useSettingsContext } from "@/components/providers/settings-provider";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -41,6 +41,7 @@ interface ChatInputProps {
   acceptsPdf: boolean;
   searchEnabled: boolean;
   setSearchEnabled: Dispatch<SetStateAction<boolean>>;
+  isOnSharedPage: boolean;
 }
 
 export function ChatInput({
@@ -59,6 +60,7 @@ export function ChatInput({
   acceptsPdf,
   searchEnabled,
   setSearchEnabled,
+  isOnSharedPage,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { model, apiKeys } = useSettingsContext();
@@ -118,7 +120,7 @@ export function ChatInput({
                     className="gap-1.5 rounded-full px-3 py-2 font-normal"
                     pressed={searchEnabled}
                     onPressedChange={(pressed) => setSearchEnabled(pressed)}
-                    disabled={!user || !apiKeys.exa}
+                    disabled={isOnSharedPage || !user || !apiKeys.exa}
                   >
                     <Globe className="size-4" />
                     <span className="hidden md:block">Search</span>
@@ -145,7 +147,7 @@ export function ChatInput({
                     variant="outline"
                     className="gap-1.5 rounded-full px-3 py-2 font-normal"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={!user}
+                    disabled={isOnSharedPage || !user}
                   >
                     <Paperclip className="size-4" />
                     <span className="hidden md:block">Attach</span>
@@ -184,7 +186,7 @@ export function ChatInput({
           <Button
             type="submit"
             size="icon"
-            disabled={!input.trim() || isUploading}
+            disabled={isOnSharedPage || !input.trim() || isUploading}
             className="h-8 w-8"
           >
             <ArrowUp className="size-6" />

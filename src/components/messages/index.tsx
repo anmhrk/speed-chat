@@ -1,9 +1,9 @@
 import type { Message } from "ai";
-import { AssistantMessage } from "@/components/assistant-message";
-import { UserMessage } from "@/components/user-message";
+import { AssistantMessage } from "@/components/messages/assistant-message";
+import { UserMessage } from "@/components/messages/user-message";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { ArrowDown } from "lucide-react";
 import { UseChatHelpers } from "@ai-sdk/react";
 
@@ -14,6 +14,7 @@ interface MessagesProps {
   append: UseChatHelpers["append"];
   setMessages: UseChatHelpers["setMessages"];
   chatId: string;
+  isOnSharedPage: boolean;
 }
 
 export function Messages({
@@ -23,6 +24,7 @@ export function Messages({
   append,
   setMessages,
   chatId,
+  isOnSharedPage,
 }: MessagesProps) {
   const showLoading =
     status === "submitted" &&
@@ -98,6 +100,7 @@ export function Messages({
                   allMessages={allMessages}
                   append={append}
                   setMessages={setMessages}
+                  isOnSharedPage={isOnSharedPage}
                 />
               ) : (
                 <AssistantMessage
@@ -107,6 +110,7 @@ export function Messages({
                   }
                   reload={reload}
                   chatId={chatId}
+                  isOnSharedPage={isOnSharedPage}
                 />
               )}
             </div>

@@ -1,14 +1,14 @@
 "use client";
 
 import type { User } from "better-auth";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 import Link from "next/link";
 import { signOut } from "@/lib/auth/auth-client";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Command } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "./theme-toggle";
 import Image from "next/image";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { cn } from "@/lib/utils";
 
 const tabs = [

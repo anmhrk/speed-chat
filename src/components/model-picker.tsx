@@ -3,7 +3,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { REASONING_EFFORTS } from "@/lib/models";
 import { Brain, File, Images, ChevronDown, Star, StarOff } from "lucide-react";
-import { useSettingsContext } from "@/components/settings-provider";
+import { useSettingsContext } from "./providers/settings-provider";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import {
@@ -172,7 +172,7 @@ export function ModelPicker({
                 />
                 <CommandList className="max-h-none h-[460px]">
                   <CommandEmpty>
-                    No models found for "{search.toLowerCase()}"
+                    No models found for &quot;{search.toLowerCase()}&quot;
                   </CommandEmpty>
 
                   <ScrollArea className="h-full">

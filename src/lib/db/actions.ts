@@ -23,17 +23,17 @@ export async function getChats() {
   return allChats;
 }
 
-export async function getMessages(chatId: string) {
+export async function getMessages(chatId: string, sharedRequest: boolean) {
   const user = await getUser();
-  if (!user) {
+  if (!user && !sharedRequest) {
     throw new Error("Unauthorized");
   }
 
-  const chat = await db
-    .select()
-    .from(chats)
-    .where(and(eq(chats.id, chatId), eq(chats.userId, user.id)))
-    .limit(1);
+  const whereClause = sharedRequest
+    ? eq(chats.id, chatId)
+    : and(eq(chats.id, chatId), eq(chats.userId, user?.id ?? ""));
+
+  const chat = await db.select().from(chats).where(whereClause).limit(1);
 
   if (!chat) {
     throw new Error(`Chat ${chatId} not found`);
@@ -172,8 +172,7 @@ async function deleteAllAttachments(
   const toolInvocationUrls = messagesToCheck.flatMap((message) =>
     message.parts?.map((part) =>
       part.type === "tool-invocation"
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (part.toolInvocation as any).result.imageUrl
+        ? (part.toolInvocation as any).result.imageUrl
         : null
     )
   );
@@ -260,7 +259,40 @@ export async function branchOffChat(parentChatId: string, newChatId: string) {
   await db.insert(messages).values(
     parentChatMessages.map((message) => ({
       ...message,
-      id: `${message.id}-branch`,
+      id: `${message.id}-branch-${crypto.randomUUID()}`,
+      chatId: newChatId,
+    }))
+  );
+}
+
+// Just like branchOffChat but the new chatId's userId is the current user's id instead of the prev chat's userId
+export async function forkChat(sharedChatId: string, newChatId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const [chat] = await db
+    .select()
+    .from(chats)
+    .where(eq(chats.id, sharedChatId))
+    .limit(1);
+
+  const chatMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.chatId, sharedChatId));
+
+  await db.insert(chats).values({
+    id: newChatId,
+    title: chat.title,
+    userId: user.id,
+  });
+
+  await db.insert(messages).values(
+    chatMessages.map((message) => ({
+      ...message,
+      id: `${message.id}-fork-${crypto.randomUUID()}`,
       chatId: newChatId,
     }))
   );

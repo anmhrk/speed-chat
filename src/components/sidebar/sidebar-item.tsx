@@ -1,215 +1,53 @@
-"use client";
-
+import { Chat } from "@/lib/db/schema";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarGroup,
-  SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter,
-  SidebarGroupLabel,
   SidebarMenuAction,
-} from "./ui/sidebar";
-import { Button } from "./ui/button";
+} from "@/components/ui/sidebar";
 import {
-  PenBox,
-  LogIn,
-  Loader2,
-  Search,
-  MessageSquare,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  Pin,
-  PinOff,
-  GitBranch,
-  Share,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { User } from "better-auth";
-import { signIn } from "@/lib/auth/auth-client";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+} from "@/components/ui/dropdown-menu";
+import { getMessages } from "@/lib/db/actions";
+import { renameChatTitle } from "@/lib/db/actions";
+import { pinChat } from "@/lib/db/actions";
+import { deleteChat } from "@/lib/db/actions";
 import {
-  deleteChat,
-  getChats,
-  getMessages,
-  pinChat,
-  shareChat,
-  renameChatTitle,
-} from "@/lib/db/actions";
-import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Input } from "./ui/input";
-import type { Chat } from "@/lib/db/schema";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+  GitBranch,
+  Loader2,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  Pencil,
+  Share,
+  Trash2,
+} from "lucide-react";
 
-interface AppSidebarProps {
-  user: User | null;
-  chatIdParams: string;
-  isMessageStreaming: boolean;
-}
-
-export function AppSidebar({
-  user,
-  chatIdParams,
-  isMessageStreaming,
-}: AppSidebarProps) {
-  const router = useRouter();
-  const isSignedIn = !!user;
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  const {
-    data: chats,
-    isLoading: isLoadingChats,
-    isError: isErrorChats,
-  } = useQuery({
-    queryKey: ["chats"],
-    queryFn: async () => await getChats(),
-    enabled: isSignedIn,
-  });
-
-  useEffect(() => {
-    if (isErrorChats) {
-      toast.error("Failed to load chats");
-      router.push("/");
-    }
-  }, [isErrorChats, router]);
-
-  return (
-    <Sidebar>
-      <SidebarHeader className="flex items-center justify-between pt-5">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="Logo" width={32} height={32} />
-          <span className="text-lg font-semibold">SpeedChat</span>
-        </Link>
-        <SidebarGroup className="mt-1 px-0 pb-0">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/">
-                  <PenBox />
-                  New chat
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <Search />
-                Search chats
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup className="flex flex-1 flex-col">
-          {isLoadingChats ? null : chats && chats.length > 0 ? (
-            <>
-              {chats.filter((chat) => chat.isPinned).length > 0 && (
-                <>
-                  <SidebarGroupLabel>Pinned</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {chats
-                      .filter((chat) => chat.isPinned)
-                      .map((chat) => (
-                        <ChatItem
-                          key={chat.id}
-                          chat={chat}
-                          chatIdParams={chatIdParams}
-                          isMessageStreaming={isMessageStreaming}
-                        />
-                      ))}
-                  </SidebarMenu>
-                </>
-              )}
-              {chats.filter((chat) => !chat.isPinned).length > 0 && (
-                <>
-                  <SidebarGroupLabel>Chats</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {chats
-                      .filter((chat) => !chat.isPinned)
-                      .map((chat) => (
-                        <ChatItem
-                          key={chat.id}
-                          chat={chat}
-                          chatIdParams={chatIdParams}
-                          isMessageStreaming={isMessageStreaming}
-                        />
-                      ))}
-                  </SidebarMenu>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-              <MessageSquare className="size-8 mb-2" />
-              <span className="text-sm">No chats yet</span>
-            </div>
-          )}
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter>
-        {isSignedIn ? (
-          <Link
-            href="/settings"
-            className="flex h-12 w-full items-center justify-start gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
-          >
-            <Image
-              src={user?.image || ""}
-              alt="User"
-              width={32}
-              height={32}
-              className="rounded-full object-cover cursor-pointer"
-            />
-            <span className="text-sm truncate font-normal">{user?.name}</span>
-          </Link>
-        ) : (
-          <Button
-            variant="ghost"
-            className="justify-start flex h-12 w-full items-center gap-3 rounded-lg p-2 transition-colors"
-            onClick={() => {
-              setIsLoggingIn(true);
-              signIn
-                .social({ provider: "google", callbackURL: "/" })
-                .finally(() => setIsLoggingIn(false));
-            }}
-            disabled={isLoggingIn}
-          >
-            {isLoggingIn ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <LogIn className="size-5" />
-            )}
-            Login
-          </Button>
-        )}
-      </SidebarFooter>
-    </Sidebar>
-  );
-}
-
-function ChatItem({
+export function SidebarItem({
   chat,
   chatIdParams,
   isMessageStreaming,
+  onShareChat,
 }: {
   chat: Chat;
   chatIdParams: string;
   isMessageStreaming: boolean;
+  onShareChat: (chatId: string) => void;
 }) {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
@@ -232,7 +70,7 @@ function ChatItem({
         if (chat.id === chatIdParams) return;
         queryClient.prefetchQuery({
           queryKey: ["messages", chat.id],
-          queryFn: async () => await getMessages(chat.id),
+          queryFn: async () => await getMessages(chat.id, false),
         });
       }}
     >
@@ -353,7 +191,7 @@ function ChatItem({
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                shareChat(chat.id);
+                onShareChat(chat.id);
               }}
             >
               <Share />

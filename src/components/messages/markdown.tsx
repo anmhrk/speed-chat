@@ -2,7 +2,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
-import { CodeBlock } from "@/components/assistant-message";
+import { CodeBlock } from "@/components/messages/code-block";
 
 export function Markdown({ children }: { children: React.ReactNode }) {
   return (

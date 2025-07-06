@@ -1,7 +1,6 @@
 import { Sparkle, Sparkles, WandSparkles } from "lucide-react";
 import { ModelConfig, ReasoningEffortConfig } from "./types";
 import {
-  Google,
   OpenAI,
   Anthropic,
   DeepSeek,
