@@ -322,7 +322,8 @@ export function ChatPage({
             onSearchChatsOpen={onSearchChatsOpen}
           />
           <div className="flex-1 min-h-0 relative">
-            {isLoading ? null : messages.length > 0 ? (
+            {isLoading ? null : messages.length > 0 ||
+              (initialMessages && initialMessages.length > 0) ? (
               <Messages
                 allMessages={messages}
                 status={status}

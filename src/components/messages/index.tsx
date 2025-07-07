@@ -2,7 +2,13 @@ import type { Message } from "ai";
 import { AssistantMessage } from "@/components/messages/assistant-message";
 import { UserMessage } from "@/components/messages/user-message";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useLayoutEffect,
+} from "react";
 import { Button } from "../ui/button";
 import { ArrowDown } from "lucide-react";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -33,6 +39,7 @@ export function Messages({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const hasInitiallyScrolled = useRef(false);
 
   const getViewport = useCallback(
     () =>
@@ -61,6 +68,36 @@ export function Messages({
     setShowScrollToBottomButton(!isAtBottom);
   }, [getViewport]);
 
+  useLayoutEffect(() => {
+    if (hasInitiallyScrolled.current || allMessages.length === 0) return;
+
+    const observer = new MutationObserver(() => {
+      const viewport = getViewport();
+      if (viewport && !hasInitiallyScrolled.current) {
+        // Scroll immediately when viewport is detected
+        viewport.scrollTop = viewport.scrollHeight;
+        hasInitiallyScrolled.current = true;
+        observer.disconnect();
+      }
+    });
+
+    if (scrollAreaRef.current) {
+      observer.observe(scrollAreaRef.current, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    // Fallback: try to scroll immediately if viewport already exists
+    const viewport = getViewport();
+    if (viewport && !hasInitiallyScrolled.current) {
+      viewport.scrollTop = viewport.scrollHeight;
+      hasInitiallyScrolled.current = true;
+    }
+
+    return () => observer.disconnect();
+  }, [allMessages.length, getViewport]);
+
   useEffect(() => {
     const scrollViewport = getViewport();
     if (!scrollViewport) return;
@@ -80,10 +117,6 @@ export function Messages({
       }, 100);
     }
   }, [allMessages, checkScrollPosition]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
 
   return (
     <div className="relative h-full">

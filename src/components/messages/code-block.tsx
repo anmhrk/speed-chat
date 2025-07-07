@@ -42,8 +42,8 @@ export const CodeBlock = memo(function CodeBlock({
 
   const codeBlockHeader = useMemo(
     () => (
-      <div className="bg-primary/10 dark:bg-muted/80 flex items-center justify-between rounded-t-lg px-3">
-        <span className="text-muted-foreground text-sm font-medium">
+      <div className="bg-muted/70 dark:bg-[#313244] flex items-center justify-between rounded-t-lg px-3">
+        <span className="text-muted-foreground dark:text-white/70 text-sm font-medium">
           {language}
         </span>
         <div className="flex items-center gap-0.5">
@@ -118,8 +118,8 @@ export const CodeBlock = memo(function CodeBlock({
       {codeBlockHeader}
       <ShikiHighlighter
         theme={{
-          light: "one-light",
-          dark: "one-dark-pro",
+          light: "catppuccin-latte",
+          dark: "catppuccin-mocha",
         }}
         defaultColor={theme}
         delay={150}
