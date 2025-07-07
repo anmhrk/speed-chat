@@ -350,3 +350,79 @@ export async function deleteUser() {
   await db.delete(userTable).where(eq(userTable.id, user.id));
   // Everything else is deleted automatically due to cascade
 }
+
+// SEARCH
+export async function searchChats(query: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  if (!query.trim()) {
+    return [];
+  }
+
+  const userChats = await db
+    .select({
+      id: chats.id,
+      title: chats.title,
+      createdAt: chats.createdAt,
+      updatedAt: chats.updatedAt,
+      isPinned: chats.isPinned,
+    })
+    .from(chats)
+    .where(eq(chats.userId, user.id))
+    .orderBy(desc(chats.updatedAt));
+
+  const chatIds = userChats.map((chat) => chat.id);
+
+  const allMessages = await db
+    .select({
+      id: messages.id,
+      chatId: messages.chatId,
+      content: messages.content,
+      role: messages.role,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(inArray(messages.chatId, chatIds))
+    .orderBy(asc(messages.createdAt));
+
+  // Group messages by chat
+  const messagesByChat = allMessages.reduce(
+    (acc, message) => {
+      if (!acc[message.chatId]) {
+        acc[message.chatId] = [];
+      }
+      acc[message.chatId].push(message);
+      return acc;
+    },
+    {} as Record<string, typeof allMessages>
+  );
+
+  // Search through chats and messages
+  const searchResults = [];
+  const lowerQuery = query.toLowerCase();
+
+  for (const chat of userChats) {
+    const chatMessages = messagesByChat[chat.id] || [];
+
+    // Check if chat title matches
+    const titleMatch = chat.title.toLowerCase().includes(lowerQuery);
+
+    // Check if any message content matches
+    const matchingMessages = chatMessages.filter((message) =>
+      message.content.toLowerCase().includes(lowerQuery)
+    );
+
+    if (titleMatch || matchingMessages.length > 0) {
+      searchResults.push({
+        chat,
+        matchingMessages: matchingMessages.slice(0, 3),
+        titleMatch,
+      });
+    }
+  }
+
+  return searchResults;
+}

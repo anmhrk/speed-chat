@@ -2,23 +2,26 @@
 
 An AI chat application built with Next.js 15, featuring multiple AI models, attachment support, web search, and even image generation.
 
-## Features
+## 🚀 Features
 
-- 🤖 **Multiple AI Models** - Support for OpenAI, Anthropic, Google, Meta, DeepSeek, Grok models and more via OpenRouter
-- 🔍 **Web Search Integration** - Enhanced responses with real-time web search using Exa
-- 📁 **File Upload Support** - Upload and analyze images (PNG, JPEG, WebP) and PDFs with models that support it
-- 🧠 **Reasoning Models** - Support for advanced reasoning models like o3, Claude Thinking, DeepSeek R1, and Gemini 2.5 Pro
-- 🎨 **Image Generation** - Built-in support for GPT Image 1 and FLUX Pro v1.1 Ultra
-- 💾 **Persistent Chat History** - Fully synced chat history to use across devices
-- 🎯 **Memory** - Automically saves memories to use in future conversations
-- ⚙️ **Advanced Customization** - Set custom instructions to personalize conversations
-- 🔑 **BYOK** - Bring your own API keys (supports OpenRouter, OpenAI (for o3 and GPT Image 1), and FalAI)
+- **Multiple AI Models** - Support for OpenAI, Anthropic, Google, Meta, DeepSeek, Grok models and more via OpenRouter
+- **Web Search Integration** - Enhanced responses with real-time web search using Exa
+- **File Upload Support** - Upload and send images (PNG, JPEG, WebP) and PDFs to models that support them
+- **Image Generation** - Built-in support for GPT Image 1 and FLUX Pro v1.1 Ultra
+- **Persistent Chat History** - Fully synced chat history to use across devices
+- **Memory** - Automically saves memories to use in future conversations
+- **Branching Conversations** - Create multiple versions of the same chat
+- **Advanced Customization** - Set custom instructions to personalize conversations
+- **BYOK** - Bring your own API keys - OpenRouter, OpenAI (for o3 and GPT Image 1), and FalAI
+- **Search Chats** - Search through your chat history and messages
+- **Temporary Chat** - Create a temporary chat that does not save to your chat history
+- **Chat Sharing** - Share a chat so others can view it and fork to create their own copy
 
-## Tech Stack
+## 🛠 Tech Stack
 
 ### Frontend
 
-- [Next.js 15 App Router](https://nextjs.org) - Full stack React framework
+- [Next.js 15 App Router](https://nextjs.org) - Full stack React framework with server components/actions and api routes
 - [React 19](https://react.dev) - Latest React
 - [TailwindCSS v4](https://tailwindcss.com) - Inline CSS framework
 - [shadcn/ui](https://ui.shadcn.com) - Modern component library built on Radix UI
@@ -29,14 +32,14 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 ### Backend
 
 - [Neon Postgres](https://neon.tech) - Serverless Postgres database
-- [Drizzle ORM](https://orm.drizzle.team) - Type-safe database with schema management
+- [Drizzle ORM](https://orm.drizzle.team) - Type-safe database and schema management
 - [Better Auth](https://better-auth.com) - Modern authentication with Google OAuth
-- [UploadThing](https://uploadthing.com) - File upload and management
+- [UploadThing](https://uploadthing.com) - File uploads
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
-- [Exa API](https://exa.ai) - Web search capabilities
+- [Exa API](https://exa.ai) - Real-time web search API
 - [T3 Env](https://env.t3.gg) - Type-safe environment variables management
 
-### AI Providers Supported
+### AI Models Supported
 
 - **OpenAI** - GPT-4.1, GPT-4.1-mini, GPT-4.1-nano, o4-mini, o3, GPT-Image-1
 - **Anthropic** - Claude 4 Sonnet/Opus, thinking models
@@ -46,12 +49,12 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - **Grok** - Grok 3, Grok 3 Mini
 - **FalAI** - FLUX Pro v1.1 Ultra
 
-## Getting Started
+## 📦 Getting Started
 
 1. Clone the repository and install dependencies:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/anmhrk/speed-chat.git
 cd speed-chat
 bun install # use whatever package manager you prefer, just delete bun.lock first
 ```
@@ -79,7 +82,7 @@ UPLOADTHING_TOKEN=your_uploadthing_token
 
 # Optional
 SITE_URL=http://localhost:3000 # only really needed for production and only used to send headers to OpenRouter
-OPENROUTER_API_KEY=your_openrouter_api_key # used as fallback to generate titles in case not locally set and using a non-OpenRouter model
+OPENROUTER_API_KEY=your_openrouter_api_key # used as fallback to generate chat titles in case not locally set and using a non-OpenRouter model
 ```
 
 4. Push schema to database:
@@ -94,6 +97,6 @@ bun db:push
 bun dev # app will be available at http://localhost:3000
 ```
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

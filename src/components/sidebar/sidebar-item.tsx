@@ -118,6 +118,7 @@ export function SidebarItem({
                   <GitBranch className="size-4" />
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
+                  {/* Show parent chat title instead of parent chat id? */}
                   Branched from {chat.parentChatId}
                 </TooltipContent>
               </Tooltip>
@@ -195,7 +196,7 @@ export function SidebarItem({
               }}
             >
               <Share />
-              <span>Share</span>
+              <span>{chat.isShared ? "Unshare" : "Share"}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -28,12 +28,14 @@ interface AppSidebarProps {
   user: User | null;
   chatIdParams: string;
   isMessageStreaming: boolean;
+  onSearchChatsOpen?: () => void;
 }
 
 export function AppSidebar({
   user,
   chatIdParams,
   isMessageStreaming,
+  onSearchChatsOpen,
 }: AppSidebarProps) {
   const router = useRouter();
   const isSignedIn = !!user;
@@ -81,7 +83,7 @@ export function AppSidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>
+              <SidebarMenuButton onClick={onSearchChatsOpen}>
                 <Search />
                 Search chats
               </SidebarMenuButton>

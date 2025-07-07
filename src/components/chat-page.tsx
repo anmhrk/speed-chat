@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Chat } from "@/lib/db/schema";
 import { useAttachments } from "@/hooks/use-attachments";
 import { useShortcuts } from "@/hooks/use-shortcuts";
+import { SearchChats } from "@/components/search-chats";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -292,6 +293,7 @@ export function ChatPage({
         user={user}
         chatIdParams={chatId ?? ""}
         isMessageStreaming={isMessageStreaming}
+        onSearchChatsOpen={() => setIsSearchChatsOpen(true)}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
@@ -387,6 +389,12 @@ export function ChatPage({
           </div>
         </div>
       </SidebarInset>
+
+      <SearchChats
+        isOpen={isSearchChatsOpen}
+        onOpenChange={setIsSearchChatsOpen}
+        user={user}
+      />
     </>
   );
 }
