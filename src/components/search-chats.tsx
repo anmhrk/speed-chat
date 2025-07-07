@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { debounce } from "lodash";
 import {
@@ -12,10 +12,18 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { searchChats } from "@/lib/db/actions";
-import { MessageSquare, Hash, User as UserIcon, Bot } from "lucide-react";
+import {
+  MessageSquare,
+  Hash,
+  User as UserIcon,
+  Bot,
+  Globe,
+  GitBranch,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { User } from "better-auth";
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface SearchChatsProps {
   isOpen: boolean;
@@ -27,13 +35,20 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  useEffect(() => {
-    const debouncedSetQuery = debounce((query: string) => {
-      setDebouncedQuery(query);
-    }, 500);
+  const debouncedSetQuery = useMemo(
+    () => debounce((query: string) => setDebouncedQuery(query), 500),
+    []
+  );
 
+  useEffect(() => {
     debouncedSetQuery(searchQuery);
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSetQuery]);
+
+  useEffect(() => {
+    return () => {
+      debouncedSetQuery.cancel();
+    };
+  }, [debouncedSetQuery]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -115,6 +130,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                       <Link
                         key={result.chat.id}
                         href={`/chat/${result.chat.id}`}
+                        onClick={() => onOpenChange(false)}
                         className="flex flex-col items-start gap-2 p-4 cursor-pointer hover:bg-accent rounded-sm"
                       >
                         <div className="flex items-center gap-2 w-full">
@@ -137,8 +153,36 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                               )}
                             </div>
                           </div>
+                          {result.chat.isBranched && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <GitBranch className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This chat was branched from{" "}
+                                {result.chat.parentChatId}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {result.chat.isShared && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Globe className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This chat is shared
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           {result.chat.isPinned && (
-                            <Hash className="h-3 w-3 text-muted-foreground" />
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Hash className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This chat is pinned
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
 

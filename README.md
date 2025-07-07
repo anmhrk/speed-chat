@@ -33,7 +33,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 
 - [Neon Postgres](https://neon.tech) - Serverless Postgres database
 - [Drizzle ORM](https://orm.drizzle.team) - Type-safe database and schema management
-- [Better Auth](https://better-auth.com) - Modern authentication with Google OAuth
+- [Better Auth](https://better-auth.com) - Modern authentication solution
 - [UploadThing](https://uploadthing.com) - File uploads
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
 - [Exa API](https://exa.ai) - Real-time web search API
@@ -56,7 +56,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 ```bash
 git clone https://github.com/anmhrk/speed-chat.git
 cd speed-chat
-bun install # use whatever package manager you prefer, just delete bun.lock first
+bun install # or whatever package manager you prefer
 ```
 
 2. Copy the .env.example file to .env:
@@ -73,7 +73,7 @@ DATABASE_URL=your_neon_postgresql_connection_string
 
 # Auth
 BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=your_better_auth_url
+BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 

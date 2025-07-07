@@ -4,7 +4,7 @@ import { getUser } from "../auth/get-user";
 import { db } from ".";
 import { chats, messages, memories, user as userTable } from "./schema";
 import type { Message } from "ai";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ilike } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
 
 // CHATS
@@ -358,25 +358,16 @@ export async function searchChats(query: string) {
     throw new Error("Unauthorized");
   }
 
-  if (!query.trim()) {
-    return [];
-  }
-
   const userChats = await db
-    .select({
-      id: chats.id,
-      title: chats.title,
-      createdAt: chats.createdAt,
-      updatedAt: chats.updatedAt,
-      isPinned: chats.isPinned,
-    })
+    .select()
     .from(chats)
     .where(eq(chats.userId, user.id))
     .orderBy(desc(chats.updatedAt));
 
   const chatIds = userChats.map((chat) => chat.id);
+  const pattern = `%${query}%`;
 
-  const allMessages = await db
+  const matchedMessages = await db
     .select({
       id: messages.id,
       chatId: messages.chatId,
@@ -385,11 +376,13 @@ export async function searchChats(query: string) {
       createdAt: messages.createdAt,
     })
     .from(messages)
-    .where(inArray(messages.chatId, chatIds))
-    .orderBy(asc(messages.createdAt));
+    .where(
+      and(inArray(messages.chatId, chatIds), ilike(messages.content, pattern))
+    )
+    .orderBy(desc(messages.createdAt));
 
-  // Group messages by chat
-  const messagesByChat = allMessages.reduce(
+  // Group messages by chat for quick lookup
+  const messagesByChat = matchedMessages.reduce(
     (acc, message) => {
       if (!acc[message.chatId]) {
         acc[message.chatId] = [];
@@ -397,28 +390,26 @@ export async function searchChats(query: string) {
       acc[message.chatId].push(message);
       return acc;
     },
-    {} as Record<string, typeof allMessages>
+    {} as Record<string, typeof matchedMessages>
   );
 
-  // Search through chats and messages
   const searchResults = [];
   const lowerQuery = query.toLowerCase();
 
   for (const chat of userChats) {
+    // Only consider messages that already matched in SQL
     const chatMessages = messagesByChat[chat.id] || [];
 
     // Check if chat title matches
     const titleMatch = chat.title.toLowerCase().includes(lowerQuery);
 
-    // Check if any message content matches
-    const matchingMessages = chatMessages.filter((message) =>
-      message.content.toLowerCase().includes(lowerQuery)
-    );
+    // chatMessages are already matching, we just need the newest three
+    const matchingMessages = chatMessages.slice(0, 3);
 
     if (titleMatch || matchingMessages.length > 0) {
       searchResults.push({
         chat,
-        matchingMessages: matchingMessages.slice(0, 3),
+        matchingMessages: matchingMessages,
         titleMatch,
       });
     }
