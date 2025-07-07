@@ -286,6 +286,9 @@ export function ChatPage({
   };
 
   const isMessageStreaming = status === "submitted" || status === "streaming";
+  const onSearchChatsOpen = () => {
+    setIsSearchChatsOpen(true);
+  };
 
   return (
     <>
@@ -293,7 +296,7 @@ export function ChatPage({
         user={user}
         chatIdParams={chatId ?? ""}
         isMessageStreaming={isMessageStreaming}
-        onSearchChatsOpen={() => setIsSearchChatsOpen(true)}
+        onSearchChatsOpen={onSearchChatsOpen}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
@@ -316,6 +319,7 @@ export function ChatPage({
             temporaryChat={temporaryChat}
             isOnSharedPage={isOnSharedPage ?? false}
             didUserCreate={didUserCreate ?? false}
+            onSearchChatsOpen={onSearchChatsOpen}
           />
           <div className="flex-1 min-h-0 relative">
             {isLoading ? null : messages.length > 0 ? (
