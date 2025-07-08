@@ -21,7 +21,12 @@ import { createFal } from "@ai-sdk/fal";
 import type { Models, ChatRequest, Providers } from "@/lib/types";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import { getUser } from "@/lib/auth/get-user";
-import { getMemories, addMemory, saveMessages } from "@/lib/db/actions";
+import {
+  getMemories,
+  addMemory,
+  saveMessages,
+  generateChatTitle,
+} from "@/lib/db/actions";
 import { uploadBase64Image } from "@/lib/uploadthing";
 import { z } from "zod";
 import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
@@ -120,10 +125,20 @@ export async function POST(request: NextRequest) {
     };
 
     return createDataStreamResponse({
-      execute: (dataStream) => {
+      execute: async (dataStream) => {
         const startTime = Date.now();
         let ttftCalculated = false;
         let ttft = 0;
+
+        // Both titlePromise and streamText will run in parallel
+        let titlePromise: Promise<string> | undefined;
+        if (!temporaryChat) {
+          titlePromise = generateChatTitle(
+            chatId,
+            messages[messages.length - 1].content,
+            aiModel
+          );
+        }
 
         const result = streamText({
           model: aiModel,
@@ -261,8 +276,9 @@ export async function POST(request: NextRequest) {
           toolCallStreaming: true,
           onChunk: (event) => {
             if (
-              (!ttftCalculated && event.chunk.type === "text-delta") ||
-              event.chunk.type === "reasoning"
+              !ttftCalculated &&
+              (event.chunk.type === "text-delta" ||
+                event.chunk.type === "reasoning")
             ) {
               // Time to first token (in seconds) the moment text delta or reasoning starts
               ttft = (Date.now() - startTime) / 1000;
@@ -317,6 +333,17 @@ export async function POST(request: NextRequest) {
             }
           },
         });
+
+        if (titlePromise) {
+          titlePromise.then((title) => {
+            if (title !== "New Chat") {
+              dataStream.writeData({
+                type: "title",
+                payload: title,
+              });
+            }
+          });
+        }
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: true,

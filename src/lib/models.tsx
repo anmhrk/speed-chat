@@ -38,6 +38,16 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     search: true,
   },
   {
+    id: "google/gemini-2.5-flash-lite-preview-06-17",
+    name: "Gemini 2.5 Flash Lite",
+    icon: <Gemini />,
+    providerId: "openrouter",
+    providerName: "OpenRouter",
+    imageInput: true,
+    pdfInput: true,
+    search: true,
+  },
+  {
     id: "google/gemini-2.5-pro",
     name: "Gemini 2.5 Pro",
     icon: <Gemini />,

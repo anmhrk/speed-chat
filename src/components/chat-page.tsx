@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, type Message } from "ai";
+import { createIdGenerator, DataStreamPart, type Message } from "ai";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -19,6 +19,7 @@ import { Chat } from "@/lib/db/schema";
 import { useAttachments } from "@/hooks/use-attachments";
 import { useShortcuts } from "@/hooks/use-shortcuts";
 import { SearchChats } from "@/components/search-chats";
+import { StreamData } from "@/lib/types";
 
 const promptSuggestions = [
   "Suggest a quick and healthy dinner recipe",
@@ -112,6 +113,7 @@ export function ChatPage({
     reload,
     append,
     setMessages,
+    data,
   } = useChat({
     id: chatId ?? undefined,
     initialMessages,
@@ -236,38 +238,6 @@ export function ChatPage({
       });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
-
-      fetch("/api/generate-title", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chatId: newChatId,
-          prompt: input.trim(),
-          apiKeys,
-        }),
-      })
-        .then((result) => result.json())
-        .then((result: { success: boolean; title: string }) => {
-          if (result.success) {
-            queryClient.setQueryData(
-              ["chats"],
-              (oldData: Chat[] | undefined) => {
-                if (!oldData) return oldData;
-                return oldData.map((chatItem) =>
-                  chatItem.id === newChatId
-                    ? { ...chatItem, title: result.title }
-                    : chatItem
-                );
-              }
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to generate title:", error);
-        });
-
       handleSubmit(e, { experimental_attachments: attachments });
     } else {
       // Put chat to the top of the list
@@ -285,12 +255,27 @@ export function ChatPage({
     clearFiles();
   };
 
+  useEffect(() => {
+    data?.map((d) => {
+      const data = d as StreamData<string>;
+
+      if (data.type === "title") {
+        queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map((chatItem) =>
+            chatItem.id === chatId
+              ? { ...chatItem, title: data.payload }
+              : chatItem
+          );
+        });
+      }
+    });
+  }, [data, chatId, queryClient]);
+
   const isMessageStreaming = status === "submitted" || status === "streaming";
   const onSearchChatsOpen = () => {
     setIsSearchChatsOpen(true);
   };
-
-  console.log(messages.map((m) => m.annotations));
 
   return (
     <>

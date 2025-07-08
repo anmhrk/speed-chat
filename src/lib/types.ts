@@ -102,6 +102,11 @@ export type MessageAnnotation = {
   };
 };
 
+export type StreamData<T> = {
+  type: string;
+  payload: T;
+};
+
 export type WebSearchResult = {
   url: string;
   title: string;

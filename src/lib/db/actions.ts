@@ -3,9 +3,10 @@
 import { getUser } from "../auth/get-user";
 import { db } from ".";
 import { chats, messages, memories, user as userTable } from "./schema";
-import type { Message } from "ai";
+import { generateText, type LanguageModel, type Message } from "ai";
 import { and, asc, desc, eq, inArray, ilike } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
+import { titleGenerationPrompt } from "../prompts";
 
 // CHATS
 export async function getChats() {
@@ -59,6 +60,33 @@ export async function createChat(chatId: string) {
     title: "New Chat",
     userId: user.id,
   });
+}
+
+export async function generateChatTitle(
+  chatId: string,
+  prompt: string,
+  model: LanguageModel
+) {
+  try {
+    const response = await generateText({
+      model,
+      prompt: titleGenerationPrompt(prompt),
+    });
+
+    if (response.text) {
+      await db
+        .update(chats)
+        .set({
+          title: response.text,
+        })
+        .where(eq(chats.id, chatId));
+    }
+
+    return response.text;
+  } catch (error) {
+    console.error("[Generate Chat Title] Error:", error);
+    return "New Chat"; // Don't throw error to not break stream. Just return default title.
+  }
 }
 
 export async function saveMessages(
