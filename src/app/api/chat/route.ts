@@ -353,18 +353,25 @@ export async function POST(request: NextRequest) {
       onError: (error) => {
         console.error("[Chat API] Error:", error);
 
-        // Send generic errors to client but log full error on server
         let errorContent = "";
-        if (APICallError.isInstance(error)) {
-          errorContent =
-            "There was a problem with the model. Please try again.";
-        } else if (InvalidPromptError.isInstance(error)) {
-          errorContent = "The prompt was flagged as invalid. Please try again.";
+        if (
+          APICallError.isInstance(error) ||
+          InvalidPromptError.isInstance(error)
+        ) {
+          errorContent = `Error: ${error.message}`;
         } else if (RetryError.isInstance(error)) {
-          errorContent =
-            "Max retry attempts hit but no response received. Please try again.";
+          // Extract the actual error message from the lastError property
+          if (error.lastError && APICallError.isInstance(error.lastError)) {
+            errorContent = `Error: ${error.lastError.message}`;
+          } else {
+            // Fallback to parsing the message string
+            const lastErrorMatch = error.message.match(/Last error: (.+)$/);
+            errorContent = lastErrorMatch
+              ? `Error: ${lastErrorMatch[1].trim()}`
+              : `Error: ${error.message}`;
+          }
         } else if (ToolExecutionError.isInstance(error)) {
-          errorContent = `There was a problem with executing the tool: ${error.toolName}. Please try again.`;
+          errorContent = `There was a problem executing the tool: ${error.toolName}. Please try again.`;
         } else if (NoImageGeneratedError.isInstance(error)) {
           errorContent =
             "There was a problem generating the image. Please try again.";

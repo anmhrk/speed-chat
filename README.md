@@ -102,7 +102,6 @@ bun dev # app will be available at http://localhost:3000
 ## 📝 Todos
 
 - [ ] Migrate to AI SDK v5 once stable
-- [ ] Message queue system
 - [x] Add message metadata per assistant message which displays tps, ttft, tokens in, tokens out
 - [ ] Resumable streams if lost connection or refresh while streaming
 - [ ] Synced stream to follow on any tab or device
