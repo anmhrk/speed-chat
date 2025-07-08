@@ -77,7 +77,7 @@ export function Header({
               className="rounded-full"
               onClick={onSearchChatsOpen}
             >
-              <Search className="size-5" />
+              <Search className="size-4.5" />
             </Button>
           </>
         )}

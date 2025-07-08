@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       reasoningEffort,
       apiKeys,
       temporaryChat,
+      isNewChat,
       customization,
       searchEnabled,
     } = body;
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
 
         // Both titlePromise and streamText will run in parallel
         let titlePromise: Promise<string> | undefined;
-        if (!temporaryChat) {
+        if (!temporaryChat && isNewChat) {
           titlePromise = generateChatTitle(
             chatId,
             messages[messages.length - 1].content,
@@ -352,25 +353,18 @@ export async function POST(request: NextRequest) {
       onError: (error) => {
         console.error("[Chat API] Error:", error);
 
+        // Send generic errors to client but log full error on server
         let errorContent = "";
-        if (
-          APICallError.isInstance(error) ||
-          InvalidPromptError.isInstance(error)
-        ) {
-          errorContent = `Error: ${error.message}`;
+        if (APICallError.isInstance(error)) {
+          errorContent =
+            "There was a problem with the model. Please try again.";
+        } else if (InvalidPromptError.isInstance(error)) {
+          errorContent = "The prompt was flagged as invalid. Please try again.";
         } else if (RetryError.isInstance(error)) {
-          // Extract the actual error message from the lastError property
-          if (error.lastError && APICallError.isInstance(error.lastError)) {
-            errorContent = `Error: ${error.lastError.message}`;
-          } else {
-            // Fallback to parsing the message string
-            const lastErrorMatch = error.message.match(/Last error: (.+)$/);
-            errorContent = lastErrorMatch
-              ? `Error: ${lastErrorMatch[1].trim()}`
-              : `Error: ${error.message}`;
-          }
+          errorContent =
+            "Max retry attempts hit but no response received. Please try again.";
         } else if (ToolExecutionError.isInstance(error)) {
-          errorContent = `${error.message}`;
+          errorContent = `There was a problem with executing the tool: ${error.toolName}. Please try again.`;
         } else if (NoImageGeneratedError.isInstance(error)) {
           errorContent =
             "There was a problem generating the image. Please try again.";
@@ -378,6 +372,7 @@ export async function POST(request: NextRequest) {
           errorContent = "An unknown error occurred. Please try again.";
         }
 
+        // Save error in db to not keep the user message hanging on refresh
         try {
           const messageIds = messages.slice(0, -1).map((m) => m.id);
           const latestUserMessage = messages[messages.length - 1];

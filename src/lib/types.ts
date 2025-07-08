@@ -75,6 +75,7 @@ export type ChatRequest = {
   temporaryChat: boolean;
   customization: Customization;
   searchEnabled: boolean;
+  isNewChat: boolean;
 };
 
 export type TitleRequest = {

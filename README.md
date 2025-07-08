@@ -99,7 +99,7 @@ bun db:push
 bun dev # app will be available at http://localhost:3000
 ```
 
-## Todos
+## 📝 Todos
 
 - [ ] Migrate to AI SDK v5 once stable
 - [ ] Message queue system

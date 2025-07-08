@@ -5,7 +5,7 @@ import { Header } from "@/components/header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, DataStreamPart, type Message } from "ai";
+import { createIdGenerator, type Message } from "ai";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -53,7 +53,7 @@ export function ChatPage({
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId);
   const [searchEnabled, setSearchEnabled] = useState(false);
-  const [dontFetchId, setDontFetchId] = useState("");
+  const [isNewlyCreated, setIsNewlyCreated] = useState(false);
   const {
     fileMetadata,
     attachments,
@@ -91,7 +91,7 @@ export function ChatPage({
       if (!chatId) return [];
       return (await getMessages(chatId, isOnSharedPage ?? false)) as Message[];
     },
-    enabled: Boolean(chatId && chatId !== dontFetchId),
+    enabled: Boolean(chatId),
     staleTime: Infinity,
   });
 
@@ -132,10 +132,9 @@ export function ChatPage({
       temporaryChat,
       customization,
       searchEnabled,
+      isNewChat: isNewlyCreated,
     },
     onError: (error) => {
-      console.error(error);
-
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
         role: "assistant",
@@ -213,9 +212,11 @@ export function ChatPage({
     }
 
     if (!chatId) {
+      setIsNewlyCreated(true);
       const newChatId = crypto.randomUUID();
       setChatId(newChatId);
-      setDontFetchId(newChatId);
+      // Set messages query cache to prevent refetch on route change
+      queryClient.setQueryData(["messages", newChatId], []);
 
       createChat(newChatId).catch((error) => {
         toast.error("Failed to create chat");
@@ -239,6 +240,9 @@ export function ChatPage({
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
       handleSubmit(e, { experimental_attachments: attachments });
+      setTimeout(() => {
+        setIsNewlyCreated(false);
+      }, 500);
     } else {
       // Put chat to the top of the list
       queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
