@@ -38,6 +38,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - [UploadThing](https://uploadthing.com) - File uploads
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
 - [Exa API](https://exa.ai) - Real-time web search API
+- [Zod](https://zod.dev) - Type-safe data validation
 - [T3 Env](https://env.t3.gg) - Type-safe environment variables management
 
 ### AI Models Supported
@@ -69,7 +70,7 @@ cp .env.example .env
 3. Set up your environment variables:
 
 ```bash
-# Database Configuration
+# Database
 DATABASE_URL=your_neon_postgresql_connection_string
 
 # Auth
@@ -97,6 +98,16 @@ bun db:push
 ```bash
 bun dev # app will be available at http://localhost:3000
 ```
+
+## Todos
+
+- [ ] Migrate to AI SDK v5 once stable
+- [ ] Message queue system
+- [ ] Add message metadata per assistant message that counts for tps, ttfs, tokens in, tokens out
+- [ ] Resumable streams if lost connection or refresh while streaming
+- [ ] Synced stream to follow on any tab or device
+- [ ] Potentially migrate to local db syncing to postgres
+- [ ] Allow send empty message if attachments are present
 
 ## 📄 License
 
