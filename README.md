@@ -103,7 +103,7 @@ bun dev # app will be available at http://localhost:3000
 
 - [ ] Migrate to AI SDK v5 once stable
 - [ ] Message queue system
-- [ ] Add message metadata per assistant message that counts for tps, ttfs, tokens in, tokens out
+- [x] Add message metadata per assistant message which displays tps, ttft, tokens in, tokens out
 - [ ] Resumable streams if lost connection or refresh while streaming
 - [ ] Synced stream to follow on any tab or device
 - [ ] Potentially migrate to local db syncing to postgres

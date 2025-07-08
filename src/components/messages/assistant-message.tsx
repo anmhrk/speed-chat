@@ -5,6 +5,10 @@ import {
   Download,
   ExternalLink,
   GitBranch,
+  Bolt,
+  Cpu,
+  Clock,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { memo } from "react";
@@ -14,13 +18,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Markdown } from "@/components/messages/markdown";
 import removeMarkdown from "remove-markdown";
 import "katex/dist/katex.min.css";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Link from "next/link";
-import type { ImageGenerationToolInvocation } from "@/lib/types";
+import type {
+  ImageGenerationToolInvocation,
+  MessageAnnotation,
+} from "@/lib/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { branchOffChat } from "@/lib/db/actions";
@@ -28,6 +40,7 @@ import { ReasoningBlock } from "@/components/messages/reasoning-block";
 import { WebSearchBlock } from "@/components/messages/web-search-block";
 import { MemoryBlock } from "@/components/messages/memory";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AssistantMessageProps {
   message: Message;
@@ -47,6 +60,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   const isError = message.id.startsWith("error-");
   const queryClient = useQueryClient();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const { isCopied, copyToClipboard } = useCopyClipboard();
 
   const handleBranchOffChat = async (parentChatId: string) => {
@@ -209,7 +223,7 @@ export const AssistantMessage = memo(function AssistantMessage({
           </div>
         )}
 
-        <div className="absolute top-full left-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="absolute top-full left-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 items-center">
           {isLastMessage && !isOnSharedPage && (
             <>
               <Tooltip>
@@ -269,6 +283,80 @@ export const AssistantMessage = memo(function AssistantMessage({
                 </TooltipContent>
               </Tooltip>
             )}
+
+          <div
+            className={`text-xs text-muted-foreground flex items-center w-full`}
+          >
+            {message.annotations?.map((annotation, index) => {
+              if (typeof annotation === "string") {
+                return null;
+              }
+              const annotationData = annotation as MessageAnnotation;
+
+              return (
+                <div key={index} className="flex w-full items-center">
+                  <span className="font-medium mr-2 truncate max-w-[40vw]">
+                    {annotationData.metadata.modelName}
+                  </span>
+                  <div className="flex-1" />
+                  {isMobile ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 ml-auto"
+                        >
+                          <Info className="size-4 text-primary" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-fit p-3">
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center gap-1">
+                            <Bolt className="size-3" />
+                            <span>
+                              {annotationData.metadata.tps.toFixed(2)} tok/s
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Cpu className="size-3" />
+                            <span>
+                              {annotationData.metadata.totalTokens} tokens
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="size-3" />
+                            <span>
+                              Time-to-first:{" "}
+                              {annotationData.metadata.ttft.toFixed(2)} s
+                            </span>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="flex flex-row gap-1.5 items-center">
+                      <p className="inline-flex items-center">
+                        <Bolt className="size-3 inline-block mr-1" />
+                        {annotationData.metadata.tps.toFixed(2)} tok/s
+                      </p>
+                      <p className="inline-flex items-center">
+                        <Cpu className="size-3 inline-block mr-1" />
+                        {annotationData.metadata.totalTokens} tokens
+                      </p>
+                      <p className="inline-flex items-center">
+                        <Clock className="size-3 inline-block mr-1" />
+                        Time-to-first: {annotationData.metadata.ttft.toFixed(
+                          2
+                        )}{" "}
+                        s
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

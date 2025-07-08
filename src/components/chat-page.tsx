@@ -290,6 +290,8 @@ export function ChatPage({
     setIsSearchChatsOpen(true);
   };
 
+  console.log(messages.map((m) => m.annotations));
+
   return (
     <>
       <AppSidebar

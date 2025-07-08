@@ -12,6 +12,8 @@ import {
   experimental_generateImage as generateImage,
   type ImageModel,
   tool,
+  createDataStreamResponse,
+  NoImageGeneratedError,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -117,156 +119,210 @@ export async function POST(request: NextRequest) {
       return 15000 / 4;
     };
 
-    const chatStream = streamText({
-      model: aiModel,
-      system: isImageModel
-        ? imageGenerationPrompt(messages[messages.length - 1].content)
-        : chatPrompt(modelName!, customization, searchEnabled, storedMemories),
-      experimental_transform: [
-        smoothStream({
-          chunking: "word",
-        }),
-      ],
-      messages,
-      ...(isReasoningModel && {
-        providerOptions: {
-          openrouter: {
-            reasoning:
-              modelId.includes("openai") || modelId.includes("x-ai")
-                ? { effort: reasoningEffort }
-                : { max_tokens: calculateThinkingBudget() },
-          },
-          openai: {
-            reasoningEffort: reasoningEffort,
-          },
-        },
-      }),
-      tools: {
-        ...(isImageModel && {
-          generateImage: tool({
-            description: "Generate an image based on the user's prompt",
-            parameters: z.object({
-              prompt: z
-                .string()
-                .describe("The prompt to generate an image from"),
+    return createDataStreamResponse({
+      execute: (dataStream) => {
+        const startTime = Date.now();
+        let ttftCalculated = false;
+        let ttft = 0;
+
+        const result = streamText({
+          model: aiModel,
+          system: isImageModel
+            ? imageGenerationPrompt(messages[messages.length - 1].content)
+            : chatPrompt(
+                modelName!,
+                customization,
+                searchEnabled,
+                storedMemories
+              ),
+          experimental_transform: [
+            smoothStream({
+              chunking: "word",
             }),
-            execute: async ({ prompt }) => {
-              const { image } = await generateImage({
-                model: imageModel,
-                prompt,
-                ...(dimensionFormat === "size"
-                  ? { size: "1024x1024" }
-                  : { aspectRatio: "1:1" }),
-              });
-
-              const userMessageId = messages[messages.length - 1].id;
-              const imageName = `image-${userMessageId}.png`;
-              const imageUrl = await uploadBase64Image(imageName, image.base64);
-
-              return { imageUrl };
+          ],
+          messages,
+          ...(isReasoningModel && {
+            providerOptions: {
+              openrouter: {
+                reasoning:
+                  modelId.includes("openai") || modelId.includes("x-ai")
+                    ? { effort: reasoningEffort }
+                    : { max_tokens: calculateThinkingBudget() },
+              },
+              openai: {
+                reasoningEffort: reasoningEffort,
+              },
             },
           }),
-        }),
-        ...(searchEnabled && {
-          webSearch: tool({
-            description:
-              "Search the web for current information to help answer the user's question. Use this when you need up-to-date information or facts not in your training data.",
-            parameters: z.object({
-              query: z
-                .string()
-                .describe(
-                  "The search query to find information relevant to the user's question."
-                ),
-              resultCategory: z
-                .enum([
-                  "auto",
-                  "company",
-                  "research paper",
-                  "news",
-                  "pdf",
-                  "github",
-                  "personal site",
-                  "linkedin profile",
-                  "financial report",
-                ])
-                .describe("The category of the result to search for."),
-            }),
-            execute: async ({ query, resultCategory }) => {
-              const exa = new Exa(apiKeys.exa);
+          tools: {
+            ...(isImageModel && {
+              generateImage: tool({
+                description: "Generate an image based on the user's prompt",
+                parameters: z.object({
+                  prompt: z
+                    .string()
+                    .describe("The prompt to generate an image from"),
+                }),
+                execute: async ({ prompt }) => {
+                  const { image } = await generateImage({
+                    model: imageModel,
+                    prompt,
+                    ...(dimensionFormat === "size"
+                      ? { size: "1024x1024" }
+                      : { aspectRatio: "1:1" }),
+                  });
 
-              const result = await exa.searchAndContents(query, {
-                type: "auto",
-                category:
-                  resultCategory === "auto" ? undefined : resultCategory,
-                numResults: 8,
-                text: {
-                  maxCharacters: 800,
+                  const userMessageId = messages[messages.length - 1].id;
+                  const imageName = `image-${userMessageId}.png`;
+                  const imageUrl = await uploadBase64Image(
+                    imageName,
+                    image.base64
+                  );
+
+                  return { imageUrl };
                 },
+              }),
+            }),
+            ...(searchEnabled && {
+              webSearch: tool({
+                description:
+                  "Search the web for current information to help answer the user's question. Use this when you need up-to-date information or facts not in your training data.",
+                parameters: z.object({
+                  query: z
+                    .string()
+                    .describe(
+                      "The search query to find information relevant to the user's question."
+                    ),
+                  resultCategory: z
+                    .enum([
+                      "auto",
+                      "company",
+                      "research paper",
+                      "news",
+                      "pdf",
+                      "github",
+                      "personal site",
+                      "linkedin profile",
+                      "financial report",
+                    ])
+                    .describe("The category of the result to search for."),
+                }),
+                execute: async ({ query, resultCategory }) => {
+                  const exa = new Exa(apiKeys.exa);
+
+                  const result = await exa.searchAndContents(query, {
+                    type: "auto",
+                    category:
+                      resultCategory === "auto" ? undefined : resultCategory,
+                    numResults: 8,
+                    text: {
+                      maxCharacters: 800,
+                    },
+                  });
+
+                  return {
+                    query: query,
+                    totalResults: result.results.length,
+                    results: result.results.map((item, index) => ({
+                      rank: index + 1,
+                      title: item.title,
+                      url: item.url,
+                      content: item.text || "No content available",
+                      publishedDate: item.publishedDate || "Date not available",
+                    })),
+                  };
+                },
+              }),
+            }),
+            ...(!isImageModel && {
+              addMemory: tool({
+                description:
+                  "Add a useful detail about the user to remember for future conversations. This helps personalize responses and maintain context across chats.",
+                parameters: z.object({
+                  memory: z
+                    .string()
+                    .describe(
+                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
+                    ),
+                }),
+                execute: async ({ memory }) => {
+                  await addMemory(memory);
+
+                  return {
+                    success: true,
+                    memory: memory,
+                  };
+                },
+              }),
+            }),
+          },
+          ...(isImageModel && { toolChoice: "required" }),
+          ...(!isImageModel && { maxSteps: 10 }),
+          toolCallStreaming: true,
+          onChunk: (event) => {
+            if (
+              (!ttftCalculated && event.chunk.type === "text-delta") ||
+              event.chunk.type === "reasoning"
+            ) {
+              // Time to first token (in seconds) the moment text delta or reasoning starts
+              ttft = (Date.now() - startTime) / 1000;
+              ttftCalculated = true;
+            }
+          },
+          onFinish: async ({ response, usage }) => {
+            const endTime = Date.now();
+            const elapsedTime = endTime - startTime;
+            // Tokens per second
+            const tps = usage.totalTokens / (elapsedTime / 1000);
+
+            const metadata = {
+              ...usage,
+              elapsedTime,
+              tps,
+              ttft,
+              modelName: modelName!,
+            };
+
+            dataStream.writeMessageAnnotation({
+              metadata,
+            });
+
+            try {
+              if (temporaryChat) {
+                return;
+              }
+
+              const messageIds = messages.slice(0, -1).map((m) => m.id);
+              const latestUserMessage = messages[messages.length - 1];
+
+              const newMessages = appendResponseMessages({
+                messages: [latestUserMessage],
+                responseMessages: response.messages,
               });
 
-              return {
-                query: query,
-                totalResults: result.results.length,
-                results: result.results.map((item, index) => ({
-                  rank: index + 1,
-                  title: item.title,
-                  url: item.url,
-                  content: item.text || "No content available",
-                  publishedDate: item.publishedDate || "Date not available",
-                })),
-              };
-            },
-          }),
-        }),
-        ...(!isImageModel && {
-          addMemory: tool({
-            description:
-              "Add a useful detail about the user to remember for future conversations. This helps personalize responses and maintain context across chats.",
-            parameters: z.object({
-              memory: z
-                .string()
-                .describe(
-                  "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
-                ),
-            }),
-            execute: async ({ memory }) => {
-              await addMemory(memory);
+              // Add annotations to the assistant messages after appendResponseMessages
+              const messagesWithAnnotations = newMessages.map((message) => {
+                if (message.role === "assistant") {
+                  return {
+                    ...message,
+                    annotations: [{ metadata }],
+                  };
+                }
+                return message;
+              });
 
-              return {
-                success: true,
-                memory: memory,
-              };
-            },
-          }),
-        }),
+              await saveMessages(chatId, messageIds, messagesWithAnnotations);
+            } catch (error) {
+              console.error("[Chat API] Database save failed:", error);
+            }
+          },
+        });
+
+        result.mergeIntoDataStream(dataStream, {
+          sendReasoning: true,
+        });
       },
-      ...(isImageModel && { toolChoice: "required" }),
-      ...(!isImageModel && { maxSteps: 10 }),
-      toolCallStreaming: true,
-      onFinish: async ({ response }) => {
-        try {
-          if (temporaryChat) {
-            return;
-          }
-
-          const messageIds = messages.slice(0, -1).map((m) => m.id);
-          const latestUserMessage = messages[messages.length - 1];
-
-          const newMessages = appendResponseMessages({
-            messages: [latestUserMessage],
-            responseMessages: response.messages,
-          });
-
-          await saveMessages(chatId, messageIds, newMessages);
-        } catch (error) {
-          console.error("[Chat API] Database save failed:", error);
-        }
-      },
-    });
-
-    return chatStream.toDataStreamResponse({
-      sendReasoning: true,
-      getErrorMessage: (error) => {
+      onError: (error) => {
         console.error("[Chat API] Error:", error);
 
         let errorContent = "";
@@ -288,6 +344,9 @@ export async function POST(request: NextRequest) {
           }
         } else if (ToolExecutionError.isInstance(error)) {
           errorContent = `${error.message}`;
+        } else if (NoImageGeneratedError.isInstance(error)) {
+          errorContent =
+            "There was a problem generating the image. Please try again.";
         } else {
           errorContent = "An unknown error occurred. Please try again.";
         }

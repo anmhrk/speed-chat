@@ -94,6 +94,7 @@ export const messages = pgTable("messages", {
     .references(() => chats.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   role: text("role").notNull(),
+  annotations: jsonb("annotations").$type<Message["annotations"]>(),
   parts: jsonb("parts").$type<Message["parts"]>(),
   experimental_attachments: jsonb("experimental_attachments").$type<
     Attachment[]

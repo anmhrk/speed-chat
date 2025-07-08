@@ -90,6 +90,18 @@ export type FileMetadata = {
   extension: string;
 };
 
+export type MessageAnnotation = {
+  metadata: {
+    modelName: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    tps: number;
+    ttft: number;
+    elapsedTime: number;
+  };
+};
+
 export type WebSearchResult = {
   url: string;
   title: string;

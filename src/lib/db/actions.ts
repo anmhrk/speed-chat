@@ -95,6 +95,7 @@ export async function saveMessages(
           content: newMessage.content,
           parts: newMessage.parts,
           experimental_attachments: newMessage.experimental_attachments,
+          annotations: newMessage.annotations,
         })
         .where(eq(messages.id, newMessage.id));
     } else {
@@ -104,6 +105,7 @@ export async function saveMessages(
         content: newMessage.content,
         role: newMessage.role,
         parts: newMessage.parts,
+        annotations: newMessage.annotations,
         experimental_attachments: newMessage.experimental_attachments,
         createdAt: newMessage.createdAt
           ? new Date(newMessage.createdAt)
