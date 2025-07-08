@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { z } from "zod";
 import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
 import type {
   Customization,
@@ -16,6 +17,40 @@ import type {
   ReasoningEfforts,
   APIKeys,
 } from "@/lib/types";
+
+// Zod schemas for validation
+const ModelsSchema = z.enum(
+  AVAILABLE_MODELS.map((m) => m.id) as [Models, ...Models[]]
+);
+
+const ReasoningEffortSchema = z.enum(
+  REASONING_EFFORTS.map((r) => r.id) as [
+    ReasoningEfforts,
+    ...ReasoningEfforts[],
+  ]
+);
+
+const APIKeysSchema = z.object({
+  openrouter: z.string(),
+  openai: z.string(),
+  falai: z.string(),
+  exa: z.string(),
+});
+
+const CustomizationSchema = z.object({
+  name: z.string(),
+  whatYouDo: z.string(),
+  traits: z.array(z.string()),
+  additionalInfo: z.string(),
+});
+
+const SettingsStateSchema = z.object({
+  model: ModelsSchema,
+  reasoningEffort: ReasoningEffortSchema,
+  apiKeys: APIKeysSchema,
+  customization: CustomizationSchema,
+  favoriteModels: z.array(ModelsSchema),
+});
 
 const DEFAULT_MODEL =
   AVAILABLE_MODELS.find((m) => m.default)?.id || AVAILABLE_MODELS[0].id;
@@ -72,25 +107,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PartialSettingsState>(INITIAL_STATE);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const hasAnyKey = useCallback(() => {
+  const hasAnyKey = () => {
     const { openrouter, openai, falai } = state.apiKeys;
-    return !!(openrouter.trim() || openai.trim() || falai.trim()); // Don't include exa key cos this checks for model keys
-  }, [state.apiKeys]);
+    return !!(openrouter.trim() || openai.trim() || falai.trim()); // Don't include exa key cos this checks only for model keys
+  };
 
-  const hasApiKeyForProvider = useCallback(
-    (provider: Providers) => {
-      const key = state.apiKeys[provider];
-      return !!(key && (key as string).trim() !== "");
-    },
-    [state.apiKeys]
-  );
+  const hasApiKeyForProvider = (provider: Providers) => {
+    const key = state.apiKeys[provider];
+    return !!(key && (key as string).trim() !== "");
+  };
 
-  const isFavoriteModel = useCallback(
-    (model: Models) => {
-      return state.favoriteModels.includes(model);
-    },
-    [state.favoriteModels]
-  );
+  const isFavoriteModel = (model: Models) => {
+    return state.favoriteModels.includes(model);
+  };
 
   const toggleFavoriteModel = useCallback((model: Models) => {
     setState((prev) => ({
@@ -108,10 +137,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const setApiKeys = (apiKeys: APIKeys) => {
     setState((prev) => {
-      const hasAnyKey = Object.values(apiKeys).some(
-        (key) => key && (key as string).trim() !== ""
-      );
-
       const availableModels = AVAILABLE_MODELS.filter((model) => {
         const provider = model.providerId;
         return (apiKeys[provider] as string)?.trim();
@@ -172,64 +197,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Sanitize persisted values
-      const sanitizedModel =
-        persisted.model &&
-        AVAILABLE_MODELS.some((m) => m.id === persisted.model)
-          ? persisted.model
-          : INITIAL_STATE.model;
+      // Validate persisted values using Zod schema
+      const validationResult = SettingsStateSchema.safeParse(persisted);
 
-      const sanitizedReasoningEffort =
-        persisted.reasoningEffort &&
-        REASONING_EFFORTS.some((r) => r.id === persisted.reasoningEffort)
-          ? persisted.reasoningEffort
-          : INITIAL_STATE.reasoningEffort;
-
-      const sanitizedApiKeys: APIKeys = {
-        openrouter: "",
-        openai: "",
-        falai: "",
-        exa: "",
-      };
-
-      if (persisted.apiKeys) {
-        Object.entries(persisted.apiKeys).forEach(([provider, key]) => {
-          if (
-            provider === "exa" ||
-            AVAILABLE_MODELS.some((m) => m.providerId === provider)
-          ) {
-            sanitizedApiKeys[provider as Providers | "exa"] =
-              (key as string) || "";
-          }
-        });
+      if (!validationResult.success) {
+        console.warn(
+          "Invalid settings data found, clearing...",
+          validationResult.error
+        );
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        setIsHydrated(true);
+        return;
       }
 
-      const sanitizedFavoriteModels = (persisted.favoriteModels || []).filter(
-        (model) => AVAILABLE_MODELS.some((m) => m.id === model)
-      );
-
-      const sanitizedCustomization = persisted.customization
-        ? {
-            ...persisted.customization,
-            traits: Array.isArray(persisted.customization.traits)
-              ? persisted.customization.traits.filter(
-                  (trait): trait is string => typeof trait === "string"
-                )
-              : INITIAL_STATE.customization.traits,
-          }
-        : INITIAL_STATE.customization;
-
-      setState({
-        model: sanitizedModel,
-        reasoningEffort: sanitizedReasoningEffort,
-        apiKeys: sanitizedApiKeys,
-        customization: sanitizedCustomization,
-        favoriteModels: sanitizedFavoriteModels,
-      });
-
+      setState(validationResult.data);
       setIsHydrated(true);
     } catch (err) {
       console.error("Failed to hydrate settings", err);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
       setIsHydrated(true);
     }
   }, []);
