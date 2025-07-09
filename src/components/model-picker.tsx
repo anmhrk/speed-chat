@@ -1,8 +1,15 @@
 import { AVAILABLE_MODELS } from "@/lib/models";
-import { ScrollArea } from "./ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { REASONING_EFFORTS } from "@/lib/models";
-import { Brain, File, Images, ChevronDown, Star, StarOff } from "lucide-react";
+import {
+  Brain,
+  File,
+  Images,
+  ChevronDown,
+  Star,
+  Sparkles,
+  StarOff,
+} from "lucide-react";
 import { useSettingsContext } from "./providers/settings-provider";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -17,7 +24,7 @@ import {
   CommandSeparator,
 } from "./ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
+import { cn } from "@/lib/utils";
 import type { ModelConfig, Models } from "@/lib/types";
 
 export function ModelPicker({
@@ -48,7 +55,7 @@ export function ModelPicker({
     (a, b) => a.id.localeCompare(b.id)
   );
 
-  // Get favorite models (both chat and image)
+  // Get favorite models
   const favoriteModelItems = AVAILABLE_MODELS.filter((m) =>
     favoriteModels.includes(m.id)
   ).sort((a, b) => a.id.localeCompare(b.id));
@@ -66,213 +73,240 @@ export function ModelPicker({
   const onModelSelect = (modelId: Models) => {
     setModel(modelId);
     setIsOpen(false);
+    setSearch("");
   };
 
-  const renderModelItem = (modelItem: ModelConfig) => (
-    <CommandItem
-      key={modelItem.id}
-      value={`${modelItem.name} ${modelItem.providerName}`}
-      onSelect={() => onModelSelect(modelItem.id)}
-      disabled={
-        !hasApiKeyForProvider(modelItem.providerId) ||
-        (modelItem.imageGeneration && hasFilesUploaded)
-      }
-      className="group rounded-xl mx-1 p-3 hover:bg-accent/50 transition-all duration-200 cursor-pointer border-0 data-[disabled=true]:opacity-50 data-[disabled=true]:cursor-not-allowed relative"
-    >
-      <Button
-        size="icon"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleFavoriteModel(modelItem.id);
-        }}
-        className="absolute -top-1 -left-1 inline-flex items-center justify-center h-5 w-5 rounded-full transition-all duration-200 z-10 bg-yellow-200 dark:bg-yellow-900 border-2 border-yellow-400 dark:border-yellow-600 opacity-0 group-hover:opacity-100 hover:scale-110"
-      >
-        {isFavoriteModel(modelItem.id) ? (
-          <StarOff className="h-3 w-3 text-yellow-600 dark:text-yellow-400 fill-current" />
-        ) : (
-          <Star className="h-3 w-3 text-yellow-600 dark:text-yellow-400 fill-current" />
-        )}
-      </Button>
+  const renderModelItem = (modelItem: ModelConfig) => {
+    const isSelected = modelItem.id === model;
+    const isFavorite = isFavoriteModel(modelItem.id);
+    const isDisabled =
+      !hasApiKeyForProvider(modelItem.providerId) ||
+      (modelItem.imageGeneration && hasFilesUploaded);
 
-      <div className="flex items-start justify-between w-full gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0">{modelItem.icon}</div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium text-sm truncate">
-                {modelItem.name}
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground capitalize">
-              {modelItem.providerName}
-            </span>
-          </div>
+    return (
+      <CommandItem
+        key={modelItem.id}
+        value={`${modelItem.name} ${modelItem.providerName}`}
+        onSelect={() => onModelSelect(modelItem.id)}
+        disabled={isDisabled}
+        className="group relative flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 data-[disabled=true]:opacity-50 data-[disabled=true]:cursor-not-allowed"
+      >
+        <Button
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFavoriteModel(modelItem.id);
+          }}
+          className="absolute -top-1 -left-1 inline-flex items-center justify-center h-4 w-4 rounded-full transition-all duration-200 z-10 bg-yellow-200 dark:bg-yellow-900 border-2 border-yellow-400 dark:border-yellow-600 opacity-0 group-hover:opacity-100 hover:scale-110"
+        >
+          {isFavorite ? (
+            <StarOff className="size-3 text-yellow-600 dark:text-yellow-400 fill-current" />
+          ) : (
+            <Star className="size-3 text-yellow-600 dark:text-yellow-400 fill-current" />
+          )}
+        </Button>
+
+        <div className="flex-shrink-0 text-muted-foreground">
+          {modelItem.icon}
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "font-medium text-sm",
+                isSelected && "text-foreground"
+              )}
+            >
+              {modelItem.name}
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {modelItem.providerName}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
           {modelItem.reasoning && (
             <Tooltip>
               <TooltipTrigger>
-                <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-200 dark:bg-blue-900">
-                  <Brain className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <div className="h-5 w-5 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Brain className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>Has reasoning capabilities</TooltipContent>
             </Tooltip>
           )}
-          {modelItem.pdfInput && (
-            <Tooltip>
-              <TooltipTrigger>
-                <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-purple-200 dark:bg-purple-900">
-                  <File className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>PDF attachment support</TooltipContent>
-            </Tooltip>
-          )}
           {modelItem.imageInput && (
             <Tooltip>
               <TooltipTrigger>
-                <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-cyan-200 dark:bg-cyan-900">
-                  <Images className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                <div className="h-5 w-5 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Images className="h-3 w-3 text-purple-600 dark:text-purple-400" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>Image attachment support</TooltipContent>
+              <TooltipContent>Supports image input</TooltipContent>
+            </Tooltip>
+          )}
+          {modelItem.pdfInput && (
+            <Tooltip>
+              <TooltipTrigger>
+                <div className="h-5 w-5 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <File className="h-3 w-3 text-green-600 dark:text-green-400" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Supports PDF input</TooltipContent>
             </Tooltip>
           )}
         </div>
-      </div>
-    </CommandItem>
+      </CommandItem>
+    );
+  };
+
+  const reasoningEffortConfig = REASONING_EFFORTS.find(
+    (e) => e.id === reasoningEffort
   );
 
   return (
     <>
       {isHydrated && model && reasoningEffort && (
-        <>
+        <div className="flex items-center gap-1">
           <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="justify-between font-normal">
-                <div className="flex items-center gap-2.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto py-1.5 px-2 font-normal gap-1.5"
+              >
+                <div className="flex items-center gap-2">
                   {selectedModel?.icon}
-                  <span className="font-normal text-sm">
-                    {selectedModel?.name}
-                  </span>
+                  <span className="text-sm">{selectedModel?.name}</span>
+                  {selectedModel?.reasoning && reasoningEffortConfig && (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs",
+                        "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                      )}
+                    >
+                      <reasoningEffortConfig.icon className="h-3 w-3" />
+                      <span className="capitalize hidden md:inline">
+                        {reasoningEffortConfig.id}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <ChevronDown className="size-4 shrink-0 opacity-60" />
+                <ChevronDown className="size-4 opacity-70" />
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="min-w-[350px] w-[350px] md:min-w-[400px] md:w-[400px] h-[350px] md:h-[400px] p-0 border overflow-hidden backdrop-blur-xl shadow-xl rounded-2xl"
+              className="p-2 w-[340px] shadow-lg backdrop-blur-xl rounded-xl"
+              side="top"
+              sideOffset={10}
               align="start"
+              avoidCollisions={true}
               onOpenAutoFocus={(e) => {
                 if (isMobile) {
                   e.preventDefault();
                 }
               }}
-              avoidCollisions={true}
             >
-              <Command>
+              <Command className="rounded-lg">
                 <CommandInput
                   value={search}
                   onValueChange={setSearch}
                   placeholder="Search models..."
-                  className="!bg-transparent"
+                  className="h-9 border-0 bg-transparent focus:ring-0"
                 />
-                <CommandList className="max-h-none h-[350px] md:h-[400px]">
-                  <CommandEmpty>
-                    No models found for &quot;{search.toLowerCase()}&quot;
+                <CommandList className="max-h-[350px] md:max-h-[280px] overflow-y-auto">
+                  <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                    No models found for &quot;{search}&quot;
                   </CommandEmpty>
-
-                  <ScrollArea className="h-full">
-                    <div className="space-y-3 mt-2">
-                      {favoriteModelItems.length > 0 && (
-                        <CommandGroup>
-                          <div className="px-3 py-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                              Favorite Models
-                            </h4>
-                          </div>
-                          <div className="space-y-0.5">
-                            {favoriteModelItems.map(renderModelItem)}
-                          </div>
-                          <CommandSeparator className="mx-1 mt-3" />
-                        </CommandGroup>
-                      )}
-
-                      {nonFavoriteChatModels.length > 0 && (
-                        <CommandGroup>
-                          <div className="px-3 py-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Chat Models
-                            </h4>
-                          </div>
-                          <div className="space-y-0.5">
-                            {nonFavoriteChatModels.map(renderModelItem)}
-                          </div>
-                          {nonFavoriteImageModels.length > 0 && (
-                            <CommandSeparator className="mx-1 mt-3" />
-                          )}
-                        </CommandGroup>
-                      )}
-
-                      {nonFavoriteImageModels.length > 0 && (
-                        <CommandGroup>
-                          <div className="px-3 py-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Image Models
-                            </h4>
-                          </div>
-                          <div className="space-y-0.5">
-                            {nonFavoriteImageModels.map(renderModelItem)}
-                          </div>
-                        </CommandGroup>
-                      )}
-                    </div>
-                  </ScrollArea>
+                  {favoriteModelItems.length > 0 && (
+                    <>
+                      <CommandGroup>
+                        <div className="flex items-center gap-1.5 p-2 text-xs font-medium text-muted-foreground">
+                          <Star className="h-3 w-3" />
+                          Favorites
+                        </div>
+                        <div className="space-y-1">
+                          {favoriteModelItems.map(renderModelItem)}
+                        </div>
+                      </CommandGroup>
+                      <CommandSeparator className="my-2" />
+                    </>
+                  )}
+                  {nonFavoriteChatModels.length > 0 && (
+                    <CommandGroup>
+                      <div className="flex items-center gap-1.5 p-2 text-xs font-medium text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        Chat Models
+                      </div>
+                      <div className="space-y-1">
+                        {nonFavoriteChatModels.map(renderModelItem)}
+                      </div>
+                    </CommandGroup>
+                  )}
+                  {nonFavoriteImageModels.length > 0 && (
+                    <>
+                      <CommandSeparator className="my-2" />
+                      <CommandGroup>
+                        <div className="flex items-center gap-1.5 p-2 text-xs font-medium text-muted-foreground">
+                          <Images className="h-3 w-3" />
+                          Image Models
+                        </div>
+                        <div className="space-y-1">
+                          {nonFavoriteImageModels.map(renderModelItem)}
+                        </div>
+                      </CommandGroup>
+                    </>
+                  )}
                 </CommandList>
               </Command>
+
+              {selectedModel?.reasoning && (
+                <div className="mt-2 pt-2 border-t px-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-1.5">
+                    Reasoning Effort
+                  </div>
+                  <div className="flex gap-1">
+                    {REASONING_EFFORTS.map((effort) => (
+                      <Button
+                        key={effort.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReasoningEffort(effort.id)}
+                        className={cn(
+                          "flex flex-1 items-center gap-1 px-2 py-1 rounded-md transition-all duration-200 text-xs",
+                          reasoningEffort === effort.id
+                            ? "bg-accent/50 border-accent-foreground/20"
+                            : "border-transparent"
+                        )}
+                      >
+                        <effort.icon
+                          className={cn(
+                            "h-3 w-3",
+                            reasoningEffort === effort.id
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "capitalize",
+                            reasoningEffort === effort.id
+                              ? "text-foreground font-medium"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {effort.id}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </PopoverContent>
           </Popover>
-
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.reasoning && (
-            <Select value={reasoningEffort} onValueChange={setReasoningEffort}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SelectTrigger
-                    className="w-auto rounded-full text-sm flex"
-                    hideChevron
-                  >
-                    {(() => {
-                      const effort = REASONING_EFFORTS.find(
-                        (e) => e.id === reasoningEffort
-                      );
-                      if (effort) {
-                        const IconComponent = effort.icon;
-                        return <IconComponent className="size-4" />;
-                      }
-                      return null;
-                    })()}
-                    <span className="hidden md:block">
-                      {reasoningEffort!.charAt(0).toUpperCase() +
-                        reasoningEffort!.slice(1)}
-                    </span>
-                  </SelectTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Set reasoning effort</TooltipContent>
-              </Tooltip>
-              <SelectContent>
-                {REASONING_EFFORTS.map((effort) => (
-                  <SelectItem key={effort.id} value={effort.id}>
-                    <div className="flex items-center gap-2">
-                      <effort.icon className="size-4" />
-                      {effort.id.charAt(0).toUpperCase() + effort.id.slice(1)}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </>
+        </div>
       )}
     </>
   );

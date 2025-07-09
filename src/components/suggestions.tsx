@@ -22,7 +22,7 @@ export function Suggestions({
         <div key={index}>
           <Button
             variant="ghost"
-            className="w-full justify-start h-auto p-3 text-sm text-muted-foreground hover:text-foreground"
+            className="w-full justify-start h-auto p-3 font-normal text-sm text-muted-foreground hover:text-foreground"
             onClick={() => {
               setInput(suggestion);
               inputRef.current?.focus();
