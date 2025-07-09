@@ -91,7 +91,7 @@ export function SidebarItem({
                   return oldData.map((chatItem) =>
                     chatItem.id === chat.id
                       ? { ...chatItem, title: newChatTitle }
-                      : chatItem
+                      : chatItem,
                   );
                 });
                 try {
@@ -160,7 +160,7 @@ export function SidebarItem({
                           ...chatItem,
                           isPinned: !chatItem.isPinned,
                         }
-                      : chatItem
+                      : chatItem,
                   );
                 });
 
@@ -215,7 +215,7 @@ export function SidebarItem({
                     loading: "Deleting chat...",
                     success: "Chat deleted",
                     error: "Failed to delete chat",
-                  }
+                  },
                 );
               }}
             >

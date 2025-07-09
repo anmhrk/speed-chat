@@ -39,24 +39,24 @@ export function ModelPicker({
   } = useSettingsContext();
 
   const chatModels = AVAILABLE_MODELS.filter((m) => !m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id)
+    (a, b) => a.id.localeCompare(b.id),
   );
 
   const imageModels = AVAILABLE_MODELS.filter((m) => m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id)
+    (a, b) => a.id.localeCompare(b.id),
   );
 
   // Get favorite models (both chat and image)
   const favoriteModelItems = AVAILABLE_MODELS.filter((m) =>
-    favoriteModels.includes(m.id)
+    favoriteModels.includes(m.id),
   ).sort((a, b) => a.id.localeCompare(b.id));
 
   // Filter out favorites from regular lists
   const nonFavoriteChatModels = chatModels.filter(
-    (m) => !favoriteModels.includes(m.id)
+    (m) => !favoriteModels.includes(m.id),
   );
   const nonFavoriteImageModels = imageModels.filter(
-    (m) => !favoriteModels.includes(m.id)
+    (m) => !favoriteModels.includes(m.id),
   );
 
   const selectedModel = AVAILABLE_MODELS.find((m) => m.id === model);
@@ -236,7 +236,7 @@ export function ModelPicker({
                   >
                     {(() => {
                       const effort = REASONING_EFFORTS.find(
-                        (e) => e.id === reasoningEffort
+                        (e) => e.id === reasoningEffort,
                       );
                       if (effort) {
                         const IconComponent = effort.icon;

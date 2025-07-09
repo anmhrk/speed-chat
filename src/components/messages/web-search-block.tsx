@@ -27,8 +27,8 @@ export const WebSearchBlock = memo(function WebSearchBlock({
     if (!results.length) return [];
     const uniqueDomains = Array.from(
       new Set(
-        results.map((result: WebSearchResult) => new URL(result.url).hostname)
-      )
+        results.map((result: WebSearchResult) => new URL(result.url).hostname),
+      ),
     ).slice(0, 4); // Limit to 4 domains for display
     return uniqueDomains;
   }, [results]);

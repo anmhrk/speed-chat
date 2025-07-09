@@ -79,7 +79,7 @@ export default function CustomizationPage() {
           className={cn(
             "flex min-h-9 w-full flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none",
             "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
-            "dark:bg-input/30"
+            "dark:bg-input/30",
           )}
         >
           {localCustomization.traits.map((trait, index) => (
@@ -94,7 +94,7 @@ export default function CustomizationPage() {
                   setLocalCustomization({
                     ...localCustomization,
                     traits: localCustomization.traits.filter(
-                      (_, i) => i !== index
+                      (_, i) => i !== index,
                     ),
                   })
                 }

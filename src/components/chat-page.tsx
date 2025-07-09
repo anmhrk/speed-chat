@@ -168,7 +168,7 @@ export function ChatPage({
       () => {
         router.push("/");
       },
-    ]
+    ],
   );
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -181,7 +181,7 @@ export function ChatPage({
 
     if (isOnSharedPage && didUserCreate) {
       toast.error(
-        "You can't chat on a shared chat. Please go back to the original chat."
+        "You can't chat on a shared chat. Please go back to the original chat.",
       );
       return;
     }
@@ -269,7 +269,7 @@ export function ChatPage({
           return oldData.map((chatItem) =>
             chatItem.id === chatId
               ? { ...chatItem, title: data.payload }
-              : chatItem
+              : chatItem,
           );
         });
       }

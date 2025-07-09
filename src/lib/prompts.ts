@@ -6,7 +6,7 @@ export const chatPrompt = (
   modelName: string,
   customization: Customization,
   searchEnabled: boolean,
-  storedMemories: Memory[]
+  storedMemories: Memory[],
 ) => `
     You are Speed Chat, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful and respectful.
     If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.

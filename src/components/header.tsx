@@ -192,7 +192,7 @@ function ForkButton({
                       loading: "Forking chat...",
                       success: "Chat forked!",
                       error: "Failed to fork chat",
-                    }
+                    },
                   );
                 }}
               >

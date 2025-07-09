@@ -65,7 +65,7 @@ export async function createChat(chatId: string) {
 export async function generateChatTitle(
   chatId: string,
   prompt: string,
-  model: LanguageModel
+  model: LanguageModel,
 ) {
   try {
     const response = await generateText({
@@ -92,7 +92,7 @@ export async function generateChatTitle(
 export async function saveMessages(
   chatId: string,
   messageIds: string[],
-  newMessages: Message[]
+  newMessages: Message[],
 ) {
   const desiredIds = new Set<string>([
     ...messageIds,
@@ -161,7 +161,7 @@ export async function deleteAllChats() {
 async function deleteAllAttachments(
   type: "all" | "single",
   userId?: string,
-  chatId?: string
+  chatId?: string,
 ) {
   let messagesToCheck: Message[] = [];
 
@@ -184,8 +184,8 @@ async function deleteAllAttachments(
       .where(
         inArray(
           messages.chatId,
-          allChats.map((chat) => chat.id)
-        )
+          allChats.map((chat) => chat.id),
+        ),
       );
 
     messagesToCheck = allMessages as Message[];
@@ -196,15 +196,15 @@ async function deleteAllAttachments(
   }
 
   const attachmentUrls = messagesToCheck.flatMap((message) =>
-    message.experimental_attachments?.map((attachment) => attachment.url)
+    message.experimental_attachments?.map((attachment) => attachment.url),
   );
 
   const toolInvocationUrls = messagesToCheck.flatMap((message) =>
     message.parts?.map((part) =>
       part.type === "tool-invocation"
         ? (part.toolInvocation as any).result.imageUrl
-        : null
-    )
+        : null,
+    ),
   );
 
   await deleteFiles([
@@ -215,7 +215,7 @@ async function deleteAllAttachments(
 
 export async function verifySharedChat(
   chatId: string,
-  userId: string
+  userId: string,
 ): Promise<{ success: boolean; didUserCreate: boolean }> {
   const [chat] = await db
     .select()
@@ -291,7 +291,7 @@ export async function branchOffChat(parentChatId: string, newChatId: string) {
       ...message,
       id: `${message.id}-branch-${crypto.randomUUID()}`,
       chatId: newChatId,
-    }))
+    })),
   );
 }
 
@@ -324,7 +324,7 @@ export async function forkChat(sharedChatId: string, newChatId: string) {
       ...message,
       id: `${message.id}-fork-${crypto.randomUUID()}`,
       chatId: newChatId,
-    }))
+    })),
   );
 }
 
@@ -407,7 +407,7 @@ export async function searchChats(query: string) {
     })
     .from(messages)
     .where(
-      and(inArray(messages.chatId, chatIds), ilike(messages.content, pattern))
+      and(inArray(messages.chatId, chatIds), ilike(messages.content, pattern)),
     )
     .orderBy(desc(messages.createdAt));
 
@@ -420,7 +420,7 @@ export async function searchChats(query: string) {
       acc[message.chatId].push(message);
       return acc;
     },
-    {} as Record<string, typeof matchedMessages>
+    {} as Record<string, typeof matchedMessages>,
   );
 
   const searchResults = [];

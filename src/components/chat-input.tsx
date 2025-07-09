@@ -253,7 +253,7 @@ const FilePreview = ({
           </div>
         );
       }),
-    [files, isUploading, fileMetadata, removeFile]
+    [files, isUploading, fileMetadata, removeFile],
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;

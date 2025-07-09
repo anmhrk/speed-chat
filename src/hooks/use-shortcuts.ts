@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 export function useShortcuts(
   combinations: string[],
-  callbacks: (() => void)[]
+  callbacks: (() => void)[],
 ) {
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;

@@ -19,7 +19,7 @@ export default function GeneralPage() {
   const handleDeleteAllChats = async () => {
     if (
       confirm(
-        `Are you sure you want to delete all your chats? This action cannot be undone.`
+        `Are you sure you want to delete all your chats? This action cannot be undone.`,
       )
     ) {
       try {
@@ -39,7 +39,7 @@ export default function GeneralPage() {
   const handleDeleteAccount = async () => {
     if (
       confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
+        "Are you sure you want to delete your account? This action cannot be undone.",
       )
     ) {
       try {

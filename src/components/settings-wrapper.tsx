@@ -177,7 +177,7 @@ function ShortcutBox({
     <kbd
       className={cn(
         "flex items-center justify-center h-7 text-md bg-primary/10 dark:bg-muted border border-border rounded-sm",
-        type === "shift" || type === "ctrl" ? "w-fit px-2" : "w-7"
+        type === "shift" || type === "ctrl" ? "w-fit px-2" : "w-7",
       )}
     >
       {children}

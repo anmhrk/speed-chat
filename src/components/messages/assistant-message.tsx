@@ -11,7 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { Message } from "ai";
 import {
   Tooltip,
@@ -62,6 +62,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   const router = useRouter();
   const isMobile = useIsMobile();
   const { isCopied, copyToClipboard } = useCopyClipboard();
+  const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
 
   const handleBranchOffChat = async (parentChatId: string) => {
     const newChatId = crypto.randomUUID();
@@ -75,7 +76,7 @@ export const AssistantMessage = memo(function AssistantMessage({
         loading: "Branching...",
         success: "Chat branched off!",
         error: "Failed to branch off chat",
-      }
+      },
     );
   };
 
@@ -94,15 +95,18 @@ export const AssistantMessage = memo(function AssistantMessage({
           <div className="text-foreground">
             {message.parts?.map((part, partIndex) => {
               if (part.type === "reasoning") {
+                setIsReasoningStreaming(true);
                 return (
                   <ReasoningBlock
                     key={partIndex}
                     reasoning={part.reasoning || ""}
+                    isStreaming={isReasoningStreaming}
                   />
                 );
               }
 
               if (part.type === "text") {
+                setIsReasoningStreaming(false);
                 return (
                   <div key={partIndex}>
                     <Markdown>{part.text}</Markdown>
@@ -170,7 +174,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                                     const response = await fetch(
                                       (
                                         part.toolInvocation as ImageGenerationToolInvocation
-                                      ).result.imageUrl
+                                      ).result.imageUrl,
                                     );
                                     const blob = await response.blob();
                                     const url = URL.createObjectURL(blob);
@@ -259,7 +263,7 @@ export const AssistantMessage = memo(function AssistantMessage({
             !message.parts?.some(
               (part) =>
                 part.type === "tool-invocation" &&
-                part.toolInvocation.toolName === "generateImage"
+                part.toolInvocation.toolName === "generateImage",
             ) && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -347,7 +351,7 @@ export const AssistantMessage = memo(function AssistantMessage({
                       <p className="inline-flex items-center">
                         <Clock className="size-3 inline-block mr-1" />
                         Time-to-first: {annotationData.metadata.ttft.toFixed(
-                          2
+                          2,
                         )}{" "}
                         s
                       </p>

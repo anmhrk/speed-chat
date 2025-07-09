@@ -20,14 +20,14 @@ import type {
 
 // Zod schemas for validation
 const ModelsSchema = z.enum(
-  AVAILABLE_MODELS.map((m) => m.id) as [Models, ...Models[]]
+  AVAILABLE_MODELS.map((m) => m.id) as [Models, ...Models[]],
 );
 
 const ReasoningEffortSchema = z.enum(
   REASONING_EFFORTS.map((r) => r.id) as [
     ReasoningEfforts,
     ...ReasoningEfforts[],
-  ]
+  ],
 );
 
 const APIKeysSchema = z.object({
@@ -144,7 +144,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       let selectedModel = prev.model;
       const selectedModelProvider = AVAILABLE_MODELS.find(
-        (m) => m.id === selectedModel
+        (m) => m.id === selectedModel,
       )?.providerId;
       const defaultModel =
         AVAILABLE_MODELS.find((m) => m.default) ?? AVAILABLE_MODELS[0];
@@ -190,7 +190,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         console.error(
           "Failed to parse settings JSON, clearing corrupted data",
-          parseError
+          parseError,
         );
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setIsHydrated(true);
@@ -203,7 +203,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (!validationResult.success) {
         console.warn(
           "Invalid settings data found, clearing...",
-          validationResult.error
+          validationResult.error,
         );
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setIsHydrated(true);
@@ -265,7 +265,7 @@ export function useSettingsContext(): SettingsContext {
   const context = useContext(SettingsContext);
   if (!context) {
     throw new Error(
-      "useSettingsContext must be used within a SettingsProvider component"
+      "useSettingsContext must be used within a SettingsProvider component",
     );
   }
   return context;

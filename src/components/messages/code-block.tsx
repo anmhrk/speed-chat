@@ -110,7 +110,7 @@ export const CodeBlock = memo(function CodeBlock({
       copyToClipboard,
       wrapText,
       handleCodeDownload,
-    ]
+    ],
   );
 
   return !isInline ? (

@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           titlePromise = generateChatTitle(
             chatId,
             messages[messages.length - 1].content,
-            aiModel
+            aiModel,
           );
         }
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
                 modelName!,
                 customization,
                 searchEnabled,
-                storedMemories
+                storedMemories,
               ),
           experimental_transform: [
             smoothStream({
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
                   const imageName = `image-${userMessageId}.png`;
                   const imageUrl = await uploadBase64Image(
                     imageName,
-                    image.base64
+                    image.base64,
                   );
 
                   return { imageUrl };
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
                   query: z
                     .string()
                     .describe(
-                      "The search query to find information relevant to the user's question."
+                      "The search query to find information relevant to the user's question.",
                     ),
                   resultCategory: z
                     .enum([
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
                   memory: z
                     .string()
                     .describe(
-                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
+                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)",
                     ),
                 }),
                 execute: async ({ memory }) => {
@@ -399,7 +399,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError
+            dbError,
           );
         }
 
@@ -415,7 +415,7 @@ export async function POST(request: NextRequest) {
 function buildImageModel(
   model: Models,
   apiKeys: Record<Providers, string>,
-  provider: Providers
+  provider: Providers,
 ): ImageModel {
   if (provider === "openai") {
     const openai = createOpenAI({
