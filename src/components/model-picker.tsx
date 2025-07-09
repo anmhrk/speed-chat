@@ -5,6 +5,7 @@ import { REASONING_EFFORTS } from "@/lib/models";
 import { Brain, File, Images, ChevronDown, Star, StarOff } from "lucide-react";
 import { useSettingsContext } from "./providers/settings-provider";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -26,6 +27,7 @@ export function ModelPicker({
 }) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
   const {
     isHydrated,
     model,
@@ -39,24 +41,24 @@ export function ModelPicker({
   } = useSettingsContext();
 
   const chatModels = AVAILABLE_MODELS.filter((m) => !m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id),
+    (a, b) => a.id.localeCompare(b.id)
   );
 
   const imageModels = AVAILABLE_MODELS.filter((m) => m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id),
+    (a, b) => a.id.localeCompare(b.id)
   );
 
   // Get favorite models (both chat and image)
   const favoriteModelItems = AVAILABLE_MODELS.filter((m) =>
-    favoriteModels.includes(m.id),
+    favoriteModels.includes(m.id)
   ).sort((a, b) => a.id.localeCompare(b.id));
 
   // Filter out favorites from regular lists
   const nonFavoriteChatModels = chatModels.filter(
-    (m) => !favoriteModels.includes(m.id),
+    (m) => !favoriteModels.includes(m.id)
   );
   const nonFavoriteImageModels = imageModels.filter(
-    (m) => !favoriteModels.includes(m.id),
+    (m) => !favoriteModels.includes(m.id)
   );
 
   const selectedModel = AVAILABLE_MODELS.find((m) => m.id === model);
@@ -160,8 +162,14 @@ export function ModelPicker({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="min-w-[400px] min-h-[460px] p-0 border overflow-hidden backdrop-blur-xl shadow-xl rounded-2xl"
+              className="min-w-[350px] w-[350px] md:min-w-[400px] md:w-[400px] h-[350px] md:h-[400px] p-0 border overflow-hidden backdrop-blur-xl shadow-xl rounded-2xl"
               align="start"
+              onOpenAutoFocus={(e) => {
+                if (isMobile) {
+                  e.preventDefault();
+                }
+              }}
+              avoidCollisions={true}
             >
               <Command>
                 <CommandInput
@@ -170,7 +178,7 @@ export function ModelPicker({
                   placeholder="Search models..."
                   className="!bg-transparent"
                 />
-                <CommandList className="max-h-none h-[460px]">
+                <CommandList className="max-h-none h-[350px] md:h-[400px]">
                   <CommandEmpty>
                     No models found for &quot;{search.toLowerCase()}&quot;
                   </CommandEmpty>
@@ -236,7 +244,7 @@ export function ModelPicker({
                   >
                     {(() => {
                       const effort = REASONING_EFFORTS.find(
-                        (e) => e.id === reasoningEffort,
+                        (e) => e.id === reasoningEffort
                       );
                       if (effort) {
                         const IconComponent = effort.icon;

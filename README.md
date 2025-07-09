@@ -26,6 +26,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - [React 19](https://react.dev) - Latest React
 - [TailwindCSS v4](https://tailwindcss.com) - Inline CSS framework
 - [shadcn/ui](https://ui.shadcn.com) - Modern component library built on Radix UI
+- [Kibo UI](https://www.kibo-ui.com/) - UI component library for use with shadcn/ui
 - [Tanstack Query](https://tanstack.com/query/latest) - Efficient data fetching and caching
 - [Shiki Highlighter](https://github.com/AVGVSTVS96/react-shiki) - Syntax highlighting for code blocks
 - [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering
@@ -105,7 +106,6 @@ bun dev # app will be available at http://localhost:3000
 - [x] Add message metadata per assistant message which displays tps, ttft, tokens in, tokens out
 - [ ] Resumable streams if lost connection or refresh while streaming
 - [ ] Synced stream to follow on any tab or device
-- [ ] Potentially migrate to local db syncing to postgres
 - [ ] Allow send empty message if attachments are present
 
 ## 📄 License

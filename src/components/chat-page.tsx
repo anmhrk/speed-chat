@@ -1,16 +1,14 @@
 "use client";
 
-import { ChatInput } from "@/components/chat-input";
 import { Header } from "@/components/header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type Message } from "ai";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
-import { Messages } from "@/components/messages";
 import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/providers/settings-provider";
 import { createChat, getMessages } from "@/lib/db/actions";
@@ -20,18 +18,14 @@ import { useAttachments } from "@/hooks/use-attachments";
 import { useShortcuts } from "@/hooks/use-shortcuts";
 import { SearchChats } from "@/components/search-chats";
 import { StreamData } from "@/lib/types";
-
-const promptSuggestions = [
-  "Suggest a quick and healthy dinner recipe",
-  "Explain quantum computing in simple terms",
-  "Help me plan a weekend trip to Paris",
-  "Create a workout routine for beginners",
-];
+import { ChatLayout } from "@/components/layouts/chat-layout";
+import { HomepageLayout } from "@/components/layouts/homepage-layout";
 
 interface ChatPageProps {
   user: User | null;
-  initialChatId: string;
+  initialChatId?: string;
   greeting?: string;
+  promptSuggestions?: string[];
   isOnSharedPage?: boolean;
   didUserCreate?: boolean;
 }
@@ -40,6 +34,7 @@ export function ChatPage({
   user,
   initialChatId,
   greeting,
+  promptSuggestions,
   isOnSharedPage,
   didUserCreate,
 }: ChatPageProps) {
@@ -51,7 +46,7 @@ export function ChatPage({
   const chatIdParams = pathname.split("/chat/")[1] ?? initialChatId;
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
-  const [chatId, setChatId] = useState<string | null>(initialChatId);
+  const [chatId, setChatId] = useState<string | null>(initialChatId ?? null);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [isNewlyCreated, setIsNewlyCreated] = useState(false);
   const {
@@ -70,13 +65,17 @@ export function ChatPage({
     acceptsPdf,
   } = useAttachments(model);
   const [isSearchChatsOpen, setIsSearchChatsOpen] = useState(false);
+  const [isInputCentered, setIsInputCentered] = useState(!chatId);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync the chatId from the URL with the state
   useEffect(() => {
     if (pathname === "/") {
       setChatId(null);
+      setIsInputCentered(true);
     } else {
       setChatId(chatIdParams);
+      setIsInputCentered(false);
     }
   }, [chatIdParams, pathname]);
 
@@ -168,7 +167,7 @@ export function ChatPage({
       () => {
         router.push("/");
       },
-    ],
+    ]
   );
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -181,7 +180,7 @@ export function ChatPage({
 
     if (isOnSharedPage && didUserCreate) {
       toast.error(
-        "You can't chat on a shared chat. Please go back to the original chat.",
+        "You can't chat on a shared chat. Please go back to the original chat."
       );
       return;
     }
@@ -217,6 +216,8 @@ export function ChatPage({
       setChatId(newChatId);
       // Set messages query cache to prevent refetch on route change
       queryClient.setQueryData(["messages", newChatId], []);
+
+      setIsInputCentered(false);
 
       createChat(newChatId).catch((error) => {
         toast.error("Failed to create chat");
@@ -269,7 +270,7 @@ export function ChatPage({
           return oldData.map((chatItem) =>
             chatItem.id === chatId
               ? { ...chatItem, title: data.payload }
-              : chatItem,
+              : chatItem
           );
         });
       }
@@ -279,6 +280,43 @@ export function ChatPage({
   const isMessageStreaming = status === "submitted" || status === "streaming";
   const onSearchChatsOpen = () => {
     setIsSearchChatsOpen(true);
+  };
+
+  const layoutProps = {
+    user,
+    greeting,
+    temporaryChat,
+    promptSuggestions,
+    inputRef,
+    setInput,
+    input,
+    handleInputChange,
+    handleChatSubmit,
+    stop,
+    isMessageStreaming,
+    files,
+    setFiles,
+    fileMetadata,
+    isUploading,
+    fileInputRef,
+    handleFileChange,
+    removeFile,
+    acceptsPdf,
+    searchEnabled,
+    setSearchEnabled,
+    isOnSharedPage: isOnSharedPage ?? false,
+  };
+
+  const chatLayoutProps = {
+    isLoading,
+    messages,
+    initialMessages,
+    status,
+    reload,
+    append,
+    setMessages,
+    chatId: chatId ?? "",
+    ...layoutProps,
   };
 
   return (
@@ -312,77 +350,11 @@ export function ChatPage({
             didUserCreate={didUserCreate ?? false}
             onSearchChatsOpen={onSearchChatsOpen}
           />
-          <div className="flex-1 min-h-0 relative">
-            {isLoading ? null : messages.length > 0 ||
-              (initialMessages && initialMessages.length > 0) ? (
-              <Messages
-                allMessages={messages}
-                status={status}
-                reload={reload}
-                append={append}
-                setMessages={setMessages}
-                chatId={chatId ?? ""}
-                isOnSharedPage={isOnSharedPage ?? false}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center px-3">
-                <div className="flex flex-col gap-4 mx-auto max-w-2xl w-full items-center">
-                  {temporaryChat ? (
-                    <>
-                      <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        Temporary chat
-                      </h1>
-                      <p className="text-muted-foreground text-md max-w-sm text-center">
-                        This chat won&apos;t appear in your chat history and
-                        will be cleared when you close the tab.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h1 className="mb-12 text-3xl font-medium sm:text-4xl">
-                        {user ? greeting : "How can I help you?"}
-                      </h1>
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 w-full">
-                        {promptSuggestions.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="border-border bg-secondary/40 dark:bg-card hover:bg-muted dark:hover:bg-muted cursor-pointer rounded-xl border p-4 text-left transition-colors"
-                            onClick={() => setInput(suggestion)}
-                          >
-                            <span className="text-muted-foreground text-sm">
-                              {suggestion}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="shrink-0 px-3 pb-3">
-            <ChatInput
-              input={input}
-              handleInputChange={handleInputChange}
-              handleSubmit={handleChatSubmit}
-              stop={stop}
-              isMessageStreaming={isMessageStreaming}
-              user={user}
-              files={files}
-              setFiles={setFiles}
-              fileMetadata={fileMetadata}
-              isUploading={isUploading}
-              fileInputRef={fileInputRef}
-              handleFileChange={handleFileChange}
-              removeFile={removeFile}
-              acceptsPdf={acceptsPdf}
-              searchEnabled={searchEnabled}
-              setSearchEnabled={setSearchEnabled}
-              isOnSharedPage={isOnSharedPage ?? false}
-            />
-          </div>
+          {isInputCentered ? (
+            <HomepageLayout {...layoutProps} />
+          ) : (
+            <ChatLayout {...chatLayoutProps} />
+          )}
         </div>
       </SidebarInset>
 

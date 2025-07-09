@@ -42,6 +42,7 @@ interface ChatInputProps {
   searchEnabled: boolean;
   setSearchEnabled: Dispatch<SetStateAction<boolean>>;
   isOnSharedPage: boolean;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function ChatInput({
@@ -61,15 +62,15 @@ export function ChatInput({
   searchEnabled,
   setSearchEnabled,
   isOnSharedPage,
+  inputRef,
 }: ChatInputProps) {
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { model, apiKeys } = useSettingsContext();
 
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, []);
+  }, [inputRef]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -253,7 +254,7 @@ const FilePreview = ({
           </div>
         );
       }),
-    [files, isUploading, fileMetadata, removeFile],
+    [files, isUploading, fileMetadata, removeFile]
   );
 
   return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;
