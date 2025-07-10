@@ -19,21 +19,25 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createFal } from "@ai-sdk/fal";
 import type { Models, ChatRequest, Providers } from "@/lib/types";
-import { AVAILABLE_MODELS } from "@/lib/models";
+import {
+  AVAILABLE_MODELS,
+  hasEffortControl,
+  isImageGenerationModel,
+  isReasoningModel,
+} from "@/lib/models";
 import { getUser } from "@/lib/auth/get-user";
 import {
-  getMemories,
   addMemory,
   saveMessages,
   generateChatTitle,
+  getMemories,
 } from "@/lib/db/actions";
 import { uploadBase64Image } from "@/lib/uploadthing";
 import { z } from "zod";
 import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
 import Exa from "exa-js";
-import { Memory } from "@/lib/db/schema";
+import type { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";
-import { isImageGenerationModel, isReasoningModel } from "@/lib/models";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -296,7 +300,7 @@ export async function POST(request: NextRequest) {
               tps,
               ttft,
               modelName: modelName!.concat(
-                isReasoningModelActive && reasoningEffort
+                isReasoningModelActive && hasEffortControl(model)
                   ? ` (${reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1)})`
                   : ""
               ),

@@ -99,12 +99,6 @@ export type ChatRequest = {
   isNewChat: boolean;
 };
 
-export type TitleRequest = {
-  chatId: string;
-  prompt: string;
-  apiKeys: APIKeys;
-};
-
 export type FileMetadata = {
   type: "image" | "pdf";
   name: string;

@@ -191,6 +191,8 @@ export function ChatPage({
     ]
   );
 
+  const isMessageStreaming = status === "submitted" || status === "streaming";
+
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -221,7 +223,7 @@ export function ChatPage({
       return;
     }
 
-    if (!input.trim() && !attachments) {
+    if ((!input.trim() && !attachments) || isMessageStreaming) {
       return;
     }
 
@@ -307,7 +309,6 @@ export function ChatPage({
     });
   }, [data, chatId, queryClient]);
 
-  const isMessageStreaming = status === "submitted" || status === "streaming";
   const onSearchChatsOpen = () => {
     setIsSearchChatsOpen(true);
   };
