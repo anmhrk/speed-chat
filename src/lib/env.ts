@@ -12,6 +12,9 @@ export const env = createEnv({
     SITE_URL: z.string().url().optional(),
     UPLOADTHING_TOKEN: z.string().min(1),
     OPENROUTER_API_KEY: z.string().optional(),
+    ELECTRIC_URL: z.string().url(),
+    ELECTRIC_SOURCE_ID: z.string().min(1),
+    ELECTRIC_SOURCE_SECRET: z.string().min(1),
   },
 
   runtimeEnv: {
@@ -24,6 +27,9 @@ export const env = createEnv({
     SITE_URL: process.env.SITE_URL,
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    ELECTRIC_URL: process.env.ELECTRIC_URL,
+    ELECTRIC_SOURCE_ID: process.env.ELECTRIC_SOURCE_ID,
+    ELECTRIC_SOURCE_SECRET: process.env.ELECTRIC_SOURCE_SECRET,
   },
 
   emptyStringAsUndefined: true,
