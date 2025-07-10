@@ -15,6 +15,7 @@ import { useEffect, useRef, useMemo, memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSettingsContext } from "@/components/providers/settings-provider";
 import { AVAILABLE_MODELS } from "@/lib/models";
+import { supportsWebSearch, supportsImageInput } from "@/lib/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
 import Image from "next/image";
@@ -112,9 +113,7 @@ export function ChatInput({
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
           <ModelPicker hasFilesUploaded={files.length > 0} />
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
-            "webSearch"
-          ) && (
+          {supportsWebSearch(model) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -142,9 +141,7 @@ export function ChatInput({
           )}
 
           {/* Right now just checking image input cos pdf is supported only when image is supported, atleast for now */}
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
-            "imageInput"
-          ) && (
+          {supportsImageInput(model) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>

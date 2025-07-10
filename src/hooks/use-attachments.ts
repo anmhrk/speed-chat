@@ -7,7 +7,7 @@ import { deleteFiles } from "@/lib/uploadthing";
 import type { FileMetadata, Models } from "@/lib/types";
 import type { Attachment } from "@ai-sdk/ui-utils";
 import { useDropzone } from "react-dropzone";
-import { AVAILABLE_MODELS } from "@/lib/models";
+import { supportsPdfInput } from "@/lib/models";
 
 export function useAttachments(model: Models) {
   const [files, setFiles] = useState<File[]>([]);
@@ -18,10 +18,7 @@ export function useAttachments(model: Models) {
     Record<string, FileMetadata>
   >({});
 
-  const acceptsPdf =
-    AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
-      "pdfInput"
-    ) === true;
+  const acceptsPdf = supportsPdfInput(model);
 
   const { startUpload, isUploading } = useUploadThing("fileUploader", {
     onClientUploadComplete: (res) => {

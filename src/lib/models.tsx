@@ -1,5 +1,5 @@
 import { Sparkle, Sparkles, WandSparkles } from "lucide-react";
-import { ModelConfig, ReasoningEffortConfig } from "./types";
+import { ModelConfig, ReasoningEffortConfig, Models } from "./types";
 import {
   OpenAI,
   Anthropic,
@@ -34,7 +34,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     providerId: "openrouter",
     providerName: "OpenRouter",
     default: true,
-    features: ["imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "google/gemini-2.5-flash-lite-preview-06-17",
@@ -42,7 +47,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Gemini />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "google/gemini-2.5-pro",
@@ -50,7 +60,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Gemini />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: true },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "openai/gpt-4.1",
@@ -58,7 +73,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "openai/gpt-4.1-mini",
@@ -66,7 +86,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "openai/gpt-4.1-nano",
@@ -74,7 +99,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "openai/o4-mini",
@@ -82,7 +112,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: true },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "o3",
@@ -90,7 +125,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openai",
     providerName: "OpenAI",
-    features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: true },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "anthropic/claude-sonnet-4",
@@ -98,8 +138,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Anthropic />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    hybrid: true,
-    features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: true, supportsEffort: true },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "anthropic/claude-opus-4",
@@ -107,8 +151,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Anthropic />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    hybrid: true,
-    features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: true, supportsEffort: true },
+      input: { images: true, pdfs: true },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "deepseek/deepseek-chat-v3-0324",
@@ -116,7 +164,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <DeepSeek />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "deepseek/deepseek-r1-0528",
@@ -124,7 +177,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <DeepSeek />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["reasoning", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "meta-llama/llama-4-maverick",
@@ -132,7 +190,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Meta />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "meta-llama/llama-4-scout",
@@ -140,7 +203,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Meta />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "x-ai/grok-3",
@@ -148,7 +216,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Grok />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["webSearch"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "x-ai/grok-3-mini",
@@ -156,7 +229,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Grok />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["reasoning", "setEffort", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: true },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "x-ai/grok-4",
@@ -164,7 +242,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Grok />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["reasoning", "imageInput", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: false, supportsEffort: false },
+      input: { images: true, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "qwen/qwen3-235b-a22b",
@@ -172,8 +255,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Qwen />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    hybrid: true,
-    features: ["reasoning", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: true, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "qwen/qwen3-32b",
@@ -181,8 +268,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Qwen />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    hybrid: true,
-    features: ["reasoning", "webSearch"],
+    features: {
+      reasoning: { available: true, toggleable: true, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
+    },
   },
   {
     id: "gpt-image-1",
@@ -190,7 +281,12 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <OpenAI />,
     providerId: "openai",
     providerName: "OpenAI",
-    features: ["imageGeneration"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: false,
+      imageGeneration: true,
+    },
   },
   {
     id: "fal-ai/flux-pro/v1.1-ultra",
@@ -198,6 +294,72 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <FalAi />,
     providerId: "falai",
     providerName: "FalAI",
-    features: ["imageGeneration"],
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: false,
+      imageGeneration: true,
+    },
   },
 ];
+
+// Utility functions for model capabilities
+export const getModelById = (modelId: Models) =>
+  AVAILABLE_MODELS.find((m) => m.id === modelId);
+
+export const hasReasoningCapability = (modelId: Models) =>
+  getModelById(modelId)?.features.reasoning.available ?? false;
+
+export const hasEffortControl = (modelId: Models) =>
+  getModelById(modelId)?.features.reasoning.supportsEffort ?? false;
+
+export const hasToggleableReasoning = (modelId: Models) =>
+  getModelById(modelId)?.features.reasoning.toggleable ?? false;
+
+export const supportsImageInput = (modelId: Models) =>
+  getModelById(modelId)?.features.input.images ?? false;
+
+export const supportsPdfInput = (modelId: Models) =>
+  getModelById(modelId)?.features.input.pdfs ?? false;
+
+export const supportsWebSearch = (modelId: Models) =>
+  getModelById(modelId)?.features.webSearch ?? false;
+
+export const isImageGenerationModel = (modelId: Models) =>
+  getModelById(modelId)?.features.imageGeneration ?? false;
+
+export const shouldShowReasoningPill = (
+  modelId: Models,
+  reasoningEnabled: boolean
+) => {
+  const model = getModelById(modelId);
+  if (!model?.features.reasoning.available) return false;
+  if (!model.features.reasoning.supportsEffort) return false;
+  if (model.features.reasoning.toggleable && !reasoningEnabled) return false;
+  return true;
+};
+
+export const shouldShowReasoningControls = (modelId: Models) => {
+  const model = getModelById(modelId);
+  return (
+    model?.features.reasoning.available &&
+    (model.features.reasoning.supportsEffort ||
+      model.features.reasoning.toggleable)
+  );
+};
+
+export const isReasoningModel = (
+  modelId: Models,
+  reasoningEnabled: boolean
+) => {
+  const model = getModelById(modelId);
+  if (!model?.features.reasoning.available) return false;
+
+  // For toggleable models, check if reasoning is enabled
+  if (model.features.reasoning.toggleable) {
+    return reasoningEnabled;
+  }
+
+  // For non-toggleable models, reasoning is always active
+  return true;
+};

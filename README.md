@@ -15,7 +15,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - **BYOK** - Bring your own API keys - OpenRouter, OpenAI (for o3 and GPT Image 1), and FalAI
 - **Search Chats** - Search through your chat history and messages
 - **Temporary Chat** - Create a temporary chat that does not save to your chat history
-- **Chat Sharing** - Share a chat so others can view it and fork to create their own copy
+- **Chat Sharing** - Share a chat so others can view and fork it to create their own copy
 - **Formatting** - Beautiful formatting of code, latex, tables in AI responses to improve chat experience
 
 ## 🛠 Tech Stack

@@ -33,6 +33,7 @@ import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
 import Exa from "exa-js";
 import { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { isImageGenerationModel, isReasoningModel } from "@/lib/models";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -63,20 +64,8 @@ export async function POST(request: NextRequest) {
     let dimensionFormat: DimensionFormat;
     let storedMemories: Memory[] = [];
 
-    const isImageModel =
-      AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
-        "imageGeneration"
-      ) === true;
-
-    const isHybridModel =
-      AVAILABLE_MODELS.find((m) => m.id === model)?.hybrid === true;
-
-    const isReasoningModel =
-      (AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
-        "reasoning"
-      ) === true &&
-        !isHybridModel) ||
-      (isHybridModel && reasoningEnabled); // either base reasoning model which is not hybrid or hybrid model with reasoning enabled
+    const isImageModel = isImageGenerationModel(model);
+    const isReasoningModelActive = isReasoningModel(model, reasoningEnabled);
 
     const noThinkQwen = model.includes("qwen") && !reasoningEnabled;
 
@@ -90,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const openrouter = createOpenRouter({
       apiKey: apiKeys.openrouter ?? env.OPENROUTER_API_KEY,
-      ...(isReasoningModel && {
+      ...(isReasoningModelActive && {
         extraBody: {
           include_reasoning: true,
         },
@@ -166,7 +155,7 @@ export async function POST(request: NextRequest) {
             }),
           ],
           messages,
-          ...(isReasoningModel && {
+          ...(isReasoningModelActive && {
             providerOptions: {
               openrouter: {
                 reasoning:
@@ -307,7 +296,7 @@ export async function POST(request: NextRequest) {
               tps,
               ttft,
               modelName: modelName!.concat(
-                isReasoningModel && reasoningEffort
+                isReasoningModelActive && reasoningEffort
                   ? ` (${reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1)})`
                   : ""
               ),

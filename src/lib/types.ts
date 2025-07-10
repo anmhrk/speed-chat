@@ -32,17 +32,30 @@ export type Models = BasicModels | HybridModels | ReasoningModels | ImageModels;
 
 export type Providers = "openrouter" | "openai" | "falai";
 
-export type ReasoningEfforts = "low" | "medium" | "high";
-
 export type APIKeys = Record<Providers | "exa", string>;
 
-export type Features =
-  | "reasoning"
-  | "setEffort"
-  | "imageInput"
-  | "pdfInput"
-  | "webSearch"
-  | "imageGeneration";
+export type ReasoningEfforts = "low" | "medium" | "high";
+
+export type ReasoningConfig = {
+  // Model can do reasoning
+  available: boolean;
+  // Reasoning can be toggled on/off (hybrid models)
+  toggleable: boolean;
+  // Effort level can be controlled
+  supportsEffort: boolean;
+};
+
+export type InputCapabilities = {
+  images: boolean;
+  pdfs: boolean;
+};
+
+export type Features = {
+  reasoning: ReasoningConfig;
+  input: InputCapabilities;
+  webSearch: boolean;
+  imageGeneration: boolean;
+};
 
 export type ModelConfig = {
   id: Models;
@@ -51,8 +64,7 @@ export type ModelConfig = {
   providerId: Providers;
   providerName: string;
   default?: boolean;
-  hybrid?: boolean; // like claude and qwen, one model supports both reasoning, and no reasoning
-  features: Features[];
+  features: Features;
 };
 
 export type ReasoningEffortConfig = {
