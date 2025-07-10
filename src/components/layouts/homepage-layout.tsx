@@ -5,7 +5,7 @@ import type { User } from "better-auth";
 import type { FileMetadata } from "@/lib/types";
 import { Dispatch, SetStateAction } from "react";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/components/providers/mobile-provider";
 
 interface HomepageLayoutProps {
   user: User | null;
@@ -56,7 +56,7 @@ export function HomepageLayout({
   setSearchEnabled,
   isOnSharedPage,
 }: HomepageLayoutProps) {
-  const isMobile = useIsMobile();
+  const { isMobile } = useMobile();
 
   return (
     <>

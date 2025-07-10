@@ -12,7 +12,7 @@ import type { User } from "better-auth";
 import { forkChat } from "@/lib/db/actions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/components/providers/mobile-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ export function Header({
   onSearchChatsOpen,
 }: HeaderProps) {
   const { open } = useSidebar();
-  const isMobile = useIsMobile();
+  const { isMobile } = useMobile();
   const router = useRouter();
   const isOnHomePage = usePathname() === "/";
 
@@ -192,7 +192,7 @@ function ForkButton({
                       loading: "Forking chat...",
                       success: "Chat forked!",
                       error: "Failed to fork chat",
-                    },
+                    }
                   );
                 }}
               >

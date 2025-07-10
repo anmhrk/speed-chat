@@ -40,7 +40,7 @@ import { ReasoningBlock } from "@/components/messages/reasoning-block";
 import { WebSearchBlock } from "@/components/messages/web-search-block";
 import { MemoryBlock } from "@/components/messages/memory";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/components/providers/mobile-provider";
 
 interface AssistantMessageProps {
   message: Message;
@@ -60,7 +60,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   const isError = message.id.startsWith("error-");
   const queryClient = useQueryClient();
   const router = useRouter();
-  const isMobile = useIsMobile();
+  const { isMobile } = useMobile();
   const { isCopied, copyToClipboard } = useCopyClipboard();
   const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
 

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobile } from "@/components/providers/mobile-provider";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import {
@@ -50,7 +50,7 @@ export function SidebarItem({
   onShareChat: (chatId: string) => void;
 }) {
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const { isMobile } = useMobile();
   const router = useRouter();
   const [isRenamingChat, setIsRenamingChat] = useState(false);
   const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export function SidebarItem({
                   return oldData.map((chatItem) =>
                     chatItem.id === chat.id
                       ? { ...chatItem, title: newChatTitle }
-                      : chatItem,
+                      : chatItem
                   );
                 });
                 try {
@@ -160,7 +160,7 @@ export function SidebarItem({
                           ...chatItem,
                           isPinned: !chatItem.isPinned,
                         }
-                      : chatItem,
+                      : chatItem
                   );
                 });
 
@@ -215,7 +215,7 @@ export function SidebarItem({
                     loading: "Deleting chat...",
                     success: "Chat deleted",
                     error: "Failed to delete chat",
-                  },
+                  }
                 );
               }}
             >
