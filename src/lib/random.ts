@@ -71,11 +71,49 @@ const promptSuggestions = [
   "Help me come up with a clever Instagram caption",
 ];
 
+export const imageGenerationPrompts = [
+  "A futuristic city glowing at sunset, with flying cars and glass towers",
+  "A cozy reading nook filled with plants, soft pillows, and warm lighting",
+  "A rainy cyberpunk street at night, neon signs reflecting on wet pavement",
+  "A majestic dragon soaring over snow-covered mountains under a purple sky",
+  "A minimalist workspace with a sleek laptop, coffee, and natural light",
+  "An alien desert landscape with two moons and strange rock formations",
+  "A chonky cat astronaut floating near a space station, Earth in the background",
+  "An ancient stone castle under a starry sky with glowing windows",
+  "A vintage café on a rainy evening, viewed from outside through foggy glass",
+  "A humanoid robot painting a self-portrait in an artist’s studio",
+  "A surreal forest where trees bend like waves and mushrooms glow",
+  "Overgrown jungle ruins with vines, ancient statues, and scattered relics",
+  "An epic interstellar battle with spaceships firing lasers across a nebula",
+  "A glowing underwater city with domed structures and bioluminescent fish",
+  "A giant steampunk airship hovering over a Victorian city",
+  "A small cabin in a snowy forest, smoke rising from the chimney at dusk",
+  "A magical library with floating books, spiral staircases, and glowing runes",
+  "A cute frog wearing a wizard hat, sitting on a lily pad with a wand",
+  "A solar eclipse over a cracked desert with strange shadows on the ground",
+  "A retro 80s neon cityscape with grid roads and glowing palm trees",
+  "A fairy lounging on a giant mushroom in a dreamy forest clearing",
+  "A stormy sea with massive waves crashing into a dark pirate ship",
+  "A sleek futuristic car speeding down a neon-lit highway at night",
+  "A post-apocalyptic street with broken signs, vines, and an abandoned robot",
+  "A whimsical village built on clouds, with floating houses and rope bridges",
+  "A lone knight fighting a towering mech in a ruined battlefield",
+  "A giant koi fish swimming through misty clouds like it's flying",
+  "A fantasy tavern full of adventurers laughing, eating, and trading stories",
+  "A haunted Victorian mansion on a foggy hill, windows glowing red",
+  "A peaceful pixel art beach at sunset, with waves gently lapping in",
+];
+
 export const getRandomGreeting = (name: string) => {
   return greetings(name)[Math.floor(Math.random() * greetings(name).length)];
 };
 
-export const getRandomPromptSuggestions = () => {
-  const shuffled = [...promptSuggestions].sort(() => 0.5 - Math.random());
+export const getRandomPromptSuggestions = (type: "text" | "image") => {
+  let shuffled: string[] = [];
+  if (type === "text") {
+    shuffled = [...promptSuggestions].sort(() => 0.5 - Math.random());
+  } else {
+    shuffled = [...imageGenerationPrompts].sort(() => 0.5 - Math.random());
+  }
   return shuffled.slice(0, 4);
 };

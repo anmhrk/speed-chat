@@ -20,7 +20,8 @@ import { SearchChats } from "@/components/search-chats";
 import type { StreamData } from "@/lib/types";
 import { ChatLayout } from "@/components/layouts/chat-layout";
 import { HomepageLayout } from "@/components/layouts/homepage-layout";
-
+import { getRandomPromptSuggestions } from "@/lib/random";
+import { isImageGenerationModel } from "@/lib/models";
 interface ChatPageProps {
   user: User | null;
   initialChatId?: string;
@@ -72,7 +73,19 @@ export function ChatPage({
   } = useAttachments(model);
   const [isSearchChatsOpen, setIsSearchChatsOpen] = useState(false);
   const [isInputCentered, setIsInputCentered] = useState(!chatId);
+  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(
+    promptSuggestions || []
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Change the prompt suggestions based on image or language model
+  useEffect(() => {
+    if (isImageGenerationModel(model)) {
+      setCurrentSuggestions(getRandomPromptSuggestions("image"));
+    } else {
+      setCurrentSuggestions(promptSuggestions || []);
+    }
+  }, [model, promptSuggestions]);
 
   // Sync the chatId from the URL with the state
   useEffect(() => {
@@ -293,7 +306,7 @@ export function ChatPage({
     user,
     greeting,
     temporaryChat,
-    promptSuggestions,
+    promptSuggestions: currentSuggestions,
     inputRef,
     setInput,
     input,

@@ -7,7 +7,7 @@ export default async function Home() {
   const name = user?.name.split(" ")[0];
 
   const randomGreeting = getRandomGreeting(name ?? "");
-  const randomPromptSuggestions = getRandomPromptSuggestions();
+  const randomPromptSuggestions = getRandomPromptSuggestions("text");
 
   return (
     <ChatPage

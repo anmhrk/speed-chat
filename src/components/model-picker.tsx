@@ -190,7 +190,7 @@ export function ModelPicker({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 font-normal gap-1.5"
+                className="h-9 font-normal gap-1.5 focus-visible:ring-0"
               >
                 <div className="flex items-center gap-2">
                   {selectedModel?.icon}
