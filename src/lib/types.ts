@@ -7,17 +7,19 @@ type BasicModels =
   | "openai/gpt-4.1"
   | "openai/gpt-4.1-mini"
   | "openai/gpt-4.1-nano"
-  | "anthropic/claude-sonnet-4"
-  | "anthropic/claude-opus-4"
   | "deepseek/deepseek-chat-v3-0324"
   | "meta-llama/llama-4-maverick"
   | "meta-llama/llama-4-scout"
   | "x-ai/grok-3";
 
+type HybridModels =
+  | "anthropic/claude-sonnet-4"
+  | "anthropic/claude-opus-4"
+  | "qwen/qwen3-235b-a22b"
+  | "qwen/qwen3-32b";
+
 type ReasoningModels =
   | "google/gemini-2.5-pro"
-  | "anthropic/claude-sonnet-4-thinking" // not valid id, just placeholder to identify thinking version
-  | "anthropic/claude-opus-4-thinking" // same as above
   | "openai/o4-mini"
   | "o3" // using openai provider for o3 because of additional integration requirement in openrouter, just verify org and it works. same with gpt image 1
   | "deepseek/deepseek-r1-0528"
@@ -26,7 +28,7 @@ type ReasoningModels =
 
 type ImageModels = "gpt-image-1" | "fal-ai/flux-pro/v1.1-ultra";
 
-export type Models = BasicModels | ReasoningModels | ImageModels;
+export type Models = BasicModels | HybridModels | ReasoningModels | ImageModels;
 
 export type Providers = "openrouter" | "openai" | "falai";
 
@@ -49,6 +51,7 @@ export type ModelConfig = {
   providerId: Providers;
   providerName: string;
   default?: boolean;
+  hybrid?: boolean; // like claude and qwen, one model supports both reasoning, and no reasoning
   features: Features[];
 };
 
@@ -75,6 +78,7 @@ export type ChatRequest = {
   messages: Message[];
   chatId: string;
   model: Models;
+  reasoningEnabled: boolean;
   reasoningEffort: ReasoningEfforts;
   apiKeys: APIKeys;
   temporaryChat: boolean;

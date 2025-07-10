@@ -49,7 +49,8 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - **Google** - Gemini 2.5 Flash, Gemini 2.5 Flash Lite, Gemini 2.5 Pro
 - **Meta** - Llama 4 Maverick/Scout
 - **DeepSeek** - DeepSeek v3, DeepSeek R1
-- **Grok** - Grok 3, Grok 3 Mini
+- **Grok** - Grok 4, Grok 3, Grok 3 Mini
+- **Qwen** - Qwen 3 235B, Qwen 3 32B
 - **FalAI** - FLUX Pro v1.1 Ultra
 
 ## 📦 Getting Started

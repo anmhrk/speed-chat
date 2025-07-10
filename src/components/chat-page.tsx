@@ -38,8 +38,14 @@ export function ChatPage({
   isOnSharedPage,
   didUserCreate,
 }: ChatPageProps) {
-  const { model, reasoningEffort, apiKeys, customization, hasAnyKey } =
-    useSettingsContext();
+  const {
+    model,
+    reasoningEffort,
+    apiKeys,
+    customization,
+    hasAnyKey,
+    reasoningEnabled,
+  } = useSettingsContext();
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -132,6 +138,7 @@ export function ChatPage({
       customization,
       searchEnabled,
       isNewChat: isNewlyCreated,
+      reasoningEnabled,
     },
     onError: (error) => {
       const errorMessage = {

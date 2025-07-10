@@ -20,14 +20,14 @@ import type {
 
 // Zod schemas for validation
 const ModelsSchema = z.enum(
-  AVAILABLE_MODELS.map((m) => m.id) as [Models, ...Models[]],
+  AVAILABLE_MODELS.map((m) => m.id) as [Models, ...Models[]]
 );
 
 const ReasoningEffortSchema = z.enum(
   REASONING_EFFORTS.map((r) => r.id) as [
     ReasoningEfforts,
     ...ReasoningEfforts[],
-  ],
+  ]
 );
 
 const APIKeysSchema = z.object({
@@ -50,6 +50,7 @@ const SettingsStateSchema = z.object({
   apiKeys: APIKeysSchema,
   customization: CustomizationSchema,
   favoriteModels: z.array(ModelsSchema),
+  reasoningEnabled: z.boolean(),
 });
 
 const DEFAULT_MODEL =
@@ -62,6 +63,7 @@ interface SettingsState {
   apiKeys: APIKeys;
   customization: Customization;
   favoriteModels: Models[];
+  reasoningEnabled: boolean;
   isHydrated: boolean;
 }
 
@@ -72,6 +74,7 @@ interface SettingsActions {
   setCustomization: (customization: Customization) => void;
   toggleFavoriteModel: (model: Models) => void;
   isFavoriteModel: (model: Models) => boolean;
+  setReasoningEnabled: (reasoningEnabled: boolean) => void;
   hasAnyKey: () => boolean;
   hasApiKeyForProvider: (provider: Providers) => boolean;
 }
@@ -80,7 +83,12 @@ type SettingsContext = SettingsState & SettingsActions;
 
 type PartialSettingsState = Pick<
   SettingsState,
-  "model" | "reasoningEffort" | "apiKeys" | "customization" | "favoriteModels"
+  | "model"
+  | "reasoningEffort"
+  | "apiKeys"
+  | "customization"
+  | "favoriteModels"
+  | "reasoningEnabled"
 >;
 
 const INITIAL_STATE: PartialSettingsState = {
@@ -99,6 +107,7 @@ const INITIAL_STATE: PartialSettingsState = {
     additionalInfo: "",
   },
   favoriteModels: [],
+  reasoningEnabled: true,
 };
 
 const SettingsContext = createContext<SettingsContext | null>(null);
@@ -144,7 +153,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       let selectedModel = prev.model;
       const selectedModelProvider = AVAILABLE_MODELS.find(
-        (m) => m.id === selectedModel,
+        (m) => m.id === selectedModel
       )?.providerId;
       const defaultModel =
         AVAILABLE_MODELS.find((m) => m.default) ?? AVAILABLE_MODELS[0];
@@ -176,6 +185,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setCustomization = (customization: Customization) =>
     setState((prev) => ({ ...prev, customization }));
 
+  const setReasoningEnabled = (reasoningEnabled: boolean) =>
+    setState((prev) => ({ ...prev, reasoningEnabled }));
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -190,7 +202,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       } catch (parseError) {
         console.error(
           "Failed to parse settings JSON, clearing corrupted data",
-          parseError,
+          parseError
         );
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setIsHydrated(true);
@@ -203,7 +215,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (!validationResult.success) {
         console.warn(
           "Invalid settings data found, clearing...",
-          validationResult.error,
+          validationResult.error
         );
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setIsHydrated(true);
@@ -229,6 +241,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       apiKeys: state.apiKeys,
       customization: state.customization,
       favoriteModels: state.favoriteModels,
+      reasoningEnabled: state.reasoningEnabled,
     };
 
     try {
@@ -242,6 +255,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     state.apiKeys,
     state.customization,
     state.favoriteModels,
+    state.reasoningEnabled,
     isHydrated,
   ]);
 
@@ -255,6 +269,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setCustomization,
     toggleFavoriteModel,
     isFavoriteModel,
+    setReasoningEnabled,
     hasApiKeyForProvider,
   };
 
@@ -265,7 +280,7 @@ export function useSettingsContext(): SettingsContext {
   const context = useContext(SettingsContext);
   if (!context) {
     throw new Error(
-      "useSettingsContext must be used within a SettingsProvider component",
+      "useSettingsContext must be used within a SettingsProvider component"
     );
   }
   return context;

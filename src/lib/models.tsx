@@ -8,6 +8,7 @@ import {
   Grok,
   FalAi,
   Gemini,
+  Qwen,
 } from "@/components/provider-icons";
 
 export const REASONING_EFFORTS: ReasoningEffortConfig[] = [
@@ -97,14 +98,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Anthropic />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
-  },
-  {
-    id: "anthropic/claude-sonnet-4-thinking",
-    name: "Claude 4 Sonnet (Thinking)",
-    icon: <Anthropic />,
-    providerId: "openrouter",
-    providerName: "OpenRouter",
+    hybrid: true,
     features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
   },
   {
@@ -113,14 +107,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     icon: <Anthropic />,
     providerId: "openrouter",
     providerName: "OpenRouter",
-    features: ["imageInput", "pdfInput", "webSearch"],
-  },
-  {
-    id: "anthropic/claude-opus-4-thinking",
-    name: "Claude 4 Opus (Thinking)",
-    icon: <Anthropic />,
-    providerId: "openrouter",
-    providerName: "OpenRouter",
+    hybrid: true,
     features: ["reasoning", "setEffort", "imageInput", "pdfInput", "webSearch"],
   },
   {
@@ -178,6 +165,24 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     providerId: "openrouter",
     providerName: "OpenRouter",
     features: ["reasoning", "imageInput", "webSearch"],
+  },
+  {
+    id: "qwen/qwen3-235b-a22b",
+    name: "Qwen 3 235B",
+    icon: <Qwen />,
+    providerId: "openrouter",
+    providerName: "OpenRouter",
+    hybrid: true,
+    features: ["reasoning", "webSearch"],
+  },
+  {
+    id: "qwen/qwen3-32b",
+    name: "Qwen 3 32B",
+    icon: <Qwen />,
+    providerId: "openrouter",
+    providerName: "OpenRouter",
+    hybrid: true,
+    features: ["reasoning", "webSearch"],
   },
   {
     id: "gpt-image-1",

@@ -26,6 +26,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import type { ModelConfig, Models } from "@/lib/types";
+import { Switch } from "./ui/switch";
 
 export function ModelPicker({
   hasFilesUploaded,
@@ -45,6 +46,8 @@ export function ModelPicker({
     favoriteModels,
     toggleFavoriteModel,
     isFavoriteModel,
+    reasoningEnabled,
+    setReasoningEnabled,
   } = useSettingsContext();
 
   const chatModels = AVAILABLE_MODELS.filter(
@@ -106,9 +109,7 @@ export function ModelPicker({
           )}
         </Button>
 
-        <div className="flex-shrink-0 text-muted-foreground">
-          {modelItem.icon}
-        </div>
+        <div className="flex-shrink-0">{modelItem.icon}</div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -175,7 +176,7 @@ export function ModelPicker({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-auto py-1.5 px-2 font-normal gap-1.5"
+                className="h-9 font-normal gap-1.5"
               >
                 <div className="flex items-center gap-2">
                   {selectedModel?.icon}
@@ -200,7 +201,7 @@ export function ModelPicker({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="p-2 w-[340px] shadow-lg backdrop-blur-xl rounded-xl"
+              className="p-2 w-[360px] shadow-lg backdrop-blur-xl rounded-xl"
               side="top"
               sideOffset={10}
               align="start"
@@ -264,48 +265,76 @@ export function ModelPicker({
                 </CommandList>
               </Command>
 
-              {selectedModel?.features.includes("setEffort") && (
-                <div className="mt-2 pt-2 border-t px-2">
-                  <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                    Reasoning Effort
-                  </div>
-                  <div className="flex gap-1">
-                    {REASONING_EFFORTS.map((effort) => (
-                      <Button
-                        key={effort.id}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setReasoningEffort(effort.id)}
-                        className={cn(
-                          "flex flex-1 items-center gap-1 px-2 py-1 rounded-md transition-all duration-200 text-xs",
-                          reasoningEffort === effort.id
-                            ? "bg-accent/50 border-accent-foreground/20"
-                            : "border-transparent"
-                        )}
-                      >
-                        <effort.icon
-                          className={cn(
-                            "h-3 w-3",
-                            reasoningEffort === effort.id
-                              ? "text-primary"
-                              : "text-muted-foreground"
-                          )}
+              {selectedModel?.features.includes("reasoning") &&
+                (selectedModel?.features.includes("setEffort") ||
+                  selectedModel?.hybrid) && (
+                  <div className="mt-3 pt-3 border-t space-y-3">
+                    {selectedModel?.hybrid && (
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <div>
+                            <div className="text-sm font-medium">
+                              Allow Reasoning
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Let the model think before answering
+                            </div>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={reasoningEnabled}
+                          onCheckedChange={setReasoningEnabled}
                         />
-                        <span
-                          className={cn(
-                            "capitalize",
-                            reasoningEffort === effort.id
-                              ? "text-foreground font-medium"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {effort.id}
-                        </span>
-                      </Button>
-                    ))}
+                      </div>
+                    )}
+
+                    {selectedModel?.features.includes("setEffort") && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 px-1">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Reasoning Effort
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {REASONING_EFFORTS.map((effort) => (
+                            <Button
+                              key={effort.id}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setReasoningEffort(effort.id)}
+                              className={cn(
+                                "flex flex-col items-center gap-1 px-2 py-2 h-auto rounded-lg transition-all duration-200",
+                                reasoningEffort === effort.id
+                                  ? "bg-violet-500/10 dark:bg-violet-400/20 border-violet-500/20 dark:border-violet-400/30"
+                                  : "border-border hover:border-accent-foreground/20"
+                              )}
+                            >
+                              <effort.icon
+                                className={cn(
+                                  "h-4 w-4",
+                                  reasoningEffort === effort.id
+                                    ? "text-violet-600 dark:text-violet-400"
+                                    : "text-muted-foreground"
+                                )}
+                              />
+                              <span
+                                className={cn(
+                                  "text-xs font-medium capitalize",
+                                  reasoningEffort === effort.id
+                                    ? "text-violet-600 dark:text-violet-400"
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {effort.id}
+                              </span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
             </PopoverContent>
           </Popover>
         </div>

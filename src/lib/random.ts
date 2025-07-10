@@ -15,7 +15,6 @@ const greetings = (name: string) => [
   `What's cooking, ${name}?`,
   `Yo. What’s the vibe today?`,
   `Let’s make your brain do backflips.`,
-  `Lay it on me.`,
   `Here to make your life 2% easier.`,
   `Let's do this.`,
   `Welcome back, legend.`,

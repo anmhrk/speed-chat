@@ -8,7 +8,7 @@ import {
   createIdGenerator,
   smoothStream,
   appendResponseMessages,
-  type LanguageModelV1,
+  type LanguageModel,
   experimental_generateImage as generateImage,
   type ImageModel,
   tool,
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       isNewChat,
       customization,
       searchEnabled,
+      reasoningEnabled,
     } = body;
 
     const user = await getUser();
@@ -57,17 +58,27 @@ export async function POST(request: NextRequest) {
       throw new Error("Unauthorized");
     }
 
-    let aiModel: LanguageModelV1;
+    let aiModel: LanguageModel;
     let imageModel: ImageModel;
-    let modelId = model;
     let dimensionFormat: DimensionFormat;
     let storedMemories: Memory[] = [];
 
     const isImageModel =
-      AVAILABLE_MODELS.find((m) => m.id === modelId)?.imageGeneration === true;
+      AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
+        "imageGeneration"
+      ) === true;
+
+    const isHybridModel =
+      AVAILABLE_MODELS.find((m) => m.id === model)?.hybrid === true;
 
     const isReasoningModel =
-      AVAILABLE_MODELS.find((m) => m.id === modelId)?.reasoning === true;
+      (AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
+        "reasoning"
+      ) === true &&
+        !isHybridModel) ||
+      (isHybridModel && reasoningEnabled); // either base reasoning model which is not hybrid or hybrid model with reasoning enabled
+
+    const noThinkQwen = model.includes("qwen") && !reasoningEnabled;
 
     const headers =
       env.NODE_ENV === "production"
@@ -100,17 +111,13 @@ export async function POST(request: NextRequest) {
       aiModel = openrouter.chat("google/gemini-2.5-flash");
       imageModel = buildImageModel(model, apiKeys, provider!);
     } else {
-      if (model.includes("thinking")) {
-        modelId = model.replace("-thinking", "") as Models;
-      }
-
-      if (modelId.includes("o3")) {
+      if (model.includes("o3")) {
         const openai = createOpenAI({
           apiKey: apiKeys.openai,
         });
-        aiModel = openai(modelId);
+        aiModel = openai(model);
       } else {
-        aiModel = openrouter.chat(modelId);
+        aiModel = openrouter.chat(model);
       }
 
       storedMemories = await getMemories();
@@ -119,6 +126,7 @@ export async function POST(request: NextRequest) {
     const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
 
     const calculateThinkingBudget = () => {
+      // choosing 15k max budget for now, but can be changed later
       if (reasoningEffort === "low") return 15000 / 4;
       if (reasoningEffort === "medium") return 15000 / 2;
       if (reasoningEffort === "high") return 15000;
@@ -137,7 +145,7 @@ export async function POST(request: NextRequest) {
           titlePromise = generateChatTitle(
             chatId,
             messages[messages.length - 1].content,
-            aiModel,
+            aiModel
           );
         }
 
@@ -150,6 +158,7 @@ export async function POST(request: NextRequest) {
                 customization,
                 searchEnabled,
                 storedMemories,
+                noThinkQwen
               ),
           experimental_transform: [
             smoothStream({
@@ -161,7 +170,7 @@ export async function POST(request: NextRequest) {
             providerOptions: {
               openrouter: {
                 reasoning:
-                  modelId.includes("openai") || modelId.includes("x-ai")
+                  model.includes("openai") || model.includes("x-ai")
                     ? { effort: reasoningEffort }
                     : { max_tokens: calculateThinkingBudget() },
               },
@@ -192,7 +201,7 @@ export async function POST(request: NextRequest) {
                   const imageName = `image-${userMessageId}.png`;
                   const imageUrl = await uploadBase64Image(
                     imageName,
-                    image.base64,
+                    image.base64
                   );
 
                   return { imageUrl };
@@ -207,7 +216,7 @@ export async function POST(request: NextRequest) {
                   query: z
                     .string()
                     .describe(
-                      "The search query to find information relevant to the user's question.",
+                      "The search query to find information relevant to the user's question."
                     ),
                   resultCategory: z
                     .enum([
@@ -258,7 +267,7 @@ export async function POST(request: NextRequest) {
                   memory: z
                     .string()
                     .describe(
-                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)",
+                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
                     ),
                 }),
                 execute: async ({ memory }) => {
@@ -297,7 +306,11 @@ export async function POST(request: NextRequest) {
               elapsedTime,
               tps,
               ttft,
-              modelName: modelName!,
+              modelName: modelName!.concat(
+                isReasoningModel && reasoningEffort
+                  ? ` (${reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1)})`
+                  : ""
+              ),
             };
 
             dataStream.writeMessageAnnotation({
@@ -399,7 +412,7 @@ export async function POST(request: NextRequest) {
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",
-            dbError,
+            dbError
           );
         }
 
@@ -415,7 +428,7 @@ export async function POST(request: NextRequest) {
 function buildImageModel(
   model: Models,
   apiKeys: Record<Providers, string>,
-  provider: Providers,
+  provider: Providers
 ): ImageModel {
   if (provider === "openai") {
     const openai = createOpenAI({
