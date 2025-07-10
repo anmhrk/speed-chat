@@ -22,6 +22,7 @@ import { ChatLayout } from "@/components/layouts/chat-layout";
 import { HomepageLayout } from "@/components/layouts/homepage-layout";
 import { getRandomPromptSuggestions } from "@/lib/random";
 import { isImageGenerationModel } from "@/lib/models";
+
 interface ChatPageProps {
   user: User | null;
   initialChatId?: string;
@@ -220,12 +221,15 @@ export function ChatPage({
       return;
     }
 
-    if (!input.trim()) {
+    if (!input.trim() && !attachments) {
       return;
     }
 
     if (temporaryChat) {
-      handleSubmit(e, { experimental_attachments: attachments });
+      handleSubmit(e, {
+        experimental_attachments: attachments,
+        allowEmptySubmit: true,
+      });
       clearFiles();
       return;
     }
@@ -260,7 +264,10 @@ export function ChatPage({
       });
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
-      handleSubmit(e, { experimental_attachments: attachments });
+      handleSubmit(e, {
+        experimental_attachments: attachments,
+        allowEmptySubmit: true,
+      });
       setTimeout(() => {
         setIsNewlyCreated(false);
       }, 500);
@@ -275,7 +282,10 @@ export function ChatPage({
         return oldData;
       });
 
-      handleSubmit(e, { experimental_attachments: attachments });
+      handleSubmit(e, {
+        experimental_attachments: attachments,
+        allowEmptySubmit: true,
+      });
     }
     clearFiles();
   };

@@ -189,7 +189,9 @@ export function ChatInput({
           <Button
             type="submit"
             size="icon"
-            disabled={isOnSharedPage || !input.trim() || isUploading}
+            disabled={
+              isOnSharedPage || (!input.trim() && !files.length) || isUploading
+            }
             className="h-8 w-8"
           >
             <ArrowUp className="size-6" />

@@ -70,9 +70,9 @@ export async function POST(request: NextRequest) {
     const noThinkQwen = model.includes("qwen") && !reasoningEnabled;
 
     const headers =
-      env.NODE_ENV === "production"
+      env.NODE_ENV === "production" && env.SITE_URL
         ? {
-            "HTTP-Referer": env.SITE_URL!,
+            "HTTP-Referer": env.SITE_URL,
             "X-Title": "Speed Chat",
           }
         : undefined;
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
         if (!temporaryChat && isNewChat) {
           titlePromise = generateChatTitle(
             chatId,
-            messages[messages.length - 1].content,
-            aiModel
+            messages[messages.length - 1],
+            openrouter.chat("google/gemini-2.5-flash-lite-preview-06-17")
           );
         }
 

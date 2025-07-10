@@ -96,8 +96,9 @@ export const imageGenerationPrompt = (prompt: string) => `
     Don't output anything else. Just call the tool and wait for it to finish, and that's it.
 `;
 
-export const titleGenerationPrompt = (prompt: string) => `
-    Your job is to create concise, descriptive titles for chat conversations based on the user's first message. 
+export const titleGenerationPrompt = `
+    Your job is to create concise, descriptive titles for chat conversations based on the user's first message.
+    If the message is empty, use the attachments provided in the message to generate a title.
         
     <rules>
     - Generate titles that are 5-6 words maximum
@@ -116,10 +117,6 @@ export const titleGenerationPrompt = (prompt: string) => `
     - "API Integration Troubleshooting"
     - "Paris Weekend Trip Planning"
     </examples>
-
-    <user_message>
-    ${prompt}
-    </user_message>
 
     Generate and return only the title text, nothing else.
 `;

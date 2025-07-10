@@ -107,7 +107,7 @@ bun dev # app will be available at http://localhost:3000
 - [x] Add message metadata per assistant message which displays tps, ttft, tokens in, tokens out
 - [ ] Resumable streams if lost connection or refresh while streaming
 - [ ] Synced stream to follow on any tab or device
-- [ ] Allow send empty message if attachments are present
+- [x] Allow send empty message if attachments are present
 
 ## 📄 License
 
