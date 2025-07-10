@@ -36,7 +36,7 @@ export function UserMessage({
   const editRef = useRef<HTMLTextAreaElement>(null);
   const originalMessagesRef = useRef<Message[]>(allMessages);
   const [removedAttachmentUrls, setRemovedAttachmentUrls] = useState<string[]>(
-    [],
+    []
   );
 
   const handleSelectEdit = () => {
@@ -57,21 +57,23 @@ export function UserMessage({
     setIsEditing(false);
 
     const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id,
+      (m) => m.id === message.id
     );
 
     const currentEditedMessage = allMessages[editedMessageIndex];
 
     const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
     const futureAttachmentUrls = messagesToCheck.flatMap((m) =>
-      m.experimental_attachments?.map((a) => a.url),
+      m.experimental_attachments?.map((a) => a.url)
     );
-    const futureToolInvocationUrls = messagesToCheck.flatMap((m) =>
-      m.parts?.map((part) =>
-        part.type === "tool-invocation"
-          ? (part.toolInvocation as any).result.imageUrl
-          : null,
-      ),
+    const futureToolInvocationUrls = messagesToCheck.flatMap(
+      (m) =>
+        m.parts?.map((part) => {
+          if (part.type === "tool-invocation") {
+            const invocation: any = part.toolInvocation;
+            return invocation?.result?.imageUrl ?? null;
+          }
+        }) ?? []
     );
 
     const urlsToDelete = [
@@ -116,7 +118,7 @@ export function UserMessage({
         <div
           className={cn(
             isEditing ? "bg-primary/20 w-full" : "bg-accent",
-            "rounded-lg px-4 py-3",
+            "rounded-lg px-4 py-3"
           )}
         >
           <div className="break-words whitespace-pre-wrap">
@@ -155,7 +157,7 @@ export function UserMessage({
             <div
               className={cn(
                 "mt-4 relative",
-                isEditing ? "flex flex-col gap-2" : "flex flex-wrap gap-2",
+                isEditing ? "flex flex-col gap-2" : "flex flex-wrap gap-2"
               )}
             >
               {message.experimental_attachments.map((attachment, index) => (
@@ -163,7 +165,7 @@ export function UserMessage({
                   key={`${message.id}-attachment-${index}`}
                   className={cn(
                     "flex items-center gap-2",
-                    isEditing && "justify-between w-full",
+                    isEditing && "justify-between w-full"
                   )}
                 >
                   {attachment.contentType?.startsWith("image/") ? (
@@ -172,7 +174,7 @@ export function UserMessage({
                       alt={attachment.name ?? "Attachment"}
                       className={cn(
                         "rounded-md aspect-auto h-auto cursor-pointer",
-                        isEditing ? "max-w-[350px]" : "max-w-full",
+                        isEditing ? "max-w-[350px]" : "max-w-full"
                       )}
                       onClick={() => window.open(attachment.url, "_blank")}
                       width={400}
@@ -211,14 +213,14 @@ export function UserMessage({
                           ...message,
                           experimental_attachments:
                             message.experimental_attachments?.filter(
-                              (a) => a.url !== attachment.url,
+                              (a) => a.url !== attachment.url
                             ),
                         };
 
                         setMessages(
                           allMessages.map((m) =>
-                            m.id === message.id ? messageWithoutAttachment : m,
-                          ),
+                            m.id === message.id ? messageWithoutAttachment : m
+                          )
                         );
                       }}
                     >

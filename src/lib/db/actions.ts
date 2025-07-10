@@ -7,6 +7,7 @@ import { generateText, type LanguageModel, type Message } from "ai";
 import { and, asc, desc, eq, inArray, ilike } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
 import { titleGenerationPrompt } from "../prompts";
+import { ImageGenerationToolInvocation } from "../types";
 
 // CHATS
 export async function getChats() {
@@ -200,12 +201,15 @@ async function deleteAllAttachments(
     message.experimental_attachments?.map((attachment) => attachment.url)
   );
 
-  const toolInvocationUrls = messagesToCheck.flatMap((message) =>
-    message.parts?.map((part) =>
-      part.type === "tool-invocation"
-        ? (part.toolInvocation as any).result.imageUrl
-        : null
-    )
+  const toolInvocationUrls = messagesToCheck.flatMap(
+    (message) =>
+      message.parts?.map((part) => {
+        if (part.type === "tool-invocation") {
+          const invocation = part.toolInvocation as any;
+          return invocation.result?.imageUrl ?? null;
+        }
+        return null;
+      }) ?? []
   );
 
   await deleteFiles([
