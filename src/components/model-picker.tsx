@@ -47,13 +47,13 @@ export function ModelPicker({
     isFavoriteModel,
   } = useSettingsContext();
 
-  const chatModels = AVAILABLE_MODELS.filter((m) => !m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id)
-  );
+  const chatModels = AVAILABLE_MODELS.filter(
+    (m) => !m.features.includes("imageGeneration")
+  ).sort((a, b) => a.id.localeCompare(b.id));
 
-  const imageModels = AVAILABLE_MODELS.filter((m) => m.imageGeneration).sort(
-    (a, b) => a.id.localeCompare(b.id)
-  );
+  const imageModels = AVAILABLE_MODELS.filter((m) =>
+    m.features.includes("imageGeneration")
+  ).sort((a, b) => a.id.localeCompare(b.id));
 
   // Get favorite models
   const favoriteModelItems = AVAILABLE_MODELS.filter((m) =>
@@ -81,7 +81,7 @@ export function ModelPicker({
     const isFavorite = isFavoriteModel(modelItem.id);
     const isDisabled =
       !hasApiKeyForProvider(modelItem.providerId) ||
-      (modelItem.imageGeneration && hasFilesUploaded);
+      (modelItem.features.includes("imageGeneration") && hasFilesUploaded);
 
     return (
       <CommandItem
@@ -127,7 +127,7 @@ export function ModelPicker({
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">
-          {modelItem.reasoning && (
+          {modelItem.features.includes("reasoning") && (
             <Tooltip>
               <TooltipTrigger>
                 <div className="h-5 w-5 rounded-full bg-blue-500/10 flex items-center justify-center">
@@ -137,7 +137,7 @@ export function ModelPicker({
               <TooltipContent>Has reasoning capabilities</TooltipContent>
             </Tooltip>
           )}
-          {modelItem.imageInput && (
+          {modelItem.features.includes("imageInput") && (
             <Tooltip>
               <TooltipTrigger>
                 <div className="h-5 w-5 rounded-full bg-purple-500/10 flex items-center justify-center">
@@ -147,7 +147,7 @@ export function ModelPicker({
               <TooltipContent>Supports image input</TooltipContent>
             </Tooltip>
           )}
-          {modelItem.pdfInput && (
+          {modelItem.features.includes("pdfInput") && (
             <Tooltip>
               <TooltipTrigger>
                 <div className="h-5 w-5 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -180,19 +180,21 @@ export function ModelPicker({
                 <div className="flex items-center gap-2">
                   {selectedModel?.icon}
                   <span className="text-sm">{selectedModel?.name}</span>
-                  {selectedModel?.reasoning && reasoningEffortConfig && (
-                    <div
-                      className={cn(
-                        "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs",
-                        "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-                      )}
-                    >
-                      <reasoningEffortConfig.icon className="h-3 w-3" />
-                      <span className="capitalize hidden md:inline">
-                        {reasoningEffortConfig.id}
-                      </span>
-                    </div>
-                  )}
+                  {selectedModel?.features.includes("reasoning") &&
+                    selectedModel?.features.includes("setEffort") &&
+                    reasoningEffortConfig && (
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs",
+                          "bg-violet-500/10 dark:bg-violet-400/20 text-violet-600 dark:text-violet-400"
+                        )}
+                      >
+                        <reasoningEffortConfig.icon className="h-3 w-3" />
+                        <span className="capitalize hidden md:inline">
+                          {reasoningEffortConfig.id}
+                        </span>
+                      </div>
+                    )}
                 </div>
                 <ChevronDown className="size-4 opacity-70" />
               </Button>
@@ -262,7 +264,7 @@ export function ModelPicker({
                 </CommandList>
               </Command>
 
-              {selectedModel?.reasoning && (
+              {selectedModel?.features.includes("setEffort") && (
                 <div className="mt-2 pt-2 border-t px-2">
                   <div className="text-xs font-medium text-muted-foreground mb-1.5">
                     Reasoning Effort

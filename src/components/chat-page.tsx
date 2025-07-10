@@ -13,11 +13,11 @@ import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/providers/settings-provider";
 import { createChat, getMessages } from "@/lib/db/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Chat } from "@/lib/db/schema";
+import type { Chat } from "@/lib/db/schema";
 import { useAttachments } from "@/hooks/use-attachments";
 import { useShortcuts } from "@/hooks/use-shortcuts";
 import { SearchChats } from "@/components/search-chats";
-import { StreamData } from "@/lib/types";
+import type { StreamData } from "@/lib/types";
 import { ChatLayout } from "@/components/layouts/chat-layout";
 import { HomepageLayout } from "@/components/layouts/homepage-layout";
 

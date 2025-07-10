@@ -21,7 +21,8 @@ type ReasoningModels =
   | "openai/o4-mini"
   | "o3" // using openai provider for o3 because of additional integration requirement in openrouter, just verify org and it works. same with gpt image 1
   | "deepseek/deepseek-r1-0528"
-  | "x-ai/grok-3-mini";
+  | "x-ai/grok-3-mini"
+  | "x-ai/grok-4"; // doesn't return reasoning tokens, nor allows reasoning effort selection
 
 type ImageModels = "gpt-image-1" | "fal-ai/flux-pro/v1.1-ultra";
 
@@ -33,6 +34,14 @@ export type ReasoningEfforts = "low" | "medium" | "high";
 
 export type APIKeys = Record<Providers | "exa", string>;
 
+export type Features =
+  | "reasoning"
+  | "setEffort"
+  | "imageInput"
+  | "pdfInput"
+  | "webSearch"
+  | "imageGeneration";
+
 export type ModelConfig = {
   id: Models;
   name: string;
@@ -40,11 +49,7 @@ export type ModelConfig = {
   providerId: Providers;
   providerName: string;
   default?: boolean;
-  reasoning?: boolean;
-  imageInput?: boolean;
-  pdfInput?: boolean;
-  search?: boolean;
-  imageGeneration?: boolean;
+  features: Features[];
 };
 
 export type ReasoningEffortConfig = {

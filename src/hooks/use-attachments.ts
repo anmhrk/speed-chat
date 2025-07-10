@@ -19,7 +19,9 @@ export function useAttachments(model: Models) {
   >({});
 
   const acceptsPdf =
-    AVAILABLE_MODELS.find((m) => m.id === model)?.pdfInput === true;
+    AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
+      "pdfInput"
+    ) === true;
 
   const { startUpload, isUploading } = useUploadThing("fileUploader", {
     onClientUploadComplete: (res) => {
@@ -84,14 +86,14 @@ export function useAttachments(model: Models) {
 
       if (selectedFiles.length > 0) {
         const unsupportedFiles = selectedFiles.filter(
-          (file) => !acceptedFileTypes.has(file.type),
+          (file) => !acceptedFileTypes.has(file.type)
         );
 
         if (unsupportedFiles.length > 0) {
           toast.error(
             `Unsupported file type${unsupportedFiles.length > 1 ? "s" : ""}: ${unsupportedFiles
               .map((f) => f.name)
-              .join(", ")}`,
+              .join(", ")}`
           );
           return;
         }
@@ -99,31 +101,30 @@ export function useAttachments(model: Models) {
         // Filter out duplicates - check against both files and fileMetadata
         const uniqueFiles = selectedFiles.filter(
           (file) =>
-            !files.some((f) => f.name === file.name) &&
-            !fileMetadata[file.name],
+            !files.some((f) => f.name === file.name) && !fileMetadata[file.name]
         );
 
         const duplicateCount = selectedFiles.length - uniqueFiles.length;
         if (duplicateCount > 0) {
           toast.info(
-            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`,
+            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
           );
         }
 
         // Count current files by type
         const currentImages = files.filter((file) =>
-          file.type.startsWith("image/"),
+          file.type.startsWith("image/")
         ).length;
         const currentPdfs = files.filter(
-          (file) => file.type === "application/pdf",
+          (file) => file.type === "application/pdf"
         ).length;
 
         // Count new files by type
         const newImages = uniqueFiles.filter((file) =>
-          file.type.startsWith("image/"),
+          file.type.startsWith("image/")
         ).length;
         const newPdfs = uniqueFiles.filter(
-          (file) => file.type === "application/pdf",
+          (file) => file.type === "application/pdf"
         ).length;
 
         // Calculate totals after adding new files
@@ -137,7 +138,7 @@ export function useAttachments(model: Models) {
           // If PDFs are present: max 2 images and 2 PDFs
           if (totalImages > 2 || totalPdfs > 2) {
             toast.error(
-              "When PDFs are included, max 2 images and 2 PDFs per message",
+              "When PDFs are included, max 2 images and 2 PDFs per message"
             );
             return;
           }
@@ -156,7 +157,7 @@ export function useAttachments(model: Models) {
 
         if (exceedsSizeLimitFiles.length > 0) {
           toast.error(
-            `Files exceeds size limit: ${exceedsSizeLimitFiles.join(", ")}`,
+            `Files exceeds size limit: ${exceedsSizeLimitFiles.join(", ")}`
           );
           return;
         }
@@ -167,7 +168,7 @@ export function useAttachments(model: Models) {
         }
       }
     },
-    [files, startUpload],
+    [files, startUpload]
   );
 
   // Process files from dropzone
@@ -197,7 +198,7 @@ export function useAttachments(model: Models) {
           loading: "Deleting file...",
           success: "File deleted",
           error: "Failed to delete file",
-        },
+        }
       );
     }
   };

@@ -112,7 +112,9 @@ export function ChatInput({
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
           <ModelPicker hasFilesUploaded={files.length > 0} />
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.search && (
+          {AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
+            "webSearch"
+          ) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -139,7 +141,10 @@ export function ChatInput({
             </Tooltip>
           )}
 
-          {AVAILABLE_MODELS.find((m) => m.id === model)?.imageInput && (
+          {/* Right now just checking image input cos pdf is supported only when image is supported, atleast for now */}
+          {AVAILABLE_MODELS.find((m) => m.id === model)?.features.includes(
+            "imageInput"
+          ) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
