@@ -54,10 +54,10 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
   updatedAt: timestamp("updated_at").$defaultFn(
-    () => /* @__PURE__ */ new Date(),
+    () => /* @__PURE__ */ new Date()
   ),
 });
 
@@ -85,8 +85,6 @@ export const chats = pgTable("chats", {
   parentChatId: text("parent_chat_id"),
 });
 
-export type Chat = typeof chats.$inferSelect;
-
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   chatId: text("chat_id")
@@ -111,4 +109,6 @@ export const memories = pgTable("memories", {
   createdAt: timestamp("created_at").notNull(),
 });
 
+export type Chat = typeof chats.$inferSelect;
+export type DbMessage = typeof messages.$inferSelect;
 export type Memory = typeof memories.$inferSelect;

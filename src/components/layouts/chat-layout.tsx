@@ -1,15 +1,13 @@
 import { ChatInput } from "@/components/chat-input";
 import { Messages } from "@/components/messages";
-import type { Message } from "ai";
 import type { User } from "better-auth";
 import type { FileMetadata } from "@/lib/types";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { Dispatch, SetStateAction } from "react";
 
 interface ChatLayoutProps {
-  isLoading: boolean;
+  isLoadingMessages: boolean;
   messages: UseChatHelpers["messages"];
-  initialMessages: Message[] | undefined;
   status: UseChatHelpers["status"];
   reload: UseChatHelpers["reload"];
   append: UseChatHelpers["append"];
@@ -36,9 +34,8 @@ interface ChatLayoutProps {
 }
 
 export function ChatLayout({
-  isLoading,
+  isLoadingMessages,
   messages,
-  initialMessages,
   status,
   reload,
   append,
@@ -63,13 +60,10 @@ export function ChatLayout({
   setSearchEnabled,
   inputRef,
 }: ChatLayoutProps) {
-  const hasMessages =
-    messages.length > 0 || (initialMessages && initialMessages.length > 0);
-
   return (
     <>
       <div className="flex-1 min-h-0 relative">
-        {!isLoading && hasMessages && (
+        {!isLoadingMessages && messages.length > 0 && (
           <Messages
             allMessages={messages}
             status={status}

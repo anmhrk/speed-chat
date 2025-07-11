@@ -1,9 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getChats } from "@/lib/db/actions";
-import { toast } from "sonner";
-import { useEffect } from "react";
 import Link from "next/link";
 import {
   Sidebar,
@@ -23,8 +18,11 @@ import { ShareChatDialog } from "./share-chat-dialog";
 import { SidebarItem } from "./sidebar-item";
 import { signIn } from "@/lib/auth/auth-client";
 import type { User } from "better-auth";
+import type { Chat } from "@/lib/db/schema";
 
 interface AppSidebarProps {
+  chats: Chat[];
+  isLoadingChats: boolean;
   user: User | null;
   chatIdParams: string;
   isMessageStreaming: boolean;
@@ -32,33 +30,17 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({
+  chats,
   user,
   chatIdParams,
+  isLoadingChats,
   isMessageStreaming,
   onSearchChatsOpen,
 }: AppSidebarProps) {
-  const router = useRouter();
   const isSignedIn = !!user;
   const [isShareChatDialogOpen, setIsShareChatDialogOpen] = useState(false);
   const [shareChatId, setShareChatId] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  const {
-    data: chats,
-    isLoading: isLoadingChats,
-    isError: isErrorChats,
-  } = useQuery({
-    queryKey: ["chats"],
-    queryFn: async () => await getChats(),
-    enabled: isSignedIn,
-  });
-
-  useEffect(() => {
-    if (isErrorChats) {
-      toast.error("Failed to load chats");
-      router.push("/");
-    }
-  }, [isErrorChats, router]);
 
   const handleShareChat = (chatId: string) => {
     setShareChatId(chatId);

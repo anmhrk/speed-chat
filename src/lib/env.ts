@@ -1,4 +1,4 @@
-import { createEnv } from "@t3-oss/env-core";
+import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
@@ -17,6 +17,10 @@ export const env = createEnv({
     ELECTRIC_SOURCE_SECRET: z.string().min(1),
   },
 
+  client: {
+    NEXT_PUBLIC_SITE_URL: z.string().url(),
+  },
+
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL,
@@ -30,6 +34,7 @@ export const env = createEnv({
     ELECTRIC_URL: process.env.ELECTRIC_URL,
     ELECTRIC_SOURCE_ID: process.env.ELECTRIC_SOURCE_ID,
     ELECTRIC_SOURCE_SECRET: process.env.ELECTRIC_SOURCE_SECRET,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   },
 
   emptyStringAsUndefined: true,

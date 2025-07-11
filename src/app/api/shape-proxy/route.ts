@@ -25,16 +25,16 @@ export async function GET(request: NextRequest) {
     headers,
   });
 
-  let resp = await fetch(newRequest);
-  if (resp.headers.get(`content-encoding`)) {
-    const headers = new Headers(resp.headers);
+  let res = await fetch(newRequest);
+  if (res.headers.get(`content-encoding`)) {
+    const headers = new Headers(res.headers);
     headers.delete(`content-encoding`);
     headers.delete(`content-length`);
-    resp = new Response(resp.body, {
-      status: resp.status,
-      statusText: resp.statusText,
+    res = new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
       headers,
     });
   }
-  return resp;
+  return res;
 }
