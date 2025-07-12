@@ -17,6 +17,7 @@ interface ChatLayoutProps {
   chatId: string;
   isOnSharedPage: boolean;
   input: UseChatHelpers["input"];
+  setInput: UseChatHelpers["setInput"];
   handleInputChange: UseChatHelpers["handleInputChange"];
   handleChatSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   stop: UseChatHelpers["stop"];
@@ -46,6 +47,7 @@ export function ChatLayout({
   chatId,
   isOnSharedPage,
   input,
+  setInput,
   handleInputChange,
   handleChatSubmit,
   stop,
@@ -84,6 +86,7 @@ export function ChatLayout({
       <div className="shrink-0 px-3 pb-3">
         <ChatInput
           input={input}
+          setInput={setInput}
           handleInputChange={handleInputChange}
           handleSubmit={handleChatSubmit}
           stop={stop}

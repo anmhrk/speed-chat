@@ -8,13 +8,13 @@ import {
   Square,
   X,
   FileIcon,
+  WandSparkles,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { useEffect, useRef, useMemo, memo } from "react";
+import { useEffect, useMemo, memo, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useSettingsContext } from "@/components/providers/settings-provider";
-import { AVAILABLE_MODELS } from "@/lib/ai/models";
 import { supportsWebSearch, supportsImageInput } from "@/lib/ai/models";
 import { Toggle } from "./ui/toggle";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -24,9 +24,12 @@ import type { User } from "better-auth";
 import type { FileMetadata } from "@/lib/types";
 import { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
+import { enhancePrompt } from "@/lib/actions";
+import { isImageGenerationModel } from "@/lib/ai/models";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
+  setInput: UseChatHelpers["setInput"];
   handleInputChange: UseChatHelpers["handleInputChange"];
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   stop: UseChatHelpers["stop"];
@@ -48,6 +51,7 @@ interface ChatInputProps {
 
 export function ChatInput({
   input,
+  setInput,
   handleInputChange,
   handleSubmit,
   stop,
@@ -65,7 +69,8 @@ export function ChatInput({
   isOnSharedPage,
   inputRef,
 }: ChatInputProps) {
-  const { model, apiKeys } = useSettingsContext();
+  const { model, apiKeys, hasAnyKey } = useSettingsContext();
+  const [enhancingPrompt, setEnhancingPrompt] = useState(false);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -78,6 +83,10 @@ export function ChatInput({
       e.preventDefault();
 
       if (isUploading) {
+        return;
+      }
+
+      if (enhancingPrompt) {
         return;
       }
 
@@ -186,16 +195,61 @@ export function ChatInput({
             <Square className="size-6" />
           </Button>
         ) : (
-          <Button
-            type="submit"
-            size="icon"
-            disabled={
-              isOnSharedPage || (!input.trim() && !files.length) || isUploading
-            }
-            className="h-8 w-8"
-          >
-            <ArrowUp className="size-6" />
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {input.length > 30 && hasAnyKey() && user && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEnhancingPrompt(true);
+                      try {
+                        const newPrompt = await enhancePrompt(
+                          input,
+                          apiKeys.openrouter,
+                          isImageGenerationModel(model)
+                        );
+                        setInput(newPrompt);
+                      } catch (error) {
+                        console.error("Error enhancing prompt:", error);
+                      } finally {
+                        setEnhancingPrompt(false);
+                      }
+                    }}
+                  >
+                    {enhancingPrompt ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      <WandSparkles className="size-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {enhancingPrompt
+                    ? "Enhancing prompt..."
+                    : "Enhance this prompt"}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Button
+              type="submit"
+              size="icon"
+              disabled={
+                isOnSharedPage ||
+                (!input.trim() && !files.length) ||
+                isUploading ||
+                enhancingPrompt
+              }
+              className="h-8 w-8"
+            >
+              <ArrowUp className="size-6" />
+            </Button>
+          </div>
         )}
       </div>
     </form>

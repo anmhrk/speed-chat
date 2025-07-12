@@ -82,6 +82,7 @@ export function HomepageLayout({
           <div className="shrink-0 px-3 pb-3">
             <ChatInput
               input={input}
+              setInput={setInput}
               handleInputChange={handleInputChange}
               handleSubmit={handleChatSubmit}
               stop={stop}
@@ -114,6 +115,7 @@ export function HomepageLayout({
             <div className="w-full max-w-3xl">
               <ChatInput
                 input={input}
+                setInput={setInput}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleChatSubmit}
                 stop={stop}

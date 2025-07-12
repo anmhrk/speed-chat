@@ -223,7 +223,7 @@ export function ChatPage({
       return;
     }
 
-    if ((!input.trim() && !attachments) || isMessageStreaming) {
+    if ((!input.trim() && attachments.length === 0) || isMessageStreaming) {
       return;
     }
 
