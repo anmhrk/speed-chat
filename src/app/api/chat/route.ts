@@ -131,6 +131,8 @@ export async function POST(request: NextRequest) {
         const startTime = Date.now();
         let ttftCalculated = false;
         let ttft = 0;
+        let reasoningStartTime: number | null = null;
+        let reasoningDuration = 0;
 
         // Both titlePromise and streamText will run in parallel
         let titlePromise: Promise<string> | undefined;
@@ -287,6 +289,17 @@ export async function POST(request: NextRequest) {
               ttft = (Date.now() - startTime) / 1000;
               ttftCalculated = true;
             }
+
+            // Track reasoning duration
+            if (event.chunk.type === "reasoning") {
+              if (reasoningStartTime === null) {
+                reasoningStartTime = Date.now();
+              }
+            } else if (reasoningStartTime !== null && event.chunk.type === "text-delta") {
+              // Reasoning ended when we start getting text
+              reasoningDuration = Math.round((Date.now() - reasoningStartTime) / 1000);
+              reasoningStartTime = null;
+            }
           },
           onFinish: async ({ response, usage }) => {
             const endTime = Date.now();
@@ -304,6 +317,7 @@ export async function POST(request: NextRequest) {
                   ? ` (${reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1)})`
                   : ""
               ),
+              ...(reasoningDuration > 0 && { reasoningDuration }),
             };
 
             dataStream.writeMessageAnnotation({

@@ -115,6 +115,7 @@ export type MessageAnnotation = {
     tps: number;
     ttft: number;
     elapsedTime: number;
+    reasoningDuration?: number;
   };
 };
 

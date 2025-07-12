@@ -96,11 +96,16 @@ export const AssistantMessage = memo(function AssistantMessage({
             {message.parts?.map((part, partIndex) => {
               if (part.type === "reasoning") {
                 setIsReasoningStreaming(true);
+                const reasoningDuration = message.annotations?.[0] && 
+                  typeof message.annotations[0] !== "string" 
+                    ? (message.annotations[0] as MessageAnnotation).metadata.reasoningDuration 
+                    : undefined;
                 return (
                   <ReasoningBlock
                     key={partIndex}
                     reasoning={part.reasoning || ""}
                     isStreaming={isReasoningStreaming}
+                    duration={reasoningDuration}
                   />
                 );
               }

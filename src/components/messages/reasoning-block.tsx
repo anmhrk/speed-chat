@@ -7,13 +7,15 @@ import {
 export const ReasoningBlock = function ReasoningBlock({
   reasoning,
   isStreaming,
+  duration,
 }: {
   reasoning: string;
   isStreaming: boolean;
+  duration?: number;
 }) {
   return (
     <div className="w-full">
-      <AIReasoning className="w-full" isStreaming={isStreaming}>
+      <AIReasoning className="w-full" isStreaming={isStreaming} duration={duration}>
         <AIReasoningTrigger />
         <AIReasoningContent>{reasoning}</AIReasoningContent>
       </AIReasoning>
