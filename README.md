@@ -17,6 +17,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - **Temporary Chat** - Create a temporary chat that does not save to your chat history
 - **Chat Sharing** - Share a chat so others can view and fork it to create their own copy
 - **Formatting** - Beautiful formatting of code, latex, tables in AI responses to improve chat experience
+- **Prompt Enhancement** - One click prompt enhancement button to improve your prompts for better responses
 
 ## 🛠 Tech Stack
 
@@ -52,6 +53,7 @@ An AI chat application built with Next.js 15, featuring multiple AI models, atta
 - **Grok** - Grok 4, Grok 3, Grok 3 Mini
 - **Qwen** - Qwen 3 235B, Qwen 3 32B
 - **FalAI** - FLUX Pro v1.1 Ultra
+- **Moonshot** - Kimi K2
 
 ## 📦 Getting Started
 

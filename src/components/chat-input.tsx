@@ -9,6 +9,8 @@ import {
   X,
   FileIcon,
   WandSparkles,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -26,6 +28,10 @@ import { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import { enhancePrompt } from "@/lib/actions";
 import { isImageGenerationModel } from "@/lib/ai/models";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
+import { toast } from "sonner";
 
 interface ChatInputProps {
   input: UseChatHelpers["input"];
@@ -71,8 +77,10 @@ export function ChatInput({
 }: ChatInputProps) {
   const { model, apiKeys, hasAnyKey } = useSettingsContext();
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -82,11 +90,7 @@ export function ChatInput({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
 
-      if (isUploading) {
-        return;
-      }
-
-      if (enhancingPrompt) {
+      if (isUploading || enhancingPrompt || listening) {
         return;
       }
 
@@ -97,6 +101,34 @@ export function ChatInput({
       inputRef.current?.blur();
     }
   };
+
+  const {
+    transcript,
+    listening,
+    browserSupportsSpeechRecognition,
+    isMicrophoneAvailable,
+    resetTranscript,
+  } = useSpeechRecognition();
+
+  useEffect(() => {
+    if (transcript && listening) {
+      setInput(transcript);
+    }
+  }, [transcript, setInput, listening]);
+
+  useEffect(() => {
+    if (!listening && transcript) {
+      resetTranscript();
+    }
+  }, [listening, transcript, resetTranscript]);
+
+  useEffect(() => {
+    if (!isMicrophoneAvailable) {
+      toast.error(
+        "Microphone permission denied. Please allow access from browser settings."
+      );
+    }
+  }, [isMicrophoneAvailable]);
 
   return (
     <form
@@ -236,6 +268,41 @@ export function ChatInput({
                 </TooltipContent>
               </Tooltip>
             )}
+
+            {isMounted && browserSupportsSpeechRecognition && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      if (listening) {
+                        SpeechRecognition.stopListening();
+                      } else {
+                        SpeechRecognition.startListening({
+                          continuous: true,
+                          language: "en-US",
+                          interimResults: true,
+                        });
+                      }
+                    }}
+                  >
+                    {listening ? (
+                      <MicOff className="size-5 text-red-500" />
+                    ) : (
+                      <Mic className="size-5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {listening
+                    ? "Stop recording"
+                    : "Start voice input. Might not work on all browsers."}
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Button
               type="submit"
               size="icon"
@@ -243,7 +310,8 @@ export function ChatInput({
                 isOnSharedPage ||
                 (!input.trim() && !files.length) ||
                 isUploading ||
-                enhancingPrompt
+                enhancingPrompt ||
+                listening
               }
               className="h-8 w-8"
             >

@@ -60,7 +60,7 @@ export default async function RootLayout({
             >
               <QueryClientProvider>
                 <SettingsProvider>
-                  <Toaster />
+                  <Toaster richColors />
                   {children}
                 </SettingsProvider>
               </QueryClientProvider>
