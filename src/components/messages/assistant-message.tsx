@@ -11,7 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import type { Message } from "ai";
 import {
   Tooltip,
@@ -64,6 +64,18 @@ export const AssistantMessage = memo(function AssistantMessage({
   const { isCopied, copyToClipboard } = useCopyClipboard();
   const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
 
+  // Update reasoning streaming state based on message parts
+  useEffect(() => {
+    const hasReasoningPart = message.parts?.some(part => part.type === "reasoning");
+    const hasTextPart = message.parts?.some(part => part.type === "text");
+    
+    if (hasReasoningPart && !hasTextPart) {
+      setIsReasoningStreaming(true);
+    } else if (hasTextPart) {
+      setIsReasoningStreaming(false);
+    }
+  }, [message.parts]);
+
   const handleBranchOffChat = async (parentChatId: string) => {
     const newChatId = crypto.randomUUID();
 
@@ -95,7 +107,6 @@ export const AssistantMessage = memo(function AssistantMessage({
           <div className="text-foreground">
             {message.parts?.map((part, partIndex) => {
               if (part.type === "reasoning") {
-                setIsReasoningStreaming(true);
                 const reasoningDuration = message.annotations?.[0] && 
                   typeof message.annotations[0] !== "string" 
                     ? (message.annotations[0] as MessageAnnotation).metadata.reasoningDuration 
@@ -111,7 +122,6 @@ export const AssistantMessage = memo(function AssistantMessage({
               }
 
               if (part.type === "text") {
-                setIsReasoningStreaming(false);
                 return (
                   <div key={partIndex}>
                     <Markdown>{part.text}</Markdown>

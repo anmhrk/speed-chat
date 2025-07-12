@@ -295,9 +295,14 @@ export async function POST(request: NextRequest) {
               if (reasoningStartTime === null) {
                 reasoningStartTime = Date.now();
               }
-            } else if (reasoningStartTime !== null && event.chunk.type === "text-delta") {
+            } else if (
+              reasoningStartTime !== null &&
+              event.chunk.type === "text-delta"
+            ) {
               // Reasoning ended when we start getting text
-              reasoningDuration = Math.round((Date.now() - reasoningStartTime) / 1000);
+              reasoningDuration = Math.round(
+                (Date.now() - reasoningStartTime) / 1000
+              );
               reasoningStartTime = null;
             }
           },
