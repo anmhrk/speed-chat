@@ -10,7 +10,8 @@ type BasicModels =
   | "deepseek/deepseek-chat-v3-0324"
   | "meta-llama/llama-4-maverick"
   | "meta-llama/llama-4-scout"
-  | "x-ai/grok-3";
+  | "x-ai/grok-3"
+  | "moonshotai/kimi-k2";
 
 type HybridModels =
   | "anthropic/claude-sonnet-4"

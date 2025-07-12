@@ -9,6 +9,7 @@ import {
   FalAi,
   Gemini,
   Qwen,
+  Moonshot,
 } from "@/components/provider-icons";
 
 export const REASONING_EFFORTS: ReasoningEffortConfig[] = [
@@ -299,6 +300,19 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
       input: { images: false, pdfs: false },
       webSearch: false,
       imageGeneration: true,
+    },
+  },
+  {
+    id: "moonshotai/kimi-k2",
+    name: "Kimi K2",
+    icon: <Moonshot />,
+    providerId: "openrouter",
+    providerName: "OpenRouter",
+    features: {
+      reasoning: { available: false, toggleable: false, supportsEffort: false },
+      input: { images: false, pdfs: false },
+      webSearch: true,
+      imageGeneration: false,
     },
   },
 ];
