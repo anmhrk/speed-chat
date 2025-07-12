@@ -1,6 +1,9 @@
 import { SettingsWrapper } from "@/components/settings-wrapper";
 import { getUser } from "@/lib/actions";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+
+export const dynamic = "force-dynamic";
 
 export default async function SettingsLayout({
   children,
@@ -13,5 +16,12 @@ export default async function SettingsLayout({
     redirect("/");
   }
 
-  return <SettingsWrapper user={user}>{children}</SettingsWrapper>;
+  const ua = (await headers()).get("user-agent") ?? "";
+  const isAppleDevice = /Mac|iPhone|iPad|iPod/.test(ua);
+
+  return (
+    <SettingsWrapper user={user} isAppleDevice={isAppleDevice}>
+      {children}
+    </SettingsWrapper>
+  );
 }

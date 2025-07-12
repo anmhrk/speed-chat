@@ -5,7 +5,7 @@ import type { User } from "better-auth";
 import type { FileMetadata } from "@/lib/types";
 import { Dispatch, SetStateAction } from "react";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { useMobile } from "@/components/providers/mobile-provider";
+import { useMobile } from "@/hooks/use-mobile";
 
 interface HomepageLayoutProps {
   user: User | null;

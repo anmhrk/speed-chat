@@ -8,8 +8,3 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const { useUploadThing } = generateReactHelpers<OurFileRouter>();
-
-export const isAppleDevice = () => {
-  if (typeof window === "undefined") return false;
-  return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
-};

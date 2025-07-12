@@ -40,7 +40,7 @@ import { ReasoningBlock } from "@/components/messages/reasoning-block";
 import { WebSearchBlock } from "@/components/messages/web-search-block";
 import { MemoryBlock } from "@/components/messages/memory";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { useMobile } from "@/components/providers/mobile-provider";
+import { useMobile } from "@/hooks/use-mobile";
 
 interface AssistantMessageProps {
   message: Message;
@@ -66,9 +66,11 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   // Update reasoning streaming state based on message parts
   useEffect(() => {
-    const hasReasoningPart = message.parts?.some(part => part.type === "reasoning");
-    const hasTextPart = message.parts?.some(part => part.type === "text");
-    
+    const hasReasoningPart = message.parts?.some(
+      (part) => part.type === "reasoning"
+    );
+    const hasTextPart = message.parts?.some((part) => part.type === "text");
+
     if (hasReasoningPart && !hasTextPart) {
       setIsReasoningStreaming(true);
     } else if (hasTextPart) {
@@ -107,9 +109,11 @@ export const AssistantMessage = memo(function AssistantMessage({
           <div className="text-foreground">
             {message.parts?.map((part, partIndex) => {
               if (part.type === "reasoning") {
-                const reasoningDuration = message.annotations?.[0] && 
-                  typeof message.annotations[0] !== "string" 
-                    ? (message.annotations[0] as MessageAnnotation).metadata.reasoningDuration 
+                const reasoningDuration =
+                  message.annotations?.[0] &&
+                  typeof message.annotations[0] !== "string"
+                    ? (message.annotations[0] as MessageAnnotation).metadata
+                        .reasoningDuration
                     : undefined;
                 return (
                   <ReasoningBlock

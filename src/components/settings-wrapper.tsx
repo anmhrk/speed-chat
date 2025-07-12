@@ -10,7 +10,6 @@ import { ThemeToggle } from "./theme-toggle";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { cn } from "@/lib/utils";
-import { isAppleDevice } from "@/lib/utils";
 
 const tabs = [
   {
@@ -38,13 +37,14 @@ const tabs = [
 export function SettingsWrapper({
   children,
   user,
+  isAppleDevice,
 }: {
   children: React.ReactNode;
   user: User;
+  isAppleDevice: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const showCmdKey = isAppleDevice();
 
   const getCurrentTab = () => {
     if (pathname === "/settings") return "general";
@@ -105,7 +105,7 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">Search</span>
                 <div className="flex items-center gap-1">
-                  {showCmdKey ? (
+                  {isAppleDevice ? (
                     <ShortcutBox>
                       <Command className="size-4" />
                     </ShortcutBox>
@@ -118,7 +118,7 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">New Chat</span>
                 <div className="flex items-center gap-1">
-                  {showCmdKey ? (
+                  {isAppleDevice ? (
                     <ShortcutBox>
                       <Command className="size-4" />
                     </ShortcutBox>
@@ -132,7 +132,7 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">Toggle Sidebar</span>
                 <div className="flex items-center gap-1">
-                  {showCmdKey ? (
+                  {isAppleDevice ? (
                     <ShortcutBox>
                       <Command className="size-4" />
                     </ShortcutBox>
@@ -145,7 +145,7 @@ export function SettingsWrapper({
               <div className="flex items-center justify-between">
                 <span className="text-sm">Show Model Picker</span>
                 <div className="flex items-center gap-1">
-                  {showCmdKey ? (
+                  {isAppleDevice ? (
                     <ShortcutBox>
                       <Command className="size-4" />
                     </ShortcutBox>

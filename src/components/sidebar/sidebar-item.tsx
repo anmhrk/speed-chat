@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { useMobile } from "@/components/providers/mobile-provider";
+import { useMobile } from "@/hooks/use-mobile";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import {
