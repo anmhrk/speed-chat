@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       chatId,
       model,
       reasoningEffort,
-      apiKeys,
       temporaryChat,
       isNewChat,
       customization,
@@ -73,7 +72,15 @@ export async function POST(request: NextRequest) {
 
     const noThinkQwen = model.includes("qwen") && !reasoningEnabled;
 
-    const headers =
+    const headers = request.headers;
+    const apiKeys = {
+      openrouter: headers.get("X-OpenRouter-Api-Key") ?? "",
+      falai: headers.get("X-FalAi-Api-Key") ?? "",
+      openai: headers.get("X-OpenAI-Api-Key") ?? "",
+      exa: headers.get("X-Exa-Api-Key") ?? "",
+    };
+
+    const openrouterHeaders =
       env.NODE_ENV === "production" && env.SITE_URL
         ? {
             "HTTP-Referer": env.SITE_URL,
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
           include_reasoning: true,
         },
       }),
-      ...(headers && { headers }),
+      ...(openrouterHeaders && { headers: openrouterHeaders }),
     });
 
     if (isImageModel) {

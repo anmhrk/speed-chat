@@ -93,7 +93,6 @@ export type ChatRequest = {
   model: Models;
   reasoningEnabled: boolean;
   reasoningEffort: ReasoningEfforts;
-  apiKeys: APIKeys;
   temporaryChat: boolean;
   customization: Customization;
   searchEnabled: boolean;

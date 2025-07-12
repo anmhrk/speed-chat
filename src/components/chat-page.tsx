@@ -147,12 +147,17 @@ export function ChatPage({
       chatId: chatId ?? undefined,
       model,
       reasoningEffort,
-      apiKeys,
       temporaryChat,
       customization,
       searchEnabled,
       isNewChat: isNewlyCreated,
       reasoningEnabled,
+    },
+    headers: {
+      "X-OpenRouter-Api-Key": apiKeys.openrouter ?? "",
+      "X-FalAi-Api-Key": apiKeys.falai ?? "",
+      "X-OpenAI-Api-Key": apiKeys.openai ?? "",
+      "X-Exa-Api-Key": apiKeys.exa ?? "",
     },
     onError: (error) => {
       const errorMessage = {
