@@ -7,7 +7,6 @@ import {
   ToolExecutionError,
   createIdGenerator,
   smoothStream,
-  appendResponseMessages,
   type LanguageModel,
   experimental_generateImage as generateImage,
   type ImageModel,
@@ -31,6 +30,8 @@ import {
   saveMessages,
   generateChatTitle,
   getMemories,
+  saveTextDelta,
+  finalizeAssistantMessage,
 } from "@/lib/db/actions";
 import { uploadBase64Image } from "@/lib/uploadthing";
 import { z } from "zod";
@@ -38,6 +39,12 @@ import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
 import Exa from "exa-js";
 import type { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { db } from "@/lib/db";
+import {
+  messages as messagesTable,
+  chats as chatsTable,
+} from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -133,9 +140,8 @@ export async function POST(request: NextRequest) {
         let ttft = 0;
 
         // Both titlePromise and streamText will run in parallel
-        let titlePromise: Promise<string> | undefined;
         if (!temporaryChat && isNewChat) {
-          titlePromise = generateChatTitle(
+          generateChatTitle(
             chatId,
             messages[messages.length - 1],
             openrouter.chat("google/gemini-2.5-flash-lite-preview-06-17")
@@ -277,7 +283,7 @@ export async function POST(request: NextRequest) {
           ...(isImageModel && { toolChoice: "required" }),
           ...(!isImageModel && { maxSteps: 10 }),
           toolCallStreaming: true,
-          onChunk: (event) => {
+          onChunk: async (event) => {
             if (
               !ttftCalculated &&
               (event.chunk.type === "text-delta" ||
@@ -287,8 +293,15 @@ export async function POST(request: NextRequest) {
               ttft = (Date.now() - startTime) / 1000;
               ttftCalculated = true;
             }
+
+            // Save text deltas to database for real-time streaming (non-blocking)
+            if (event.chunk.type === "text-delta" && !temporaryChat) {
+              saveTextDelta(chatId, event.chunk.textDelta).catch((error) => {
+                console.error("[Chat API] Failed to save text delta:", error);
+              });
+            }
           },
-          onFinish: async ({ response, usage }) => {
+          onFinish: async ({ usage }) => {
             const endTime = Date.now();
             const elapsedTime = endTime - startTime;
             // Tokens per second
@@ -315,42 +328,29 @@ export async function POST(request: NextRequest) {
                 return;
               }
 
-              const messageIds = messages.slice(0, -1).map((m) => m.id);
-              const latestUserMessage = messages[messages.length - 1];
+              // Finalize the assistant message that was being streamed
+              const assistantMessageId = await finalizeAssistantMessage();
 
-              const newMessages = appendResponseMessages({
-                messages: [latestUserMessage],
-                responseMessages: response.messages,
-              });
-
-              // Add annotations to the assistant messages after appendResponseMessages
-              const messagesWithAnnotations = newMessages.map((message) => {
-                if (message.role === "assistant") {
-                  return {
-                    ...message,
+              // Add metadata annotations to the finalized assistant message
+              if (assistantMessageId) {
+                await db
+                  .update(messagesTable)
+                  .set({
                     annotations: [{ metadata }],
-                  };
-                }
-                return message;
-              });
+                  })
+                  .where(eq(messagesTable.id, assistantMessageId));
+              }
 
-              await saveMessages(chatId, messageIds, messagesWithAnnotations);
+              // Update chat timestamp
+              await db
+                .update(chatsTable)
+                .set({ updatedAt: new Date() })
+                .where(eq(chatsTable.id, chatId));
             } catch (error) {
               console.error("[Chat API] Database save failed:", error);
             }
           },
         });
-
-        if (titlePromise) {
-          titlePromise.then((title) => {
-            if (title !== "New Chat") {
-              dataStream.writeData({
-                type: "title",
-                payload: title,
-              });
-            }
-          });
-        }
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: true,

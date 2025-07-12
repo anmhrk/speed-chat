@@ -3,11 +3,16 @@
 import { getUser } from "../auth/get-user";
 import { db } from ".";
 import { chats, messages, memories, user as userTable } from "./schema";
-import { generateText, type LanguageModel, type Message } from "ai";
+import {
+  generateText,
+  type LanguageModel,
+  type Message,
+  createIdGenerator,
+} from "ai";
 import { and, asc, desc, eq, inArray, ilike } from "drizzle-orm";
 import { deleteFiles } from "../uploadthing";
 import { titleGenerationPrompt } from "../prompts";
-import { ImageGenerationToolInvocation } from "../types";
+import { type Attachment } from "ai";
 
 // CHATS
 export async function getChats() {
@@ -50,7 +55,29 @@ export async function getMessages(chatId: string, sharedRequest: boolean) {
   return allMessages;
 }
 
-export async function createChat(chatId: string) {
+export async function insertUserMessageToDb(
+  chatId: string,
+  userMessage: string,
+  attachments: Attachment[]
+) {
+  await db.insert(messages).values({
+    id: crypto.randomUUID(),
+    chatId,
+    content: userMessage,
+    role: "user",
+    createdAt: new Date(),
+    parts: [{ type: "text", text: userMessage }],
+    ...(attachments.length > 0 && {
+      experimental_attachments: attachments,
+    }),
+  });
+}
+
+export async function createChat(
+  chatId: string,
+  userMessage: string,
+  attachments: Attachment[]
+) {
   const user = await getUser();
   if (!user) {
     throw new Error("Unauthorized");
@@ -61,6 +88,8 @@ export async function createChat(chatId: string) {
     title: "New Chat",
     userId: user.id,
   });
+
+  await insertUserMessageToDb(chatId, userMessage, attachments);
 }
 
 export async function generateChatTitle(
@@ -451,4 +480,63 @@ export async function searchChats(query: string) {
   }
 
   return searchResults;
+}
+
+// STREAMING
+let currentAssistantMessage: any = null;
+let tokenBuffer = "";
+let lastInsertTime = 0;
+
+export async function saveTextDelta(chatId: string, delta: string) {
+  if (!currentAssistantMessage) {
+    currentAssistantMessage = {
+      id: createIdGenerator({ prefix: "assistant", size: 16 })(),
+      chatId,
+      role: "assistant",
+      content: "",
+      parts: [{ type: "text", text: "" }],
+      createdAt: new Date(),
+    };
+
+    await db.insert(messages).values(currentAssistantMessage);
+  }
+
+  currentAssistantMessage.content += delta;
+  currentAssistantMessage.parts[0].text += delta;
+  tokenBuffer += delta;
+
+  const currentTime = Date.now();
+  if (currentTime - lastInsertTime >= 60 || tokenBuffer.length > 30) {
+    await db
+      .update(messages)
+      .set({
+        content: currentAssistantMessage.content,
+        parts: currentAssistantMessage.parts,
+      })
+      .where(eq(messages.id, currentAssistantMessage.id));
+
+    tokenBuffer = "";
+    lastInsertTime = currentTime;
+  }
+
+  return currentAssistantMessage.id;
+}
+
+export async function finalizeAssistantMessage() {
+  if (currentAssistantMessage && tokenBuffer.length > 0) {
+    await db
+      .update(messages)
+      .set({
+        content: currentAssistantMessage.content,
+        parts: currentAssistantMessage.parts,
+      })
+      .where(eq(messages.id, currentAssistantMessage.id));
+  }
+
+  const messageId = currentAssistantMessage?.id;
+  currentAssistantMessage = null;
+  tokenBuffer = "";
+  lastInsertTime = 0;
+
+  return messageId;
 }

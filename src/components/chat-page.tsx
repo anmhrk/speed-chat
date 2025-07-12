@@ -53,7 +53,7 @@ export function ChatPage({
   } = useAttachments(model);
   const {
     chats,
-    localMessages,
+    messages,
     temporaryChat,
     chatId,
     isInputCentered,
@@ -133,7 +133,7 @@ export function ChatPage({
 
   const chatLayoutProps = {
     isLoadingMessages,
-    messages: localMessages,
+    messages,
     status,
     reload,
     append,
@@ -149,7 +149,7 @@ export function ChatPage({
   return (
     <>
       <AppSidebar
-        chats={chats}
+        chats={chats || []}
         isLoadingChats={isLoadingChats}
         user={user}
         chatIdParams={chatId ?? ""}

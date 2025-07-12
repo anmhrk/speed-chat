@@ -1,5 +1,3 @@
-import type { Chat, DbMessage } from "@/lib/db/schema";
-import { useShape } from "@electric-sql/react";
 import { useEffect, useState } from "react";
 import { env } from "@/lib/env";
 import type { User } from "better-auth";
@@ -10,6 +8,8 @@ import { toast } from "sonner";
 import { useChat } from "@ai-sdk/react";
 import { type Attachment, createIdGenerator, type Message } from "ai";
 import { useSettingsContext } from "@/components/providers/settings-provider";
+import { createChat, insertUserMessageToDb } from "@/lib/db/actions";
+import { ShapeStream, Shape } from "@electric-sql/client";
 
 interface UseElectricChatProps {
   user: User | null;
@@ -45,6 +45,12 @@ export function useElectricChat({
   const [isInputCentered, setIsInputCentered] = useState(!chatId);
   const [isNewlyCreated, setIsNewlyCreated] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
+  const [isInitiatingClient, setIsInitiatingClient] = useState(false);
+
+  const [localChats, setLocalChats] = useState<any[]>([]);
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
 
   // Sync the chatId from the URL with the state
   useEffect(() => {
@@ -57,49 +63,62 @@ export function useElectricChat({
     }
   }, [chatIdParams, pathname]);
 
-  const {
-    isLoading: isLoadingChats,
-    data: chats,
-    isError: isErrorChats,
-    error: errorChats,
-  } = useShape<Chat>({
-    url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
-    params: {
-      table: "chats",
-      where: `user_id = '${user?.id}'`,
-    },
-  });
-
-  const {
-    isLoading: isLoadingMessages,
-    data: messages,
-    isError: isErrorMessages,
-    error: errorMessages,
-  } = useShape<DbMessage>({
-    url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
-    params: {
-      table: "messages",
-      //   where: `chatId = '${chatId}'`,
-    },
-  });
-
-  console.log("chats", chats);
-  console.log("messages", messages);
-
+  // Conditional chats subscription
   useEffect(() => {
-    if (isErrorChats) {
-      toast.error(`Error loading chats: ${errorChats}`);
-    }
+    if (!user?.id) return;
 
-    if (isErrorMessages) {
-      toast.error(
-        `Error loading messages for chat ${chatId}: ${errorMessages}  `
-      );
+    const chatsStream = new ShapeStream({
+      url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
+      params: {
+        table: "chats",
+        where: `user_id = '${user.id}'`,
+      },
+    });
+
+    const chats = new Shape(chatsStream);
+
+    const unsubscribe = chats.subscribe(({ rows }) => {
+      console.log("chats rows", rows);
+      setLocalChats(rows);
+      setIsLoadingChats(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.id]);
+
+  // Conditional messages subscription
+  useEffect(() => {
+    if (!chatId) {
+      setIsLoadingMessages(false);
+      return;
     }
-  }, [isErrorChats, isErrorMessages, chatId, errorChats, errorMessages]);
+    setIsLoadingMessages(true);
+
+    const messagesStream = new ShapeStream({
+      url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
+      params: {
+        table: "messages",
+        where: `chat_id = '${chatId}'`,
+      },
+    });
+
+    const messages = new Shape(messagesStream);
+
+    const unsubscribe = messages.subscribe(({ rows }) => {
+      console.log("messages rows", rows);
+      setLocalMessages(rows);
+      setIsLoadingMessages(false);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [chatId]);
 
   const {
-    messages: localMessages,
+    messages,
     input,
     setInput,
     handleInputChange,
@@ -111,8 +130,7 @@ export function useElectricChat({
     setMessages,
   } = useChat({
     id: chatId ?? undefined,
-    initialMessages: messages as Message[],
-    credentials: "include",
+    initialMessages: localMessages as Message[],
     sendExtraMessageFields: true,
     generateId: createIdGenerator({
       prefix: "user",
@@ -131,6 +149,13 @@ export function useElectricChat({
       reasoningEnabled,
     },
   });
+
+  // Sync localMessages with messages state (only for non-initiating clients)
+  useEffect(() => {
+    if (localMessages.length > 0 && chatId && !isInitiatingClient) {
+      setMessages(localMessages as Message[]);
+    }
+  }, [localMessages, setMessages, chatId, isInitiatingClient]);
 
   const isMessageStreaming = status === "submitted" || status === "streaming";
 
@@ -179,9 +204,12 @@ export function useElectricChat({
 
     if (!chatId) {
       setIsNewlyCreated(true);
+      setIsInitiatingClient(true);
       const newChatId = crypto.randomUUID();
       setChatId(newChatId);
       setIsInputCentered(false);
+
+      createChat(newChatId, input, attachments);
 
       window.history.replaceState({}, "", `/chat/${newChatId}`);
       handleSubmit(e, {
@@ -190,19 +218,25 @@ export function useElectricChat({
       });
       setTimeout(() => {
         setIsNewlyCreated(false);
+        setIsInitiatingClient(false);
       }, 500);
     } else {
+      setIsInitiatingClient(true);
+      insertUserMessageToDb(chatId, input, attachments);
       handleSubmit(e, {
         experimental_attachments: attachments,
         allowEmptySubmit: true,
       });
+      setTimeout(() => {
+        setIsInitiatingClient(false);
+      }, 100);
     }
     clearFiles();
   };
 
   return {
-    chats,
-    localMessages,
+    chats: localChats,
+    messages,
     temporaryChat,
     chatId,
     isInputCentered,
