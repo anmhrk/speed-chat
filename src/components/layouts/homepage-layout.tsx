@@ -5,7 +5,6 @@ import type { User } from "better-auth";
 import type { FileMetadata } from "@/lib/types";
 import { Dispatch, SetStateAction } from "react";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { useMobile } from "@/hooks/use-mobile";
 
 interface HomepageLayoutProps {
   user: User | null;
@@ -60,30 +59,64 @@ export function HomepageLayout({
   isModelPickerOpen,
   setIsModelPickerOpen,
 }: HomepageLayoutProps) {
-  const { isMobile } = useMobile();
-
   return (
     <>
-      {isMobile ? (
-        <>
-          <div className="flex-1 flex items-center justify-center px-3">
-            <div className="flex flex-col gap-4 mx-auto max-w-3xl w-full items-center">
-              <WelcomeSection
-                user={user}
-                greeting={greeting}
-                temporaryChat={temporaryChat}
-                className={temporaryChat ? "mb-8" : "mb-4"}
+      {/* Mobile Layout */}
+      <div className="md:hidden flex flex-col h-full">
+        <div className="flex-1 flex items-center justify-center px-3">
+          <div className="flex flex-col gap-4 mx-auto max-w-3xl w-full items-center">
+            <WelcomeSection
+              user={user}
+              greeting={greeting}
+              temporaryChat={temporaryChat}
+              className={temporaryChat ? "mb-8" : "mb-4"}
+            />
+            {!temporaryChat && (
+              <Suggestions
+                inputRef={inputRef}
+                setInput={setInput}
+                promptSuggestions={promptSuggestions}
               />
-              {!temporaryChat && (
-                <Suggestions
-                  inputRef={inputRef}
-                  setInput={setInput}
-                  promptSuggestions={promptSuggestions}
-                />
-              )}
-            </div>
+            )}
           </div>
-          <div className="shrink-0 px-3 pb-3">
+        </div>
+        <div className="shrink-0 px-3 pb-3">
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleChatSubmit}
+            stop={stop}
+            isMessageStreaming={isMessageStreaming}
+            user={user}
+            files={files}
+            setFiles={setFiles}
+            fileMetadata={fileMetadata}
+            isUploading={isUploading}
+            fileInputRef={fileInputRef}
+            handleFileChange={handleFileChange}
+            removeFile={removeFile}
+            acceptsPdf={acceptsPdf}
+            searchEnabled={searchEnabled}
+            setSearchEnabled={setSearchEnabled}
+            isOnSharedPage={isOnSharedPage}
+            inputRef={inputRef}
+            isModelPickerOpen={isModelPickerOpen}
+            setIsModelPickerOpen={setIsModelPickerOpen}
+          />
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:flex h-full items-center justify-center px-3">
+        <div className="flex flex-col gap-6 mx-auto max-w-3xl w-full items-center">
+          <WelcomeSection
+            user={user}
+            greeting={greeting}
+            temporaryChat={temporaryChat}
+            className={temporaryChat ? "mb-2" : "mb-4"}
+          />
+          <div className="w-full max-w-3xl">
             <ChatInput
               input={input}
               setInput={setInput}
@@ -108,51 +141,15 @@ export function HomepageLayout({
               setIsModelPickerOpen={setIsModelPickerOpen}
             />
           </div>
-        </>
-      ) : (
-        <div className="h-full flex items-center justify-center px-3">
-          <div className="flex flex-col gap-6 mx-auto max-w-3xl w-full items-center">
-            <WelcomeSection
-              user={user}
-              greeting={greeting}
-              temporaryChat={temporaryChat}
-              className={temporaryChat ? "mb-2" : "mb-4"}
+          {!temporaryChat && (
+            <Suggestions
+              inputRef={inputRef}
+              setInput={setInput}
+              promptSuggestions={promptSuggestions}
             />
-            <div className="w-full max-w-3xl">
-              <ChatInput
-                input={input}
-                setInput={setInput}
-                handleInputChange={handleInputChange}
-                handleSubmit={handleChatSubmit}
-                stop={stop}
-                isMessageStreaming={isMessageStreaming}
-                user={user}
-                files={files}
-                setFiles={setFiles}
-                fileMetadata={fileMetadata}
-                isUploading={isUploading}
-                fileInputRef={fileInputRef}
-                handleFileChange={handleFileChange}
-                removeFile={removeFile}
-                acceptsPdf={acceptsPdf}
-                searchEnabled={searchEnabled}
-                setSearchEnabled={setSearchEnabled}
-                isOnSharedPage={isOnSharedPage}
-                inputRef={inputRef}
-                isModelPickerOpen={isModelPickerOpen}
-                setIsModelPickerOpen={setIsModelPickerOpen}
-              />
-            </div>
-            {!temporaryChat && (
-              <Suggestions
-                inputRef={inputRef}
-                setInput={setInput}
-                promptSuggestions={promptSuggestions}
-              />
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 }

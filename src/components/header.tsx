@@ -12,7 +12,6 @@ import type { User } from "better-auth";
 import { forkChat } from "@/lib/actions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,110 +37,123 @@ export function Header({
   onSearchChatsOpen,
 }: HeaderProps) {
   const { open } = useSidebar();
-  const { isMobile } = useMobile();
   const router = useRouter();
   const isOnHomePage = usePathname() === "/";
 
-  if (isMobile) {
-    return (
-      <MobileHeader
-        user={user}
-        temporaryChat={temporaryChat}
-        onSearchChatsOpen={onSearchChatsOpen}
-        chatId={chatId}
-        isOnSharedPage={isOnSharedPage}
-        didUserCreate={didUserCreate}
-      />
-    );
-  }
-
   return (
-    <div className="flex items-center justify-between h-12 p-3">
-      <div className="flex items-center gap-1.5">
-        <SidebarTrigger />
-        {(!open || isMobile) && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              asChild
-            >
-              <Link href="/">
-                <Plus className="size-5" />
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={onSearchChatsOpen}
-            >
-              <Search className="size-4.5" />
-            </Button>
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <ForkButton
+    <>
+      {/* Mobile Header */}
+      <div className="md:hidden">
+        <MobileHeader
+          user={user}
+          temporaryChat={temporaryChat}
+          onSearchChatsOpen={onSearchChatsOpen}
           chatId={chatId}
           isOnSharedPage={isOnSharedPage}
           didUserCreate={didUserCreate}
-          user={user}
         />
-
-        {isOnHomePage && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                asChild
-              >
-                <Link
-                  href="https://github.com/anmhrk/speed-chat"
-                  target="_blank"
-                >
-                  <Github className="size-5" />
-                  <span className="sr-only">GitHub</span>
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>View repo on GitHub</TooltipContent>
-          </Tooltip>
-        )}
-
-        <ThemeToggle />
-
-        {user && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <Toggle
-                  size="icon"
-                  pressed={temporaryChat}
-                  onPressedChange={() => {
-                    if (temporaryChat) {
-                      router.push("/");
-                    } else {
-                      router.push("/?temporary=true");
-                    }
-                  }}
-                  className="rounded-full"
-                >
-                  <Ghost className="size-5" />
-                  <span className="sr-only">Temporary Chat</span>
-                </Toggle>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              {temporaryChat ? "Close Temporary Chat" : "Start Temporary Chat"}
-            </TooltipContent>
-          </Tooltip>
-        )}
       </div>
-    </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:flex items-center justify-between h-12 p-3">
+        <div className="flex items-center gap-1.5">
+          <SidebarTrigger />
+          {!open && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    asChild
+                  >
+                    <Link href="/">
+                      <Plus className="size-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>New chat</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={onSearchChatsOpen}
+                  >
+                    <Search className="size-4.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Search chats</TooltipContent>
+              </Tooltip>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ForkButton
+            chatId={chatId}
+            isOnSharedPage={isOnSharedPage}
+            didUserCreate={didUserCreate}
+            user={user}
+          />
+
+          {isOnHomePage && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  asChild
+                >
+                  <Link
+                    href="https://github.com/anmhrk/speed-chat"
+                    target="_blank"
+                  >
+                    <Github className="size-5" />
+                    <span className="sr-only">GitHub</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>View repo on GitHub</TooltipContent>
+            </Tooltip>
+          )}
+
+          <ThemeToggle />
+
+          {user && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Toggle
+                    size="icon"
+                    pressed={temporaryChat}
+                    onPressedChange={() => {
+                      if (temporaryChat) {
+                        router.push("/");
+                      } else {
+                        router.push("/?temporary=true");
+                      }
+                    }}
+                    className="rounded-full"
+                  >
+                    <Ghost className="size-5" />
+                    <span className="sr-only">Temporary Chat</span>
+                  </Toggle>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {temporaryChat
+                  ? "Close Temporary Chat"
+                  : "Start Temporary Chat"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
