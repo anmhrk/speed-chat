@@ -34,6 +34,8 @@ interface ChatLayoutProps {
   searchEnabled: boolean;
   setSearchEnabled: Dispatch<SetStateAction<boolean>>;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  isModelPickerOpen: boolean;
+  setIsModelPickerOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export function ChatLayout({
@@ -64,6 +66,8 @@ export function ChatLayout({
   searchEnabled,
   setSearchEnabled,
   inputRef,
+  isModelPickerOpen,
+  setIsModelPickerOpen,
 }: ChatLayoutProps) {
   const hasMessages =
     messages.length > 0 || (initialMessages && initialMessages.length > 0);
@@ -104,6 +108,8 @@ export function ChatLayout({
           setSearchEnabled={setSearchEnabled}
           isOnSharedPage={isOnSharedPage}
           inputRef={inputRef}
+          isModelPickerOpen={isModelPickerOpen}
+          setIsModelPickerOpen={setIsModelPickerOpen}
         />
       </div>
     </>

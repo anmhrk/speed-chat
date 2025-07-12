@@ -35,14 +35,18 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "./ui/dialog";
 import { cn } from "@/lib/utils";
 import type { ModelConfig, Models } from "@/lib/types";
 import { Switch } from "./ui/switch";
+import { Dispatch, SetStateAction } from "react";
 
 export function ModelPicker({
   hasFilesUploaded,
+  isModelPickerOpen,
+  setIsModelPickerOpen,
 }: {
   hasFilesUploaded: boolean;
+  isModelPickerOpen: boolean;
+  setIsModelPickerOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const [search, setSearch] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
   const {
     isHydrated,
     model,
@@ -81,7 +85,7 @@ export function ModelPicker({
 
   const onModelSelect = (modelId: Models) => {
     setModel(modelId);
-    setIsOpen(false);
+    setIsModelPickerOpen(false);
     setSearch("");
   };
 
@@ -185,7 +189,7 @@ export function ModelPicker({
     <>
       {isHydrated && model && reasoningEffort && (
         <div className="flex items-center gap-1">
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
             <DialogTrigger asChild>
               <Button
                 variant="ghost"

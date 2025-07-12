@@ -73,6 +73,7 @@ export function ChatPage({
     acceptsPdf,
   } = useAttachments(model);
   const [isSearchChatsOpen, setIsSearchChatsOpen] = useState(false);
+  const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isInputCentered, setIsInputCentered] = useState(!chatId);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(
     promptSuggestions || []
@@ -185,13 +186,16 @@ export function ChatPage({
   });
 
   useShortcuts(
-    ["cmd+k", "cmd+shift+o"],
+    ["cmd+k", "cmd+shift+o", "cmd+/"],
     [
       () => {
         setIsSearchChatsOpen(true);
       },
       () => {
         router.push("/");
+      },
+      () => {
+        setIsModelPickerOpen(true);
       },
     ]
   );
@@ -341,6 +345,8 @@ export function ChatPage({
     searchEnabled,
     setSearchEnabled,
     isOnSharedPage: isOnSharedPage ?? false,
+    isModelPickerOpen,
+    setIsModelPickerOpen,
   };
 
   const chatLayoutProps = {

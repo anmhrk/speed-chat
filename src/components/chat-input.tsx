@@ -53,6 +53,8 @@ interface ChatInputProps {
   setSearchEnabled: Dispatch<SetStateAction<boolean>>;
   isOnSharedPage: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  isModelPickerOpen: boolean;
+  setIsModelPickerOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export function ChatInput({
@@ -74,6 +76,8 @@ export function ChatInput({
   setSearchEnabled,
   isOnSharedPage,
   inputRef,
+  isModelPickerOpen,
+  setIsModelPickerOpen,
 }: ChatInputProps) {
   const { model, apiKeys, hasAnyKey } = useSettingsContext();
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
@@ -153,7 +157,11 @@ export function ChatInput({
       />
       <div className="flex items-center justify-between px-1 pt-2">
         <div className="flex items-center gap-1.5">
-          <ModelPicker hasFilesUploaded={files.length > 0} />
+          <ModelPicker
+            hasFilesUploaded={files.length > 0}
+            isModelPickerOpen={isModelPickerOpen}
+            setIsModelPickerOpen={setIsModelPickerOpen}
+          />
           {supportsWebSearch(model) && (
             <Tooltip>
               <TooltipTrigger asChild>

@@ -30,6 +30,8 @@ interface HomepageLayoutProps {
   searchEnabled: boolean;
   setSearchEnabled: Dispatch<SetStateAction<boolean>>;
   isOnSharedPage: boolean;
+  isModelPickerOpen: boolean;
+  setIsModelPickerOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export function HomepageLayout({
@@ -55,6 +57,8 @@ export function HomepageLayout({
   searchEnabled,
   setSearchEnabled,
   isOnSharedPage,
+  isModelPickerOpen,
+  setIsModelPickerOpen,
 }: HomepageLayoutProps) {
   const { isMobile } = useMobile();
 
@@ -100,6 +104,8 @@ export function HomepageLayout({
               setSearchEnabled={setSearchEnabled}
               isOnSharedPage={isOnSharedPage}
               inputRef={inputRef}
+              isModelPickerOpen={isModelPickerOpen}
+              setIsModelPickerOpen={setIsModelPickerOpen}
             />
           </div>
         </>
@@ -133,6 +139,8 @@ export function HomepageLayout({
                 setSearchEnabled={setSearchEnabled}
                 isOnSharedPage={isOnSharedPage}
                 inputRef={inputRef}
+                isModelPickerOpen={isModelPickerOpen}
+                setIsModelPickerOpen={setIsModelPickerOpen}
               />
             </div>
             {!temporaryChat && (

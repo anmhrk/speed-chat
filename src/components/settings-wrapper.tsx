@@ -142,6 +142,19 @@ export function SettingsWrapper({
                   <ShortcutBox>B</ShortcutBox>
                 </div>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Show Model Picker</span>
+                <div className="flex items-center gap-1">
+                  {showCmdKey ? (
+                    <ShortcutBox>
+                      <Command className="size-4" />
+                    </ShortcutBox>
+                  ) : (
+                    <ShortcutBox type="ctrl">Ctrl</ShortcutBox>
+                  )}
+                  <ShortcutBox>/</ShortcutBox>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -177,7 +190,7 @@ function ShortcutBox({
     <kbd
       className={cn(
         "flex items-center justify-center h-7 text-md bg-primary/10 dark:bg-muted border border-border rounded-sm",
-        type === "shift" || type === "ctrl" ? "w-fit px-2" : "w-7",
+        type === "shift" || type === "ctrl" ? "w-fit px-2" : "w-7"
       )}
     >
       {children}
