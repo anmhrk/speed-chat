@@ -7,9 +7,9 @@ import {
   Meta,
   Grok,
   FalAi,
-  Gemini,
   Qwen,
   Moonshot,
+  Google,
 } from "@/components/provider-icons";
 
 export const REASONING_EFFORTS: ReasoningEffortConfig[] = [
@@ -31,7 +31,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "google/gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
-    icon: <Gemini />,
+    icon: <Google />,
     providerId: "openrouter",
     providerName: "OpenRouter",
     default: true,
@@ -45,7 +45,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "google/gemini-2.5-flash-lite-preview-06-17",
     name: "Gemini 2.5 Flash Lite",
-    icon: <Gemini />,
+    icon: <Google />,
     providerId: "openrouter",
     providerName: "OpenRouter",
     features: {
@@ -58,7 +58,7 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
   {
     id: "google/gemini-2.5-pro",
     name: "Gemini 2.5 Pro",
-    icon: <Gemini />,
+    icon: <Google />,
     providerId: "openrouter",
     providerName: "OpenRouter",
     features: {
