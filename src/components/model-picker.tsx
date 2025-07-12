@@ -1,4 +1,4 @@
-import { AVAILABLE_MODELS } from "@/lib/models";
+import { AVAILABLE_MODELS } from "@/lib/ai/models";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import {
   REASONING_EFFORTS,
@@ -8,7 +8,7 @@ import {
   hasReasoningCapability,
   supportsImageInput,
   supportsPdfInput,
-} from "@/lib/models";
+} from "@/lib/ai/models";
 import {
   Brain,
   File,

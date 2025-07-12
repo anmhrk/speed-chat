@@ -1,5 +1,5 @@
 import { ChatPage } from "@/components/chat-page";
-import { getUser } from "@/lib/auth/get-user";
+import { getUser } from "@/lib/actions";
 import { getRandomGreeting, getRandomPromptSuggestions } from "@/lib/random";
 
 export default async function Home() {

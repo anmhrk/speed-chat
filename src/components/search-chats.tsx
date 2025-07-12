@@ -11,7 +11,7 @@ import {
   CommandGroup,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { searchChats } from "@/lib/db/actions";
+import { searchChats } from "@/lib/actions";
 import {
   MessageSquare,
   Hash,
@@ -37,7 +37,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
 
   const debouncedSetQuery = useMemo(
     () => debounce((query: string) => setDebouncedQuery(query), 500),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
         </span>
       ) : (
         part
-      ),
+      )
     );
   };
 
@@ -140,7 +140,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                               {result.titleMatch
                                 ? highlightMatch(
                                     result.chat.title,
-                                    debouncedQuery,
+                                    debouncedQuery
                                   )
                                 : result.chat.title}
                             </div>
@@ -149,7 +149,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                                 new Date(result.chat.updatedAt),
                                 {
                                   addSuffix: true,
-                                },
+                                }
                               )}
                             </div>
                           </div>
@@ -206,7 +206,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                                 <div className="text-xs">
                                   {highlightMatch(
                                     truncateText(message.content, 100),
-                                    debouncedQuery,
+                                    debouncedQuery
                                   )}
                                 </div>
                               </div>

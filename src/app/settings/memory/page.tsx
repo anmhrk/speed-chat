@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { getMemories, deleteMemory } from "@/lib/db/actions";
+import { getMemories, deleteMemory } from "@/lib/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash, Brain, Calendar } from "lucide-react";
@@ -92,7 +92,7 @@ export default function MemoryPage() {
                       Added{" "}
                       {format(
                         new Date(memory.createdAt),
-                        "MMM d, yyyy 'at' h:mm a",
+                        "MMM d, yyyy 'at' h:mm a"
                       )}
                     </span>
                   </div>
@@ -102,7 +102,7 @@ export default function MemoryPage() {
                   size="sm"
                   onClick={() => {
                     queryClient.setQueryData(["memories"], (old: Memory[]) =>
-                      old.filter((m) => m.id !== memory.id),
+                      old.filter((m) => m.id !== memory.id)
                     );
                     try {
                       deleteMemory(memory.id);

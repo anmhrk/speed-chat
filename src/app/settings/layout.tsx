@@ -1,5 +1,5 @@
 import { SettingsWrapper } from "@/components/settings-wrapper";
-import { getUser } from "@/lib/auth/get-user";
+import { getUser } from "@/lib/actions";
 import { redirect } from "next/navigation";
 
 export default async function SettingsLayout({

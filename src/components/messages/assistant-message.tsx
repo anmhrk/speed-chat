@@ -35,7 +35,7 @@ import type {
 } from "@/lib/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { branchOffChat } from "@/lib/db/actions";
+import { branchOffChat } from "@/lib/actions";
 import { ReasoningBlock } from "@/components/messages/reasoning-block";
 import { WebSearchBlock } from "@/components/messages/web-search-block";
 import { MemoryBlock } from "@/components/messages/memory";

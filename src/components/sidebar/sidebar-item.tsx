@@ -23,10 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { getMessages } from "@/lib/db/actions";
-import { renameChatTitle } from "@/lib/db/actions";
-import { pinChat } from "@/lib/db/actions";
-import { deleteChat } from "@/lib/db/actions";
+import {
+  getMessages,
+  renameChatTitle,
+  pinChat,
+  deleteChat,
+} from "@/lib/actions";
 import {
   GitBranch,
   Loader2,

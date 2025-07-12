@@ -11,7 +11,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/providers/settings-provider";
-import { createChat, getMessages } from "@/lib/db/actions";
+import { createChat, getMessages } from "@/lib/actions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chat } from "@/lib/db/schema";
 import { useAttachments } from "@/hooks/use-attachments";
@@ -21,7 +21,7 @@ import type { StreamData } from "@/lib/types";
 import { ChatLayout } from "@/components/layouts/chat-layout";
 import { HomepageLayout } from "@/components/layouts/homepage-layout";
 import { getRandomPromptSuggestions } from "@/lib/random";
-import { isImageGenerationModel } from "@/lib/models";
+import { isImageGenerationModel } from "@/lib/ai/models";
 
 interface ChatPageProps {
   user: User | null;

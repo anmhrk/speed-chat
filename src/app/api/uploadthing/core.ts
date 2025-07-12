@@ -1,6 +1,6 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
-import { getUser } from "@/lib/auth/get-user";
+import { getUser } from "@/lib/actions";
 
 const f = createUploadthing();
 

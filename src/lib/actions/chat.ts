@@ -1,15 +1,13 @@
 "use server";
 
-import { getUser } from "../auth/get-user";
-import { db } from ".";
-import { chats, messages, memories, user as userTable } from "./schema";
+import { db } from "../db";
+import { chats, messages } from "../db/schema";
+import { getUser } from ".";
+import { eq, desc, and, asc, inArray } from "drizzle-orm";
 import { generateText, type LanguageModel, type Message } from "ai";
-import { and, asc, desc, eq, inArray, ilike } from "drizzle-orm";
-import { deleteFiles } from "../uploadthing";
-import { titleGenerationPrompt } from "../prompts";
-import { ImageGenerationToolInvocation } from "../types";
+import { titleGenerationPrompt } from "../ai/prompts";
+import { deleteFiles } from "./uploadthing";
 
-// CHATS
 export async function getChats() {
   const user = await getUser();
   if (!user) {
@@ -160,7 +158,7 @@ export async function deleteAllChats() {
   await db.delete(chats).where(eq(chats.userId, user.id));
 }
 
-async function deleteAllAttachments(
+export async function deleteAllAttachments(
   type: "all" | "single",
   userId?: string,
   chatId?: string
@@ -246,209 +244,4 @@ export async function verifySharedChat(
     success: true,
     didUserCreate: true,
   };
-}
-
-// CHAT ACTIONS
-export async function deleteChat(chatId: string) {
-  await deleteAllAttachments("single", undefined, chatId);
-  await db.delete(chats).where(eq(chats.id, chatId));
-}
-
-export async function renameChatTitle(chatId: string, newTitle: string) {
-  await db.update(chats).set({ title: newTitle }).where(eq(chats.id, chatId));
-}
-
-export async function pinChat(chatId: string) {
-  const [chat] = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.id, chatId))
-    .limit(1);
-
-  await db
-    .update(chats)
-    .set({ isPinned: !chat.isPinned })
-    .where(eq(chats.id, chatId));
-}
-
-export async function branchOffChat(parentChatId: string, newChatId: string) {
-  const [parentChat] = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.id, parentChatId))
-    .limit(1);
-
-  const parentChatMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, parentChatId));
-
-  await db.insert(chats).values({
-    id: newChatId,
-    title: parentChat.title,
-    userId: parentChat.userId,
-    isBranched: true,
-    parentChatId,
-  });
-
-  await db.insert(messages).values(
-    parentChatMessages.map((message) => ({
-      ...message,
-      id: `${message.id}-branch-${crypto.randomUUID()}`,
-      chatId: newChatId,
-    }))
-  );
-}
-
-// Just like branchOffChat but the new chatId's userId is the current user's id instead of the prev chat's userId
-export async function forkChat(sharedChatId: string, newChatId: string) {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const [chat] = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.id, sharedChatId))
-    .limit(1);
-
-  const chatMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, sharedChatId));
-
-  await db.insert(chats).values({
-    id: newChatId,
-    title: chat.title,
-    userId: user.id,
-  });
-
-  await db.insert(messages).values(
-    chatMessages.map((message) => ({
-      ...message,
-      id: `${message.id}-fork-${crypto.randomUUID()}`,
-      chatId: newChatId,
-    }))
-  );
-}
-
-export async function shareChat(chatId: string) {
-  const [chat] = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.id, chatId))
-    .limit(1);
-
-  await db
-    .update(chats)
-    .set({ isShared: !chat.isShared })
-    .where(eq(chats.id, chatId));
-}
-
-// MEMORIES
-export async function getMemories() {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  return await db.select().from(memories).where(eq(memories.userId, user.id));
-}
-
-export async function addMemory(memory: string) {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  await db.insert(memories).values({
-    id: crypto.randomUUID(),
-    createdAt: new Date(),
-    userId: user.id,
-    memory,
-  });
-}
-
-export async function deleteMemory(memoryId: string) {
-  await db.delete(memories).where(eq(memories.id, memoryId));
-}
-
-// USER
-export async function deleteUser() {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  await deleteAllAttachments("all", user.id);
-  await db.delete(userTable).where(eq(userTable.id, user.id));
-  // Everything else is deleted automatically due to cascade
-}
-
-// SEARCH
-export async function searchChats(query: string) {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const userChats = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.userId, user.id))
-    .orderBy(desc(chats.updatedAt));
-
-  const chatIds = userChats.map((chat) => chat.id);
-  const pattern = `%${query}%`;
-
-  const matchedMessages = await db
-    .select({
-      id: messages.id,
-      chatId: messages.chatId,
-      content: messages.content,
-      role: messages.role,
-      createdAt: messages.createdAt,
-    })
-    .from(messages)
-    .where(
-      and(inArray(messages.chatId, chatIds), ilike(messages.content, pattern))
-    )
-    .orderBy(desc(messages.createdAt));
-
-  // Group messages by chat for quick lookup
-  const messagesByChat = matchedMessages.reduce(
-    (acc, message) => {
-      if (!acc[message.chatId]) {
-        acc[message.chatId] = [];
-      }
-      acc[message.chatId].push(message);
-      return acc;
-    },
-    {} as Record<string, typeof matchedMessages>
-  );
-
-  const searchResults = [];
-  const lowerQuery = query.toLowerCase();
-
-  for (const chat of userChats) {
-    // Only consider messages that already matched in SQL
-    const chatMessages = messagesByChat[chat.id] || [];
-
-    // Check if chat title matches
-    const titleMatch = chat.title.toLowerCase().includes(lowerQuery);
-
-    // chatMessages are already matching, we just need the newest three
-    const matchingMessages = chatMessages.slice(0, 3);
-
-    if (titleMatch || matchingMessages.length > 0) {
-      searchResults.push({
-        chat,
-        matchingMessages: matchingMessages,
-        titleMatch,
-      });
-    }
-  }
-
-  return searchResults;
 }

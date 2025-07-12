@@ -1,4 +1,4 @@
-import { shareChat } from "@/lib/db/actions";
+import { shareChat } from "@/lib/actions";
 import { toast } from "sonner";
 import { Chat } from "@/lib/db/schema";
 import { useQueryClient } from "@tanstack/react-query";

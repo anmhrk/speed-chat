@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getChats } from "@/lib/db/actions";
+import { getChats } from "@/lib/actions";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import Link from "next/link";

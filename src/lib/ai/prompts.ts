@@ -1,6 +1,6 @@
 import { format } from "date-fns";
-import type { Customization } from "./types";
-import type { Memory } from "./db/schema";
+import type { Customization } from "../types";
+import type { Memory } from "../db/schema";
 
 export const chatPrompt = (
   modelName: string,

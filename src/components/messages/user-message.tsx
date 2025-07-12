@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { deleteFiles } from "@/lib/uploadthing";
+import { deleteFiles } from "@/lib/actions/uploadthing";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
 
 interface UserMessageProps {

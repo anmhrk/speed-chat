@@ -1,6 +1,6 @@
 import { ChatPage } from "@/components/chat-page";
-import { getUser } from "@/lib/auth/get-user";
-import { verifySharedChat } from "@/lib/db/actions";
+import { getUser } from "@/lib/actions";
+import { verifySharedChat } from "@/lib/actions";
 import { redirect } from "next/navigation";
 
 export default async function SharePage({

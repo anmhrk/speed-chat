@@ -9,7 +9,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import type { User } from "better-auth";
-import { forkChat } from "@/lib/db/actions";
+import { forkChat } from "@/lib/actions";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMobile } from "@/components/providers/mobile-provider";

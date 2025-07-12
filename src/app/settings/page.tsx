@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { deleteAllChats, deleteUser } from "@/lib/db/actions";
+import { deleteAllChats, deleteUser } from "@/lib/actions";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

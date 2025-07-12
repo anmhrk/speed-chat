@@ -1,5 +1,5 @@
 import { Sparkle, Sparkles, WandSparkles } from "lucide-react";
-import { ModelConfig, ReasoningEffortConfig, Models } from "./types";
+import { ModelConfig, ReasoningEffortConfig, Models } from "../types";
 import {
   OpenAI,
   Anthropic,

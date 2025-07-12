@@ -24,17 +24,17 @@ import {
   hasEffortControl,
   isImageGenerationModel,
   isReasoningModel,
-} from "@/lib/models";
-import { getUser } from "@/lib/auth/get-user";
+} from "@/lib/ai/models";
 import {
   addMemory,
   saveMessages,
   generateChatTitle,
   getMemories,
-} from "@/lib/db/actions";
-import { uploadBase64Image } from "@/lib/uploadthing";
+  uploadBase64Image,
+  getUser,
+} from "@/lib/actions";
 import { z } from "zod";
-import { chatPrompt, imageGenerationPrompt } from "@/lib/prompts";
+import { chatPrompt, imageGenerationPrompt } from "@/lib/ai/prompts";
 import Exa from "exa-js";
 import type { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";

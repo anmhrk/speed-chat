@@ -1,4 +1,4 @@
-import { getUser } from "@/lib/auth/get-user";
+import { getUser } from "@/lib/actions";
 import { redirect } from "next/navigation";
 import { ChatPage } from "@/components/chat-page";
 

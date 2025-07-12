@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { z } from "zod";
-import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/models";
+import { AVAILABLE_MODELS, REASONING_EFFORTS } from "@/lib/ai/models";
 import type {
   Customization,
   Models,
