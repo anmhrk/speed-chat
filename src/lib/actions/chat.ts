@@ -35,7 +35,7 @@ export async function insertUserMessageToDb(
     role: "user",
     createdAt: userMessage.createdAt ?? new Date(),
     parts: [{ type: "text", text: userMessage.content }],
-    experimental_attachments: userMessage.experimental_attachments ?? undefined,
+    experimentalAttachments: userMessage.experimental_attachments ?? undefined,
   });
 }
 

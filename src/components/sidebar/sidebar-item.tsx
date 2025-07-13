@@ -133,7 +133,9 @@ export function SidebarItem({
               onClick={async () => {
                 try {
                   await pinChat(chat.id);
-                  toast.success(chat.isPinned ? "Chat unpinned" : "Chat pinned");
+                  toast.success(
+                    chat.isPinned ? "Chat unpinned" : "Chat pinned"
+                  );
                 } catch (error) {
                   console.error(error);
                   toast.error("Failed to pin chat");
@@ -169,16 +171,18 @@ export function SidebarItem({
             <DropdownMenuItem
               variant="destructive"
               onClick={async () => {
-                try {
-                  await deleteChat(chat.id);
-                  toast.success("Chat deleted");
-                  if (chat.id === chatIdParams) {
-                    router.push("/");
+                toast.promise(
+                  deleteChat(chat.id).then(() => {
+                    if (chat.id === chatIdParams) {
+                      router.push("/");
+                    }
+                  }),
+                  {
+                    loading: "Deleting chat...",
+                    success: "Chat deleted",
+                    error: "Failed to delete chat",
                   }
-                } catch (error) {
-                  console.error(error);
-                  toast.error("Failed to delete chat");
-                }
+                );
               }}
             >
               <Trash2 />

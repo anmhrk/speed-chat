@@ -64,49 +64,49 @@ export const verification = pgTable("verification", {
 export const chats = pgTable("chats", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
-  userId: text("user_id")
+  userId: text("userId")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at")
+  createdAt: timestamp("createdAt")
     .notNull()
     .$defaultFn(() => new Date()),
-  updatedAt: timestamp("updated_at")
+  updatedAt: timestamp("updatedAt")
     .notNull()
     .$defaultFn(() => new Date()),
-  isPinned: boolean("is_pinned")
+  isPinned: boolean("isPinned")
     .notNull()
     .$defaultFn(() => false),
-  isShared: boolean("is_shared")
+  isShared: boolean("isShared")
     .notNull()
     .$defaultFn(() => false),
-  isBranched: boolean("is_branched")
+  isBranched: boolean("isBranched")
     .notNull()
     .$defaultFn(() => false),
-  parentChatId: text("parent_chat_id"),
+  parentChatId: text("parentChatId"),
 });
 
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
-  chatId: text("chat_id")
+  chatId: text("chatId")
     .notNull()
     .references(() => chats.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   role: text("role").notNull(),
   annotations: jsonb("annotations").$type<Message["annotations"]>(),
   parts: jsonb("parts").$type<Message["parts"]>(),
-  experimental_attachments: jsonb("experimental_attachments").$type<
+  experimentalAttachments: jsonb("experimentalAttachments").$type<
     Attachment[]
   >(),
-  createdAt: timestamp("created_at").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
 });
 
 export const memories = pgTable("memories", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  userId: text("userId")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   memory: text("memory").notNull(),
-  createdAt: timestamp("created_at").notNull(),
+  createdAt: timestamp("createdAt").notNull(),
 });
 
 export type Chat = typeof chats.$inferSelect;

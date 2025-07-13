@@ -38,7 +38,7 @@ export function useElectric({
       url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
       params: {
         table: "chats",
-        where: `user_id = '${user.id}'`,
+        where: `"userId" = '${user.id}'`,
       },
       onError: (error) => {
         console.error("Error loading chats:", error);
@@ -79,7 +79,7 @@ export function useElectric({
         url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,
         params: {
           table: "messages",
-          where: `chat_id = '${chatId}'`,
+          where: `"chatId" = '${chatId}'`,
         },
         onError: (error) => {
           console.error("Error loading messages:", error);
@@ -133,10 +133,7 @@ export function useElectric({
 
   const sortedChats = useMemo(() => {
     return chats.sort((a, b) => {
-      return (
-        // @ts-expect-error - updated_at is returned by db but not in drizzle type
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   }, [chats]);
 
@@ -149,7 +146,7 @@ export function useElectric({
         createdAt: msg.createdAt,
         annotations: msg.annotations || undefined,
         parts: msg.parts || undefined,
-        experimental_attachments: msg.experimental_attachments || undefined,
+        experimental_attachments: msg.experimentalAttachments || undefined,
       })
     );
   }, [rawMessages]);
