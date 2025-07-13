@@ -1,5 +1,4 @@
 import { Chat } from "@/lib/db/schema";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -46,7 +45,6 @@ export function SidebarItem({
   isMessageStreaming: boolean;
   onShareChat: (chatId: string) => void;
 }) {
-  const queryClient = useQueryClient();
   const { isMobile } = useMobile();
   const router = useRouter();
   const [isRenamingChat, setIsRenamingChat] = useState(false);
@@ -72,18 +70,11 @@ export function SidebarItem({
             value={newChatTitle}
             onChange={(e) => setNewChatTitle(e.target.value)}
             onBlur={clearInput}
-            onKeyDown={(e) => {
+            onKeyDown={async (e) => {
               if (e.key === "Enter") {
-                queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-                  if (!oldData) return oldData;
-                  return oldData.map((chatItem) =>
-                    chatItem.id === chat.id
-                      ? { ...chatItem, title: newChatTitle }
-                      : chatItem
-                  );
-                });
                 try {
-                  renameChatTitle(chat.id, newChatTitle);
+                  await renameChatTitle(chat.id, newChatTitle);
+                  toast.success("Chat renamed");
                 } catch (error) {
                   console.error(error);
                   toast.error("Failed to rename chat");
@@ -140,21 +131,9 @@ export function SidebarItem({
           >
             <DropdownMenuItem
               onClick={async () => {
-                queryClient.setQueryData(["chats"], (oldData: Chat[]) => {
-                  if (!oldData) return oldData;
-                  return oldData.map((chatItem) =>
-                    chatItem.id === chat.id
-                      ? {
-                          ...chatItem,
-                          isPinned: !chatItem.isPinned,
-                        }
-                      : chatItem
-                  );
-                });
-
-                // Update db in background but show optimistic update immediately
                 try {
-                  pinChat(chat.id);
+                  await pinChat(chat.id);
+                  toast.success(chat.isPinned ? "Chat unpinned" : "Chat pinned");
                 } catch (error) {
                   console.error(error);
                   toast.error("Failed to pin chat");
@@ -189,22 +168,17 @@ export function SidebarItem({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => {
-                toast.promise(
-                  deleteChat(chat.id).finally(() => {
-                    queryClient.invalidateQueries({
-                      queryKey: ["chats"],
-                    });
-                    if (chat.id === chatIdParams) {
-                      router.push("/");
-                    }
-                  }),
-                  {
-                    loading: "Deleting chat...",
-                    success: "Chat deleted",
-                    error: "Failed to delete chat",
+              onClick={async () => {
+                try {
+                  await deleteChat(chat.id);
+                  toast.success("Chat deleted");
+                  if (chat.id === chatIdParams) {
+                    router.push("/");
                   }
-                );
+                } catch (error) {
+                  console.error(error);
+                  toast.error("Failed to delete chat");
+                }
               }}
             >
               <Trash2 />

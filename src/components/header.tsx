@@ -11,7 +11,6 @@ import Link from "next/link";
 import type { User } from "better-auth";
 import { forkChat } from "@/lib/actions";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,7 +168,6 @@ function ForkButton({
   user: User | null;
 }) {
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   return (
     <>
@@ -197,7 +195,6 @@ function ForkButton({
                   const newChatId = crypto.randomUUID();
                   toast.promise(
                     forkChat(chatId, newChatId).then(() => {
-                      queryClient.invalidateQueries({ queryKey: ["chats"] });
                       router.push(`/chat/${newChatId}`);
                     }),
                     {

@@ -1,7 +1,6 @@
 import { shareChat } from "@/lib/actions";
 import { toast } from "sonner";
 import { Chat } from "@/lib/db/schema";
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   Dialog,
@@ -27,7 +26,6 @@ export function ShareChatDialog({
   onOpenChange: (open: boolean) => void;
   chat?: Chat;
 }) {
-  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const { isCopied, copyToClipboard } = useCopyClipboard();
 
@@ -42,9 +40,6 @@ export function ShareChatDialog({
     setIsLoading(true);
     try {
       await shareChat(chatId);
-      queryClient.invalidateQueries({
-        queryKey: ["chats"],
-      });
       toast.success(`Chat ${action} successfully!`);
     } catch (error) {
       console.error(error);

@@ -234,8 +234,10 @@ export function ChatPage({
       createChat(newChatId, userMessage);
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
+      setInput("");
       append(userMessage);
     } else {
+      setInput("");
       insertUserMessageToDb(userMessage, chatId);
       append(userMessage);
     }

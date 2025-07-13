@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { deleteAllChats, deleteUser } from "@/lib/actions";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { Settings, Trash } from "lucide-react";
 
 export default function GeneralPage() {
-  const queryClient = useQueryClient();
   const router = useRouter();
   const [deletingAllChats, setDeletingAllChats] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -25,7 +23,6 @@ export default function GeneralPage() {
       try {
         setDeletingAllChats(true);
         await deleteAllChats();
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
         toast.success("All chats deleted successfully!");
       } catch (error) {
         console.error(error);
@@ -45,7 +42,6 @@ export default function GeneralPage() {
       try {
         setDeletingAccount(true);
         await deleteUser();
-        await queryClient.invalidateQueries({ queryKey: ["chats"] });
         void signOut({
           fetchOptions: {
             onSuccess: () => {

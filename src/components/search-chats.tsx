@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { debounce } from "lodash";
 import {
   Command,
@@ -34,6 +33,8 @@ interface SearchChatsProps {
 export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const debouncedSetQuery = useMemo(
     () => debounce((query: string) => setDebouncedQuery(query), 500),
@@ -54,19 +55,29 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
     if (!isOpen) {
       setSearchQuery("");
       setDebouncedQuery("");
+      setSearchResults([]);
     }
   }, [isOpen]);
 
-  const {
-    data: searchResults,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["search-chats", debouncedQuery],
-    queryFn: () => searchChats(debouncedQuery),
-    enabled: Boolean(debouncedQuery.trim()),
-    staleTime: 5 * 60 * 1000,
-  });
+  useEffect(() => {
+    if (!debouncedQuery.trim()) {
+      setSearchResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    searchChats(debouncedQuery)
+      .then((results) => {
+        setSearchResults(results);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error("Search error:", error);
+        setSearchResults([]);
+        setIsLoading(false);
+      });
+  }, [debouncedQuery]);
 
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
@@ -115,10 +126,6 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
                 ) : isLoading ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">
                     Searching...
-                  </div>
-                ) : error ? (
-                  <div className="py-6 text-center text-sm text-destructive">
-                    Error searching chats
                   </div>
                 ) : !searchResults || searchResults.length === 0 ? (
                   <CommandEmpty>
@@ -188,7 +195,7 @@ export function SearchChats({ isOpen, onOpenChange, user }: SearchChatsProps) {
 
                         {result.matchingMessages.length > 0 && (
                           <div className="w-full pl-6 space-y-1">
-                            {result.matchingMessages.map((message) => (
+                            {result.matchingMessages.map((message: any) => (
                               <div
                                 key={message.id}
                                 className="text-xs text-muted-foreground bg-muted/50 rounded p-2"

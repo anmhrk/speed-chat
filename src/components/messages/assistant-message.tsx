@@ -33,7 +33,6 @@ import type {
   ImageGenerationToolInvocation,
   MessageAnnotation,
 } from "@/lib/types";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { branchOffChat } from "@/lib/actions";
 import { ReasoningBlock } from "@/components/messages/reasoning-block";
@@ -58,7 +57,6 @@ export const AssistantMessage = memo(function AssistantMessage({
   isOnSharedPage,
 }: AssistantMessageProps) {
   const isError = message.id.startsWith("error-");
-  const queryClient = useQueryClient();
   const router = useRouter();
   const { isMobile } = useMobile();
   const { isCopied, copyToClipboard } = useCopyClipboard();
@@ -83,7 +81,6 @@ export const AssistantMessage = memo(function AssistantMessage({
 
     toast.promise(
       branchOffChat(parentChatId, newChatId).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
         router.push(`/chat/${newChatId}`);
       }),
       {

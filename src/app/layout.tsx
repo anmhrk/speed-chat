@@ -4,7 +4,6 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { QueryClientProvider } from "@/components/providers/query-client-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
@@ -47,12 +46,10 @@ export default async function RootLayout({
             disableTransitionOnChange
             enableSystem
           >
-            <QueryClientProvider>
-              <SettingsProvider>
-                <Toaster richColors />
-                {children}
-              </SettingsProvider>
-            </QueryClientProvider>
+            <SettingsProvider>
+              <Toaster richColors />
+              {children}
+            </SettingsProvider>
           </ThemeProvider>
         </SidebarProvider>
       </body>

@@ -11,7 +11,10 @@ export async function deleteChat(chatId: string) {
 }
 
 export async function renameChatTitle(chatId: string, newTitle: string) {
-  await db.update(chats).set({ title: newTitle }).where(eq(chats.id, chatId));
+  await db.update(chats).set({ 
+    title: newTitle,
+    updatedAt: new Date()
+  }).where(eq(chats.id, chatId));
 }
 
 export async function pinChat(chatId: string) {
@@ -23,7 +26,10 @@ export async function pinChat(chatId: string) {
 
   await db
     .update(chats)
-    .set({ isPinned: !chat.isPinned })
+    .set({ 
+      isPinned: !chat.isPinned,
+      updatedAt: new Date()
+    })
     .where(eq(chats.id, chatId));
 }
 

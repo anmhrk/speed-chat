@@ -24,7 +24,7 @@ export function useElectric({
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [rawMessages, setRawMessages] = useState<DbMessage[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   useEffect(() => {
@@ -33,8 +33,6 @@ export function useElectric({
       setIsLoadingChats(false);
       return;
     }
-
-    setIsLoadingChats(true);
 
     const chatStream = new ShapeStream<Chat>({
       url: `${env.NEXT_PUBLIC_SITE_URL}/api/shape-proxy`,

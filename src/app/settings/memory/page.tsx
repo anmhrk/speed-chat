@@ -1,25 +1,24 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { getMemories, deleteMemory } from "@/lib/actions";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteMemory } from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash, Brain, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import type { Memory } from "@/lib/db/schema";
 import { toast } from "sonner";
+import { useMemories } from "@/hooks/use-memories";
+import { getUser } from "@/lib/actions";
+import { useEffect, useState } from "react";
+import type { User } from "better-auth";
 
 export default function MemoryPage() {
-  const queryClient = useQueryClient();
+  const [user, setUser] = useState<User | null>(null);
+  const { memories, isLoading } = useMemories({ user });
 
-  const {
-    data: memories = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["memories"],
-    queryFn: getMemories,
-  });
+  useEffect(() => {
+    getUser().then(setUser);
+  }, []);
 
   if (isLoading) {
     return (
@@ -39,24 +38,6 @@ export default function MemoryPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-8">
-          <p className="text-destructive">Failed to load memories</p>
-          <Button
-            variant="outline"
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ["memories"] })
-            }
-            className="mt-2"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -100,14 +81,13 @@ export default function MemoryPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    queryClient.setQueryData(["memories"], (old: Memory[]) =>
-                      old.filter((m) => m.id !== memory.id)
-                    );
+                  onClick={async () => {
                     try {
-                      deleteMemory(memory.id);
-                    } catch {
-                      toast.error(`Failed to delete memory: ${memory.memory}`);
+                      await deleteMemory(memory.id);
+                      toast.success("Memory deleted");
+                    } catch (error) {
+                      console.error(error);
+                      toast.error("Failed to delete memory");
                     }
                   }}
                   className="ml-4 text-muted-foreground hover:text-destructive"
