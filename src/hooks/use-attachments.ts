@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useUploadThing } from "@/lib/utils";
 import { toast } from "sonner";
-import { deleteFiles } from "@/lib/actions/uploadthing";
+import { deleteFiles } from "@/lib/actions";
 import type { FileMetadata, Models } from "@/lib/types";
 import type { Attachment } from "@ai-sdk/ui-utils";
 import { useDropzone } from "react-dropzone";

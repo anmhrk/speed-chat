@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { deleteFiles } from "@/lib/actions/uploadthing";
+import { deleteFiles } from "@/lib/actions";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
+import { deleteMessages } from "@/lib/actions";
 
 interface UserMessageProps {
   message: Message;
@@ -59,10 +60,11 @@ export function UserMessage({
     const editedMessageIndex = allMessages.findIndex(
       (m) => m.id === message.id
     );
-
     const currentEditedMessage = allMessages[editedMessageIndex];
 
     const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
+    deleteMessages(messagesToCheck.map((m) => m.id));
+
     const futureAttachmentUrls = messagesToCheck.flatMap((m) =>
       m.experimental_attachments?.map((a) => a.url)
     );
@@ -87,8 +89,6 @@ export function UserMessage({
     }
 
     allMessages.splice(editedMessageIndex);
-
-    // TODO: delete the removed messages from the db
 
     append({
       id: message.id,

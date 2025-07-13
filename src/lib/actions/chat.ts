@@ -178,3 +178,7 @@ export const validateChatAccess = cache(
     return Boolean(chat);
   }
 );
+
+export async function deleteMessages(messageIds: string[]) {
+  await db.delete(messages).where(inArray(messages.id, messageIds));
+}
