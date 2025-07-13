@@ -53,7 +53,9 @@ export function ChatPage({
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId ?? null);
   const [searchEnabled, setSearchEnabled] = useState(false);
-  const [isNewlyCreated, setIsNewlyCreated] = useState(false);
+  const [newlyCreatedChatId, setNewlyCreatedChatId] = useState<string | null>(
+    null
+  );
   const {
     fileMetadata,
     attachments,
@@ -105,6 +107,8 @@ export function ChatPage({
   } = useElectric({
     user,
     chatId,
+    newlyCreatedChatId,
+    isOnSharedPage,
   });
 
   const {
@@ -132,7 +136,7 @@ export function ChatPage({
       temporaryChat,
       customization,
       searchEnabled,
-      isNewChat: isNewlyCreated,
+      isNewChat: Boolean(newlyCreatedChatId),
       reasoningEnabled,
     },
     headers: {
@@ -159,6 +163,13 @@ export function ChatPage({
   );
 
   const isMessageStreaming = status === "submitted" || status === "streaming";
+
+  // Reset newlyCreatedChatId when route changes to allow fetching for new chat
+  useEffect(() => {
+    if (newlyCreatedChatId && chatId !== newlyCreatedChatId) {
+      setNewlyCreatedChatId(null);
+    }
+  }, [newlyCreatedChatId, chatId]);
 
   const handleChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -215,8 +226,8 @@ export function ChatPage({
     };
 
     if (!chatId) {
-      setIsNewlyCreated(true);
       const newChatId = crypto.randomUUID();
+      setNewlyCreatedChatId(newChatId);
       setChatId(newChatId);
 
       setIsInputCentered(false);
@@ -224,9 +235,6 @@ export function ChatPage({
       window.history.replaceState({}, "", `/chat/${newChatId}`);
 
       append(userMessage);
-      setTimeout(() => {
-        setIsNewlyCreated(false);
-      }, 500);
     } else {
       insertUserMessageToDb(userMessage, chatId);
       append(userMessage);

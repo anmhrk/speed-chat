@@ -38,7 +38,7 @@ import type { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { messages as messagesTable } from "@/lib/db/schema";
+import { chats, messages as messagesTable } from "@/lib/db/schema";
 import { createNewAssistantId, createNewErrorMessageId } from "@/lib/utils";
 
 type DimensionFormat = "size" | "aspectRatio";
@@ -384,6 +384,11 @@ export async function POST(request: NextRequest) {
                   annotations: [{ metadata }],
                 })
                 .where(eq(messagesTable.id, assistantMessageId));
+
+              await db
+                .update(chats)
+                .set({ updatedAt: new Date() })
+                .where(eq(chats.id, chatId));
             } catch (error) {
               console.error("[Chat API] Database save failed:", error);
             }
@@ -438,6 +443,10 @@ export async function POST(request: NextRequest) {
             createdAt: errorMessage.createdAt ?? new Date(),
             chatId,
           });
+
+          db.update(chats)
+            .set({ updatedAt: new Date() })
+            .where(eq(chats.id, chatId));
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",

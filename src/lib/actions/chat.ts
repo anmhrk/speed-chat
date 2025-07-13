@@ -3,10 +3,11 @@
 import { db } from "../db";
 import { chats, messages } from "../db/schema";
 import { getUser } from ".";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import { generateText, type LanguageModel, type Message } from "ai";
 import { titleGenerationPrompt } from "../ai/prompts";
 import { deleteFiles } from "./uploadthing";
+import { cache } from "react";
 
 export async function createChat(chatId: string, userMessage: Message) {
   const user = await getUser();
@@ -61,65 +62,6 @@ export async function generateChatTitle(
   } catch (error) {
     console.error("[Generate Chat Title] Error:", error);
   }
-}
-
-export async function saveMessages(
-  chatId: string,
-  messageIds: string[],
-  newMessages: Message[]
-) {
-  const desiredIds = new Set<string>([
-    ...messageIds,
-    ...newMessages.map((m) => m.id),
-  ]);
-
-  const existingMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, chatId));
-
-  // Delete messages that exist in the DB but are no longer present on the client
-  // Need to keep client and db in sync
-  for (const existingMessage of existingMessages) {
-    if (!desiredIds.has(existingMessage.id)) {
-      await db.delete(messages).where(eq(messages.id, existingMessage.id));
-    }
-  }
-
-  // Insert the new / edited messages coming from the client
-  for (const newMessage of newMessages) {
-    const existing = existingMessages.find((m) => m.id === newMessage.id);
-
-    if (existing) {
-      await db
-        .update(messages)
-        .set({
-          content: newMessage.content,
-          parts: newMessage.parts,
-          experimental_attachments: newMessage.experimental_attachments,
-          annotations: newMessage.annotations,
-        })
-        .where(eq(messages.id, newMessage.id));
-    } else {
-      await db.insert(messages).values({
-        chatId,
-        id: newMessage.id,
-        content: newMessage.content,
-        role: newMessage.role,
-        parts: newMessage.parts,
-        annotations: newMessage.annotations,
-        experimental_attachments: newMessage.experimental_attachments,
-        createdAt: newMessage.createdAt
-          ? new Date(newMessage.createdAt)
-          : new Date(),
-      });
-    }
-  }
-
-  await db
-    .update(chats)
-    .set({ updatedAt: new Date() })
-    .where(eq(chats.id, chatId));
 }
 
 export async function deleteAllChats() {
@@ -219,3 +161,20 @@ export async function verifySharedChat(
     didUserCreate: true,
   };
 }
+
+export const validateChatAccess = cache(
+  async (chatId: string): Promise<boolean> => {
+    const user = await getUser();
+    if (!user) {
+      return false;
+    }
+
+    const [chat] = await db
+      .select()
+      .from(chats)
+      .where(and(eq(chats.id, chatId), eq(chats.userId, user.id)))
+      .limit(1);
+
+    return Boolean(chat);
+  }
+);

@@ -88,6 +88,8 @@ export function UserMessage({
 
     allMessages.splice(editedMessageIndex);
 
+    // TODO: delete the removed messages from the db
+
     append({
       id: message.id,
       role: "user",
