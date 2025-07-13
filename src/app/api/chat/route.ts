@@ -341,15 +341,12 @@ export async function POST(request: NextRequest) {
                 return;
               }
 
-              const messageIds = messages.slice(0, -1).map((m) => m.id);
               const latestUserMessage = messages[messages.length - 1];
-
               const newMessages = appendResponseMessages({
                 messages: [latestUserMessage],
                 responseMessages: response.messages,
               });
 
-              // Add annotations to the assistant messages after appendResponseMessages
               const messagesWithAnnotations = newMessages.map((message) => {
                 if (message.role === "assistant") {
                   return {
@@ -360,7 +357,7 @@ export async function POST(request: NextRequest) {
                 return message;
               });
 
-              await saveMessages(chatId, messageIds, messagesWithAnnotations);
+              await saveMessages(chatId, messagesWithAnnotations);
             } catch (error) {
               console.error("[Chat API] Database save failed:", error);
             }
@@ -413,7 +410,6 @@ export async function POST(request: NextRequest) {
 
         // Save error in db to not keep the user message hanging on refresh
         try {
-          const messageIds = messages.slice(0, -1).map((m) => m.id);
           const latestUserMessage = messages[messages.length - 1];
           const errorMessage = {
             id: createIdGenerator({
@@ -427,7 +423,7 @@ export async function POST(request: NextRequest) {
           };
 
           const newMessages = [latestUserMessage, errorMessage];
-          saveMessages(chatId, messageIds, newMessages);
+          saveMessages(chatId, newMessages);
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",

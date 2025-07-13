@@ -56,7 +56,9 @@ export function ChatPage({
   const temporaryChat = searchParams.get("temporary") === "true";
   const [chatId, setChatId] = useState<string | null>(initialChatId ?? null);
   const [searchEnabled, setSearchEnabled] = useState(false);
-  const [isNewlyCreated, setIsNewlyCreated] = useState(false);
+  const [newlyCreatedChatId, setNewlyCreatedChatId] = useState<string | null>(
+    null
+  );
   const {
     fileMetadata,
     attachments,
@@ -111,7 +113,7 @@ export function ChatPage({
       if (!chatId) return [];
       return (await getMessages(chatId, isOnSharedPage ?? false)) as Message[];
     },
-    enabled: Boolean(chatId),
+    enabled: Boolean(chatId) && !newlyCreatedChatId,
     staleTime: Infinity,
   });
 
@@ -151,7 +153,7 @@ export function ChatPage({
       temporaryChat,
       customization,
       searchEnabled,
-      isNewChat: isNewlyCreated,
+      isNewChat: !!newlyCreatedChatId,
       reasoningEnabled,
     },
     headers: {
@@ -246,9 +248,9 @@ export function ChatPage({
     }
 
     if (!chatId) {
-      setIsNewlyCreated(true);
       const newChatId = crypto.randomUUID();
       setChatId(newChatId);
+      setNewlyCreatedChatId(newChatId);
       // Set messages query cache to prevent refetch on route change
       queryClient.setQueryData(["messages", newChatId], []);
 
@@ -279,9 +281,6 @@ export function ChatPage({
         experimental_attachments: attachments,
         allowEmptySubmit: true,
       });
-      setTimeout(() => {
-        setIsNewlyCreated(false);
-      }, 500);
     } else {
       // Put chat to the top of the list
       queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
@@ -300,6 +299,13 @@ export function ChatPage({
     }
     clearFiles();
   };
+
+  // Reset newlyCreatedChatId when route changes to allow fetching for new chat
+  useEffect(() => {
+    if (newlyCreatedChatId && chatId !== newlyCreatedChatId) {
+      setNewlyCreatedChatId(null);
+    }
+  }, [newlyCreatedChatId, chatId]);
 
   useEffect(() => {
     data?.map((d) => {

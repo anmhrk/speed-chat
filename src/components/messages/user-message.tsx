@@ -14,6 +14,7 @@ import Image from "next/image";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { deleteFiles } from "@/lib/actions/uploadthing";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
+import { deleteMessages } from "@/lib/actions";
 
 interface UserMessageProps {
   message: Message;
@@ -59,10 +60,11 @@ export function UserMessage({
     const editedMessageIndex = allMessages.findIndex(
       (m) => m.id === message.id
     );
-
     const currentEditedMessage = allMessages[editedMessageIndex];
 
     const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
+    deleteMessages([...messagesToCheck.map((m) => m.id), message.id]);
+
     const futureAttachmentUrls = messagesToCheck.flatMap((m) =>
       m.experimental_attachments?.map((a) => a.url)
     );

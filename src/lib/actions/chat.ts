@@ -6,7 +6,7 @@ import { getUser } from ".";
 import { eq, desc, and, asc, inArray } from "drizzle-orm";
 import { generateText, type LanguageModel, type Message } from "ai";
 import { titleGenerationPrompt } from "../ai/prompts";
-import { deleteFiles } from "./uploadthing";
+import { deleteFiles } from ".";
 
 export async function getChats() {
   const user = await getUser();
@@ -89,57 +89,20 @@ export async function generateChatTitle(
   }
 }
 
-export async function saveMessages(
-  chatId: string,
-  messageIds: string[],
-  newMessages: Message[]
-) {
-  const desiredIds = new Set<string>([
-    ...messageIds,
-    ...newMessages.map((m) => m.id),
-  ]);
-
-  const existingMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, chatId));
-
-  // Delete messages that exist in the DB but are no longer present on the client
-  // Need to keep client and db in sync
-  for (const existingMessage of existingMessages) {
-    if (!desiredIds.has(existingMessage.id)) {
-      await db.delete(messages).where(eq(messages.id, existingMessage.id));
-    }
-  }
-
-  // Insert the new / edited messages coming from the client
+export async function saveMessages(chatId: string, newMessages: Message[]) {
   for (const newMessage of newMessages) {
-    const existing = existingMessages.find((m) => m.id === newMessage.id);
-
-    if (existing) {
-      await db
-        .update(messages)
-        .set({
-          content: newMessage.content,
-          parts: newMessage.parts,
-          experimental_attachments: newMessage.experimental_attachments,
-          annotations: newMessage.annotations,
-        })
-        .where(eq(messages.id, newMessage.id));
-    } else {
-      await db.insert(messages).values({
-        chatId,
-        id: newMessage.id,
-        content: newMessage.content,
-        role: newMessage.role,
-        parts: newMessage.parts,
-        annotations: newMessage.annotations,
-        experimental_attachments: newMessage.experimental_attachments,
-        createdAt: newMessage.createdAt
-          ? new Date(newMessage.createdAt)
-          : new Date(),
-      });
-    }
+    await db.insert(messages).values({
+      chatId,
+      id: newMessage.id,
+      content: newMessage.content,
+      role: newMessage.role,
+      parts: newMessage.parts,
+      annotations: newMessage.annotations,
+      experimental_attachments: newMessage.experimental_attachments,
+      createdAt: newMessage.createdAt
+        ? new Date(newMessage.createdAt)
+        : new Date(),
+    });
   }
 
   await db
@@ -244,4 +207,8 @@ export async function verifySharedChat(
     success: true,
     didUserCreate: true,
   };
+}
+
+export async function deleteMessages(messageIds: string[]) {
+  await db.delete(messages).where(inArray(messages.id, messageIds));
 }
