@@ -5,15 +5,14 @@ import {
   InvalidPromptError,
   RetryError,
   ToolExecutionError,
-  createIdGenerator,
   smoothStream,
-  appendResponseMessages,
   type LanguageModel,
   experimental_generateImage as generateImage,
   type ImageModel,
   tool,
   createDataStreamResponse,
   NoImageGeneratedError,
+  Message,
 } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -27,7 +26,6 @@ import {
 } from "@/lib/ai/models";
 import {
   addMemory,
-  saveMessages,
   generateChatTitle,
   getMemories,
   uploadBase64Image,
@@ -38,6 +36,10 @@ import { chatPrompt, imageGenerationPrompt } from "@/lib/ai/prompts";
 import Exa from "exa-js";
 import type { Memory } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { db } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { messages as messagesTable } from "@/lib/db/schema";
+import { createNewAssistantId, createNewErrorMessageId } from "@/lib/utils";
 
 type DimensionFormat = "size" | "aspectRatio";
 
@@ -141,10 +143,14 @@ export async function POST(request: NextRequest) {
         let reasoningStartTime: number | null = null;
         let reasoningDuration = 0;
 
+        let assistantMessageCreated = false;
+        const assistantMessageId = createNewAssistantId();
+        let fullContent = "";
+        let lastSyncedTime = startTime;
+
         // Both titlePromise and streamText will run in parallel
-        let titlePromise: Promise<string> | undefined;
         if (!temporaryChat && isNewChat) {
-          titlePromise = generateChatTitle(
+          generateChatTitle(
             chatId,
             messages[messages.length - 1],
             openrouter.chat("google/gemini-2.5-flash-lite-preview-06-17")
@@ -286,7 +292,7 @@ export async function POST(request: NextRequest) {
           ...(isImageModel && { toolChoice: "required" }),
           ...(!isImageModel && { maxSteps: 10 }),
           toolCallStreaming: true,
-          onChunk: (event) => {
+          onChunk: async (event) => {
             if (
               !ttftCalculated &&
               (event.chunk.type === "text-delta" ||
@@ -312,8 +318,36 @@ export async function POST(request: NextRequest) {
               );
               reasoningStartTime = null;
             }
+
+            if (event.chunk.type === "text-delta" && !temporaryChat) {
+              fullContent += event.chunk.textDelta;
+
+              // Sync to db every 500ms
+              if (Date.now() - lastSyncedTime > 500) {
+                if (!assistantMessageCreated) {
+                  await db.insert(messagesTable).values({
+                    id: assistantMessageId,
+                    chatId,
+                    content: fullContent,
+                    role: "assistant",
+                    createdAt: new Date(),
+                    parts: [{ type: "text", text: fullContent }],
+                  });
+                  assistantMessageCreated = true;
+                } else {
+                  await db
+                    .update(messagesTable)
+                    .set({
+                      content: fullContent,
+                      parts: [{ type: "text", text: fullContent }],
+                    })
+                    .where(eq(messagesTable.id, assistantMessageId));
+                }
+                lastSyncedTime = Date.now();
+              }
+            }
           },
-          onFinish: async ({ response, usage }) => {
+          onFinish: async ({ usage }) => {
             const endTime = Date.now();
             const elapsedTime = endTime - startTime;
             // Tokens per second
@@ -341,42 +375,20 @@ export async function POST(request: NextRequest) {
                 return;
               }
 
-              const messageIds = messages.slice(0, -1).map((m) => m.id);
-              const latestUserMessage = messages[messages.length - 1];
-
-              const newMessages = appendResponseMessages({
-                messages: [latestUserMessage],
-                responseMessages: response.messages,
-              });
-
-              // Add annotations to the assistant messages after appendResponseMessages
-              const messagesWithAnnotations = newMessages.map((message) => {
-                if (message.role === "assistant") {
-                  return {
-                    ...message,
-                    annotations: [{ metadata }],
-                  };
-                }
-                return message;
-              });
-
-              await saveMessages(chatId, messageIds, messagesWithAnnotations);
+              // Flush remaining fullContent
+              await db
+                .update(messagesTable)
+                .set({
+                  content: fullContent,
+                  parts: [{ type: "text", text: fullContent }],
+                  annotations: [{ metadata }],
+                })
+                .where(eq(messagesTable.id, assistantMessageId));
             } catch (error) {
               console.error("[Chat API] Database save failed:", error);
             }
           },
         });
-
-        if (titlePromise) {
-          titlePromise.then((title) => {
-            if (title !== "New Chat") {
-              dataStream.writeData({
-                type: "title",
-                payload: title,
-              });
-            }
-          });
-        }
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: true,
@@ -413,21 +425,19 @@ export async function POST(request: NextRequest) {
 
         // Save error in db to not keep the user message hanging on refresh
         try {
-          const messageIds = messages.slice(0, -1).map((m) => m.id);
-          const latestUserMessage = messages[messages.length - 1];
-          const errorMessage = {
-            id: createIdGenerator({
-              prefix: "error",
-              size: 16,
-            })(),
+          const errorMessage: Message = {
+            id: createNewErrorMessageId(),
             role: "assistant" as const,
             content: errorContent,
-            createdAt: new Date(),
             parts: [{ type: "text" as const, text: errorContent }],
+            createdAt: new Date(),
           };
 
-          const newMessages = [latestUserMessage, errorMessage];
-          saveMessages(chatId, messageIds, newMessages);
+          db.insert(messagesTable).values({
+            ...errorMessage,
+            createdAt: errorMessage.createdAt ?? new Date(),
+            chatId,
+          });
         } catch (dbError) {
           console.error(
             "[Chat API] Failed to save error message to database:",

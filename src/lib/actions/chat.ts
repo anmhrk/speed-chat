@@ -3,52 +3,12 @@
 import { db } from "../db";
 import { chats, messages } from "../db/schema";
 import { getUser } from ".";
-import { eq, desc, and, asc, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { generateText, type LanguageModel, type Message } from "ai";
 import { titleGenerationPrompt } from "../ai/prompts";
 import { deleteFiles } from "./uploadthing";
 
-export async function getChats() {
-  const user = await getUser();
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const allChats = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.userId, user.id))
-    .orderBy(desc(chats.updatedAt));
-
-  return allChats;
-}
-
-export async function getMessages(chatId: string, sharedRequest: boolean) {
-  const user = await getUser();
-  if (!user && !sharedRequest) {
-    throw new Error("Unauthorized");
-  }
-
-  const whereClause = sharedRequest
-    ? eq(chats.id, chatId)
-    : and(eq(chats.id, chatId), eq(chats.userId, user?.id ?? ""));
-
-  const chat = await db.select().from(chats).where(whereClause).limit(1);
-
-  if (!chat) {
-    throw new Error(`Chat ${chatId} not found`);
-  }
-
-  const allMessages = await db
-    .select()
-    .from(messages)
-    .where(eq(messages.chatId, chatId))
-    .orderBy(asc(messages.createdAt));
-
-  return allMessages;
-}
-
-export async function createChat(chatId: string) {
+export async function createChat(chatId: string, userMessage: Message) {
   const user = await getUser();
   if (!user) {
     throw new Error("Unauthorized");
@@ -58,6 +18,23 @@ export async function createChat(chatId: string) {
     id: chatId,
     title: "New Chat",
     userId: user.id,
+  });
+
+  await insertUserMessageToDb(userMessage, chatId);
+}
+
+export async function insertUserMessageToDb(
+  userMessage: Message,
+  chatId: string
+) {
+  await db.insert(messages).values({
+    id: userMessage.id,
+    chatId,
+    content: userMessage.content,
+    role: "user",
+    createdAt: userMessage.createdAt ?? new Date(),
+    parts: [{ type: "text", text: userMessage.content }],
+    experimental_attachments: userMessage.experimental_attachments ?? undefined,
   });
 }
 
@@ -81,11 +58,8 @@ export async function generateChatTitle(
         })
         .where(eq(chats.id, chatId));
     }
-
-    return response.text;
   } catch (error) {
     console.error("[Generate Chat Title] Error:", error);
-    return "New Chat"; // Don't throw error to not break stream. Just return default title.
   }
 }
 

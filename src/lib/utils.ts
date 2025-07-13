@@ -8,3 +8,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const { useUploadThing } = generateReactHelpers<OurFileRouter>();
+
+export const createNewUserId = () => {
+  return `user-${crypto.randomUUID()}`;
+};
+
+export const createNewAssistantId = () => {
+  return `assistant-${crypto.randomUUID()}`;
+};
+
+export const createNewErrorMessageId = () => {
+  return `error-${crypto.randomUUID()}`;
+};

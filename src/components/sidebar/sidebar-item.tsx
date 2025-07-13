@@ -23,12 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  getMessages,
-  renameChatTitle,
-  pinChat,
-  deleteChat,
-} from "@/lib/actions";
+import { renameChatTitle, pinChat, deleteChat } from "@/lib/actions";
 import {
   GitBranch,
   Loader2,
@@ -66,16 +61,7 @@ export function SidebarItem({
   };
 
   return (
-    <SidebarMenuItem
-      key={chat.id}
-      onMouseEnter={() => {
-        if (chat.id === chatIdParams) return;
-        queryClient.prefetchQuery({
-          queryKey: ["messages", chat.id],
-          queryFn: async () => await getMessages(chat.id, false),
-        });
-      }}
-    >
+    <SidebarMenuItem key={chat.id}>
       <SidebarMenuButton
         asChild={!(isRenamingChat && chat.id === renamingChatId)}
         isActive={chat.id === chatIdParams}

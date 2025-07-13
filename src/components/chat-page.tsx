@@ -4,24 +4,22 @@ import { Header } from "@/components/header";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { User } from "better-auth";
 import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, type Message } from "ai";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
 import { Upload } from "lucide-react";
 import { useSettingsContext } from "@/components/providers/settings-provider";
-import { createChat, getMessages } from "@/lib/actions";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Chat } from "@/lib/db/schema";
+import { createChat, insertUserMessageToDb } from "@/lib/actions";
 import { useAttachments } from "@/hooks/use-attachments";
 import { useShortcuts } from "@/hooks/use-shortcuts";
 import { SearchChats } from "@/components/search-chats";
-import type { StreamData } from "@/lib/types";
 import { ChatLayout } from "@/components/layouts/chat-layout";
 import { HomepageLayout } from "@/components/layouts/homepage-layout";
 import { getRandomPromptSuggestions } from "@/lib/random";
 import { isImageGenerationModel } from "@/lib/ai/models";
+import { useElectric } from "@/hooks/use-electric";
+import { createNewUserId } from "@/lib/utils";
 
 interface ChatPageProps {
   user: User | null;
@@ -50,7 +48,6 @@ export function ChatPage({
   } = useSettingsContext();
   const router = useRouter();
   const pathname = usePathname();
-  const queryClient = useQueryClient();
   const chatIdParams = pathname.split("/chat/")[1] ?? initialChatId;
   const searchParams = useSearchParams();
   const temporaryChat = searchParams.get("temporary") === "true";
@@ -101,26 +98,14 @@ export function ChatPage({
   }, [chatIdParams, pathname]);
 
   const {
-    data: initialMessages,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["messages", chatId],
-    queryFn: async () => {
-      if (!chatId) return [];
-      return (await getMessages(chatId, isOnSharedPage ?? false)) as Message[];
-    },
-    enabled: Boolean(chatId),
-    staleTime: Infinity,
+    chats,
+    messages: initialMessages,
+    isLoadingChats,
+    isLoadingMessages,
+  } = useElectric({
+    user,
+    chatId,
   });
-
-  useEffect(() => {
-    if (isError) {
-      toast.error(error?.message ?? "Failed to load messages");
-      router.push("/");
-    }
-  }, [isError, error, router]);
 
   const {
     messages,
@@ -133,16 +118,12 @@ export function ChatPage({
     reload,
     append,
     setMessages,
-    data,
   } = useChat({
     id: chatId ?? undefined,
     initialMessages,
     credentials: "include",
     sendExtraMessageFields: true,
-    generateId: createIdGenerator({
-      prefix: "user",
-      size: 16,
-    }),
+    generateId: createNewUserId,
     experimental_throttle: 100,
     body: {
       chatId: chatId ?? undefined,
@@ -159,29 +140,6 @@ export function ChatPage({
       "X-FalAi-Api-Key": apiKeys.falai ?? "",
       "X-OpenAI-Api-Key": apiKeys.openai ?? "",
       "X-Exa-Api-Key": apiKeys.exa ?? "",
-    },
-    onError: (error) => {
-      const errorMessage = {
-        id: `error-${crypto.randomUUID()}`,
-        role: "assistant",
-        content: error.message,
-        createdAt: new Date(),
-        parts: [{ type: "text", text: error.message }],
-      } as Message;
-
-      setMessages((prev) => {
-        // On error an empty assistant message is created, so we replace it with the error message
-        const lastMessage = prev[prev.length - 1];
-        if (
-          lastMessage?.role === "assistant" &&
-          (!lastMessage.content || lastMessage.content.trim() === "")
-        ) {
-          return [...prev.slice(0, -1), errorMessage];
-        } else {
-          // Fallback
-          return [...prev, errorMessage];
-        }
-      });
     },
   });
 
@@ -245,78 +203,36 @@ export function ChatPage({
       return;
     }
 
+    const userMessage = {
+      id: createNewUserId(),
+      role: "user" as const,
+      content: input,
+      createdAt: new Date(),
+      parts: [{ type: "text" as const, text: input }],
+      ...(attachments.length > 0 && {
+        experimental_attachments: attachments,
+      }),
+    };
+
     if (!chatId) {
       setIsNewlyCreated(true);
       const newChatId = crypto.randomUUID();
       setChatId(newChatId);
-      // Set messages query cache to prevent refetch on route change
-      queryClient.setQueryData(["messages", newChatId], []);
 
       setIsInputCentered(false);
-
-      createChat(newChatId).catch((error) => {
-        toast.error("Failed to create chat");
-        console.error(error);
-      });
-
-      queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
-        const newChat: Chat = {
-          id: newChatId,
-          userId: user!.id,
-          title: "New chat",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isPinned: false,
-          isShared: false,
-          isBranched: false,
-          parentChatId: null,
-        };
-        return oldData ? [newChat, ...oldData] : [newChat];
-      });
-
+      createChat(newChatId, userMessage);
       window.history.replaceState({}, "", `/chat/${newChatId}`);
-      handleSubmit(e, {
-        experimental_attachments: attachments,
-        allowEmptySubmit: true,
-      });
+
+      append(userMessage);
       setTimeout(() => {
         setIsNewlyCreated(false);
       }, 500);
     } else {
-      // Put chat to the top of the list
-      queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
-        if (!oldData) return oldData;
-        const currentChat = oldData.find((chat) => chat.id === chatId);
-        if (currentChat) {
-          return [currentChat, ...oldData.filter((chat) => chat.id !== chatId)];
-        }
-        return oldData;
-      });
-
-      handleSubmit(e, {
-        experimental_attachments: attachments,
-        allowEmptySubmit: true,
-      });
+      insertUserMessageToDb(userMessage, chatId);
+      append(userMessage);
     }
     clearFiles();
   };
-
-  useEffect(() => {
-    data?.map((d) => {
-      const data = d as StreamData<string>;
-
-      if (data.type === "title") {
-        queryClient.setQueryData(["chats"], (oldData: Chat[] | undefined) => {
-          if (!oldData) return oldData;
-          return oldData.map((chatItem) =>
-            chatItem.id === chatId
-              ? { ...chatItem, title: data.payload }
-              : chatItem
-          );
-        });
-      }
-    });
-  }, [data, chatId, queryClient]);
 
   const onSearchChatsOpen = () => {
     setIsSearchChatsOpen(true);
@@ -350,7 +266,7 @@ export function ChatPage({
   };
 
   const chatLayoutProps = {
-    isLoading,
+    isLoading: isLoadingMessages,
     messages,
     initialMessages,
     status,
@@ -368,6 +284,8 @@ export function ChatPage({
         chatIdParams={chatId ?? ""}
         isMessageStreaming={isMessageStreaming}
         onSearchChatsOpen={onSearchChatsOpen}
+        chats={chats}
+        isLoadingChats={isLoadingChats}
       />
       <SidebarInset>
         <div {...getRootProps()} className="flex flex-col h-screen relative">
