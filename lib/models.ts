@@ -5,9 +5,8 @@ export type Provider = 'aiGateway' | 'openai';
 export type ModelId =
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-opus-4.1'
-  | 'openai/gpt-4.1'
-  | 'openai/o3'
-  | 'openai/o4-mini'
+  | 'openai/gpt-5'
+  | 'openai/gpt-5-mini'
   | 'google/gemini-2.5-flash'
   | 'google/gemini-2.5-pro';
 
@@ -32,20 +31,14 @@ export const CHAT_MODELS: ChatModel[] = [
     supportsAttachments: true,
   },
   {
-    name: 'GPT 4.1',
-    id: 'openai/gpt-4.1',
-    reasoning: 'none',
-    supportsAttachments: true,
-  },
-  {
-    name: 'o3',
-    id: 'openai/o3',
+    name: 'GPT 5',
+    id: 'openai/gpt-5',
     reasoning: 'always',
     supportsAttachments: true,
   },
   {
-    name: 'o4 mini',
-    id: 'openai/o4-mini',
+    name: 'GPT 5 Mini',
+    id: 'openai/gpt-5-mini',
     reasoning: 'always',
     supportsAttachments: true,
   },

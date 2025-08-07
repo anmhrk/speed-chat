@@ -101,99 +101,84 @@ function SettingsPopover() {
   const currentModel = CHAT_MODELS.find((m) => m.name === model);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="icon" type="button" variant="chatInput">
-                <Settings2 className="size-5" strokeWidth={1.7} />
-                <span className="sr-only">Settings</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-80 rounded-xl p-4">
-              <div className="space-y-4">
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="icon" type="button" variant="chatInput">
+          <Settings2 className="size-5" strokeWidth={1.7} />
+          <span className="sr-only">Settings</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 rounded-xl p-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Paperclip className="size-5" strokeWidth={1.7} />
+              <span className="text-sm">Attach files</span>
+            </div>
+            <Button size="sm" variant="outline">
+              Attach
+            </Button>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="size-5" strokeWidth={1.7} />
+              <span className="text-sm">Enable web search</span>
+            </div>
+            <Switch checked={searchWeb} onCheckedChange={setSearchWeb} />
+          </div>
+
+          {currentModel?.reasoning !== 'none' && (
+            <div className="space-y-4">
+              {currentModel?.reasoning === 'hybrid' && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Paperclip className="size-5" strokeWidth={1.7} />
-                    <span className="text-sm">Attach files</span>
+                    <Brain className="size-5" strokeWidth={1.7} />
+                    <span className="text-sm">Enable reasoning</span>
                   </div>
-                  <Button size="sm" variant="outline">
-                    Attach
-                  </Button>
+                  <Switch
+                    checked={shouldUseReasoning}
+                    onCheckedChange={setShouldUseReasoning}
+                  />
                 </div>
+              )}
 
-                <Separator />
-
-                <div className="flex items-center justify-between">
+              {(shouldUseReasoning || currentModel?.reasoning === 'always') && (
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Globe className="size-5" strokeWidth={1.7} />
-                    <span className="text-sm">Enable web search</span>
+                    <WandSparkles className="size-5" strokeWidth={1.7} />
+                    <span className="text-sm">Choose reasoning effort</span>
                   </div>
-                  <Switch checked={searchWeb} onCheckedChange={setSearchWeb} />
+                  <div className="grid w-full grid-cols-3 gap-2">
+                    {(['low', 'medium', 'high'] as const).map((effort) => (
+                      <Button
+                        key={effort}
+                        onClick={() => setReasoningEffort(effort)}
+                        size="sm"
+                        variant={
+                          reasoningEffort === effort ? 'default' : 'outline'
+                        }
+                      >
+                        {effort.charAt(0).toUpperCase() + effort.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+              )}
+            </div>
+          )}
 
-                {currentModel?.reasoning !== 'none' && (
-                  <div className="space-y-4">
-                    {currentModel?.reasoning === 'hybrid' && (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Brain className="size-5" strokeWidth={1.7} />
-                          <span className="text-sm">Enable reasoning</span>
-                        </div>
-                        <Switch
-                          checked={shouldUseReasoning}
-                          onCheckedChange={setShouldUseReasoning}
-                        />
-                      </div>
-                    )}
+          <Separator />
 
-                    {(shouldUseReasoning ||
-                      currentModel?.reasoning === 'always') && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <WandSparkles className="size-5" strokeWidth={1.7} />
-                          <span className="text-sm">
-                            Choose reasoning effort
-                          </span>
-                        </div>
-                        <div className="grid w-full grid-cols-3 gap-2">
-                          {(['low', 'medium', 'high'] as const).map(
-                            (effort) => (
-                              <Button
-                                key={effort}
-                                onClick={() => setReasoningEffort(effort)}
-                                size="sm"
-                                variant={
-                                  reasoningEffort === effort
-                                    ? 'default'
-                                    : 'outline'
-                                }
-                              >
-                                {effort.charAt(0).toUpperCase() +
-                                  effort.slice(1)}
-                              </Button>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <Separator />
-
-                <Button className="w-full" variant="outline">
-                  <PenLine className="mr-1 size-5" strokeWidth={1.7} />
-                  Use custom prompt
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Button className="w-full" variant="outline">
+            <PenLine className="mr-1 size-5" strokeWidth={1.7} />
+            Use custom prompt
+          </Button>
         </div>
-      </TooltipTrigger>
-      <TooltipContent>Settings</TooltipContent>
-    </Tooltip>
+      </PopoverContent>
+    </Popover>
   );
 }
 

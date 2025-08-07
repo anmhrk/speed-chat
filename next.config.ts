@@ -3,7 +3,10 @@ import './backend/env/server';
 import './backend/env/client';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  devIndicators: false,
+  experimental: {
+    reactCompiler: true,
+  },
 };
 
 export default nextConfig;

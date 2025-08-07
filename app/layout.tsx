@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   title: 'Speed Chat',
   description:
     'An AI chat app with support for all flagship models and image generation.',
+  icons: {
+    icon: '/logo.svg',
+  },
 };
 
 export default async function RootLayout({
@@ -37,7 +40,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} overscroll-none antialiased`}
       >
-        <Providers>
+        <Providers user={user}>
           <main className="flex h-screen w-full">
             <AppSidebar user={user} />
             <SidebarInset className="flex-1">{children}</SidebarInset>
