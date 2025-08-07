@@ -3,7 +3,7 @@
   "extends": ["ultracite"],
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/globals.css"]
+    "includes": ["**", "!**/globals.css", "!**/ui/sidebar.tsx"]
   },
   "linter": {
     "rules": {
