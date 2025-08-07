@@ -4,5 +4,15 @@
   "files": {
     "ignoreUnknown": false,
     "includes": ["**", "!**/globals.css"]
+  },
+  "linter": {
+    "rules": {
+      "performance": {
+        "noNamespaceImport": "off"
+      },
+      "suspicious": {
+        "noConsole": "off"
+      }
+    }
   }
 }
