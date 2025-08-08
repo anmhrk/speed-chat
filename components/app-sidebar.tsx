@@ -46,24 +46,67 @@ interface AppSidebarProps {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const router = useRouter();
-  const isSignedIn = !!user;
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const { chats, isLoadingChats } = useCustomChat();
 
   const pinnedChats = useMemo(() => {
-    return chats
-      ?.filter((chat) => chat.isPinned)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return chats?.filter((chat) => chat.isPinned);
   }, [chats]);
 
   const normalChats = useMemo(() => {
-    return chats
-      ?.filter((chat) => !chat.isPinned)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return chats?.filter((chat) => !chat.isPinned);
   }, [chats]);
 
-  // TODO: If no saved chats, show something
+  let sidebarBody: React.ReactNode = null;
+  if (!isLoadingChats) {
+    if (!user) {
+      sidebarBody = (
+        <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+          Please login to view your chats.
+        </div>
+      );
+    } else if (chats?.length === 0) {
+      sidebarBody = (
+        <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+          No chats yet.
+        </div>
+      );
+    } else {
+      sidebarBody = (
+        <>
+          {pinnedChats?.length !== 0 && (
+            <>
+              <SidebarGroupLabel>Pinned</SidebarGroupLabel>
+              <SidebarMenu>
+                {pinnedChats?.map((chat) => (
+                  <SidebarMenuItem key={chat.id}>
+                    <SidebarMenuButton asChild>
+                      <Link href={`/c/${chat.id}`}>{chat.title}</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </>
+          )}
+          {normalChats?.length !== 0 && (
+            <>
+              <SidebarGroupLabel>Chats</SidebarGroupLabel>
+              <SidebarMenu>
+                {normalChats?.map((chat) => (
+                  <SidebarMenuItem key={chat.id}>
+                    <SidebarMenuButton asChild>
+                      <Link href={`/c/${chat.id}`}>{chat.title}</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </>
+          )}
+        </>
+      );
+    }
+  }
 
   return (
     <Sidebar variant="inset">
@@ -102,43 +145,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup className="flex flex-1 flex-col gap-1">
-          {isLoadingChats ? null : (
-            <>
-              {pinnedChats?.length !== 0 && (
-                <>
-                  <SidebarGroupLabel>Pinned</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {pinnedChats?.map((chat) => (
-                      <SidebarMenuItem key={chat.id}>
-                        <SidebarMenuButton asChild>
-                          <Link href={`/c/${chat.id}`}>{chat.title}</Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </>
-              )}
-              {normalChats?.length !== 0 && (
-                <>
-                  <SidebarGroupLabel>Chats</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {normalChats?.map((chat) => (
-                      <SidebarMenuItem key={chat.id}>
-                        <SidebarMenuButton asChild>
-                          <Link href={`/c/${chat.id}`}>{chat.title}</Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </>
-              )}
-            </>
-          )}
+          {sidebarBody}
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
-        {isSignedIn ? (
+        {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -207,7 +219,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             {isLoggingIn ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
-              <LogIn className="size-5" />
+              <LogIn className="size-5" strokeWidth={1.7} />
             )}
             Login
           </Button>

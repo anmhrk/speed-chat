@@ -263,7 +263,7 @@ function SettingsIndicators() {
         <Tooltip key={indicator.type}>
           <TooltipTrigger asChild>
             <Button
-              className="gap-1 rounded-full border border-blue-100 bg-[#F5FAFF] text-blue-400 hover:bg-[#F5FAFF] dark:bg-[#3B4044] dark:text-blue-400 dark:hover:bg-[#3B4044]"
+              className="gap-1 rounded-full border border-blue-100 bg-[#F5FAFF] text-blue-400 hover:bg-[#F5FAFF] dark:border-none dark:bg-[#40464a] dark:text-blue-400 dark:hover:bg-[#3B4044]"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
