@@ -11,6 +11,7 @@ export type ModelId =
   | 'google/gemini-2.5-pro';
 
 export type ChatModel = {
+  default: boolean;
   name: string;
   id: ModelId;
   reasoning: 'none' | 'always' | 'hybrid';
@@ -19,36 +20,42 @@ export type ChatModel = {
 
 export const CHAT_MODELS: ChatModel[] = [
   {
+    default: false,
     name: 'Claude Sonnet 4',
     id: 'anthropic/claude-sonnet-4',
     reasoning: 'hybrid',
     supportsAttachments: true,
   },
   {
+    default: false,
     name: 'Claude Opus 4.1',
     id: 'anthropic/claude-opus-4.1',
     reasoning: 'hybrid',
     supportsAttachments: true,
   },
   {
+    default: true,
     name: 'GPT 5',
     id: 'openai/gpt-5',
-    reasoning: 'always',
+    reasoning: 'hybrid',
     supportsAttachments: true,
   },
   {
+    default: false,
     name: 'GPT 5 Mini',
     id: 'openai/gpt-5-mini',
     reasoning: 'always',
     supportsAttachments: true,
   },
   {
+    default: false,
     name: 'Gemini 2.5 Flash',
     id: 'google/gemini-2.5-flash',
     reasoning: 'hybrid',
     supportsAttachments: true,
   },
   {
+    default: false,
     name: 'Gemini 2.5 Pro',
     id: 'google/gemini-2.5-pro',
     reasoning: 'always',

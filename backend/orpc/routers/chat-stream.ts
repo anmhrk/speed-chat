@@ -185,6 +185,7 @@ export const chatStreamRouter = {
                 }),
                 openai: {
                   reasoningEffort,
+                  reasoningSummary: 'detailed',
                 },
                 // Have to use this for gemini models, because flash is hybrid and pro isn't
                 ...((shouldUseReasoning || !isHybridReasoningModel) && {

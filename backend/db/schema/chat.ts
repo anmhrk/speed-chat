@@ -1,5 +1,7 @@
 import type { UIMessage } from 'ai';
 import {
+  boolean,
+  foreignKey,
   index,
   jsonb,
   pgTable,
@@ -19,8 +21,15 @@ export const chats = pgTable(
       .notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    isPinned: boolean('is_pinned').default(false).notNull(),
+    isBranch: boolean('is_branch').default(false).notNull(),
+    parentChatId: text('parent_chat_id'),
   },
   (t) => [
+    foreignKey({
+      columns: [t.parentChatId],
+      foreignColumns: [t.id],
+    }).onDelete('cascade'),
     index('idx_chats_user_id').on(t.userId),
     index('idx_chats_updated_at').on(t.updatedAt),
   ]

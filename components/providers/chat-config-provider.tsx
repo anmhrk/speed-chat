@@ -32,7 +32,7 @@ const DEFAULT_CONFIG: ChatConfig = {
     aiGateway: '',
     openai: '',
   },
-  model: CHAT_MODELS[0].name,
+  model: CHAT_MODELS.find((model) => model.default)?.name ?? '',
   reasoningEffort: 'low',
   shouldUseReasoning: false,
   searchWeb: false,
@@ -61,6 +61,8 @@ export function ChatConfigProvider({
         } else {
           throw new Error(parsedConfig.error.message);
         }
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_CONFIG));
       }
     } catch (error) {
       // TODO: Don't wipe the entire thing on bad parse. Only wipe the invalid fields.

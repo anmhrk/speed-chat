@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createIdGenerator } from 'ai';
 import type { User } from 'better-auth';
 import { usePathname, useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { DbChat } from '@/backend/db/schema';
 import { orpc } from '@/backend/orpc';
@@ -22,11 +22,13 @@ type ChatContextType = {
   regenerate: UseChatHelpers<UIMessage>['regenerate'];
   input: string;
   setInput: (input: string) => void;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   chats: DbChat[] | undefined;
   isLoadingChats: boolean;
   isLoadingMessages: boolean;
+  isStreaming: boolean;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export function ChatProvider({
     useChatConfig();
 
   const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
   };
@@ -187,6 +190,9 @@ export function ChatProvider({
           createdAt: new Date(),
           updatedAt: new Date(),
           userId: user.id,
+          isPinned: false,
+          isBranch: false,
+          parentChatId: null,
         };
 
         return oldData ? [newChat, ...oldData] : [newChat];
@@ -201,6 +207,8 @@ export function ChatProvider({
     setInput('');
   };
 
+  const isStreaming = status === 'submitted' || status === 'streaming';
+
   const value: ChatContextType = {
     messages,
     sendMessage,
@@ -210,11 +218,13 @@ export function ChatProvider({
     regenerate,
     input,
     setInput,
+    inputRef,
     handleInputChange,
     handleSubmit,
     chats,
     isLoadingChats,
     isLoadingMessages,
+    isStreaming,
   };
 
   return <ChatContext value={value}>{children}</ChatContext>;

@@ -3,19 +3,21 @@
 import {
   ArrowUp,
   Brain,
+  Check,
   ChevronDown,
+  Cpu,
   Globe,
   type LucideIcon,
   Paperclip,
-  PenLine,
   Settings2,
+  Square,
   WandSparkles,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
 import { useChatConfig } from '@/components/providers/chat-config-provider';
 import { CHAT_MODELS } from '@/lib/models';
 import { getModelIcon } from './model-icons';
+import { useCustomChat } from './providers/chat-provider';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -30,16 +32,27 @@ import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export function ChatInput() {
-  const [input, setInput] = useState('');
   const { model, setModel, isLoading } = useChatConfig();
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    inputRef,
+    stop,
+    isStreaming,
+  } = useCustomChat();
 
   return (
-    <form className="mx-auto w-full max-w-3xl shrink-0 rounded-xl bg-[#F5F5F5] p-2 px-4 sm:px-2 dark:bg-[#262626]">
+    <form
+      className="mx-auto w-full max-w-3xl shrink-0 rounded-xl bg-[#F5F5F5] p-2 px-4 sm:px-2 dark:bg-[#262626]"
+      onSubmit={handleSubmit}
+    >
       <Textarea
         autoFocus
         className="!text-[15px] !bg-transparent max-h-[200px] min-h-[80px] w-full resize-none border-0 px-1 shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
-        onChange={(e) => setInput(e.target.value)}
+        onChange={handleInputChange}
         placeholder="Send a message"
+        ref={inputRef}
         value={input}
       />
       <div className="flex justify-between px-1 pt-2">
@@ -61,12 +74,15 @@ export function ChatInput() {
                   a.id.split('/')[0].localeCompare(b.id.split('/')[0])
                 ).map((m) => (
                   <DropdownMenuItem
-                    className="flex items-center gap-2 rounded-lg py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg py-2"
                     key={m.id}
                     onClick={() => setModel(m.name)}
                   >
-                    {getModelIcon(m.id)}
-                    {m.name}
+                    <div className="flex items-center gap-2">
+                      {getModelIcon(m.id)}
+                      {m.name}
+                    </div>
+                    {m.name === model && <Check className="size-4" />}
                   </DropdownMenuItem>
                 ))}
               </div>
@@ -75,11 +91,22 @@ export function ChatInput() {
           <Button
             className="rounded-full"
             disabled={!input}
+            onClick={() => {
+              if (isStreaming) {
+                stop();
+              }
+            }}
             size="icon"
             type="submit"
           >
-            <ArrowUp className="size-5" />
-            <span className="sr-only">Send message</span>
+            {isStreaming ? (
+              <Square className="size-5" />
+            ) : (
+              <ArrowUp className="size-5" />
+            )}
+            <span className="sr-only">
+              {isStreaming ? 'Stop' : 'Send message'}
+            </span>
           </Button>
         </div>
       </div>
@@ -148,7 +175,7 @@ function SettingsPopover() {
               {(shouldUseReasoning || currentModel?.reasoning === 'always') && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <WandSparkles className="size-5" strokeWidth={1.7} />
+                    <Cpu className="size-5" strokeWidth={1.7} />
                     <span className="text-sm">Choose reasoning effort</span>
                   </div>
                   <div className="grid w-full grid-cols-3 gap-2">
@@ -173,8 +200,8 @@ function SettingsPopover() {
           <Separator />
 
           <Button className="w-full" variant="outline">
-            <PenLine className="mr-1 size-5" strokeWidth={1.7} />
-            Use custom prompt
+            <WandSparkles className="mr-1 size-5" strokeWidth={1.7} />
+            Customize
           </Button>
         </div>
       </PopoverContent>
