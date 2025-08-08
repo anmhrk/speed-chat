@@ -1,9 +1,14 @@
+'use client';
+
 import { type UIMessage, type UseChatHelpers, useChat } from '@ai-sdk/react';
 import { eventIteratorToStream } from '@orpc/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createIdGenerator } from 'ai';
 import type { User } from 'better-auth';
-import { usePathname } from 'next/navigation';
-import { createContext, useContext, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import type { DbChat } from '@/backend/db/schema';
 import { orpc } from '@/backend/orpc';
 import { CHAT_MODELS } from '@/lib/models';
 import { useChatConfig } from './chat-config-provider';
@@ -19,6 +24,9 @@ type ChatContextType = {
   setInput: (input: string) => void;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  chats: DbChat[] | undefined;
+  isLoadingChats: boolean;
+  isLoadingMessages: boolean;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -30,8 +38,11 @@ export function ChatProvider({
   children: React.ReactNode;
   user: User | null;
 }) {
-  const chatId = usePathname().split('/c/')[1] ?? '';
-  const isNewChat = !!chatId;
+  const qc = useQueryClient();
+  const router = useRouter();
+  const chatIdParams = usePathname().split('/c/')[1] ?? '';
+  const [chatId, setChatId] = useState(chatIdParams);
+  const isNewChat = !chatIdParams;
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
 
@@ -40,9 +51,62 @@ export function ChatProvider({
     setInput(e.target.value);
   };
 
+  const {
+    data: chats,
+    isLoading: isLoadingChats,
+    isError: isErrorChats,
+    error: errorChats,
+  } = useQuery(
+    orpc.chatRouter.getChats.queryOptions({
+      enabled: !!user,
+      queryKey: ['chats'],
+    })
+  );
+
+  const {
+    data: initialMessages,
+    isLoading: isLoadingMessages,
+    isError: isErrorMessages,
+    error: errorMessages,
+  } = useQuery(
+    orpc.chatRouter.getMessages.queryOptions({
+      input: { chatId },
+      enabled: !!chatId,
+      queryKey: ['messages', chatId],
+    })
+  );
+
+  useEffect(() => {
+    if (isErrorChats) {
+      toast.error('Error loading chats', {
+        description: errorChats?.message,
+      });
+      router.push('/');
+    }
+
+    if (isErrorMessages) {
+      toast.error(`Error loading messages for chat ${chatId}`, {
+        description: errorMessages?.message,
+      });
+      router.push('/');
+    }
+  }, [
+    isErrorChats,
+    router,
+    errorChats,
+    isErrorMessages,
+    errorMessages,
+    chatId,
+  ]);
+
   const { messages, sendMessage, setMessages, stop, status, regenerate } =
     useChat({
       id: chatId,
+      messages: initialMessages,
+      generateId: createIdGenerator({
+        prefix: 'user',
+        size: 16,
+      }),
       transport: {
         async sendMessages(options) {
           return eventIteratorToStream(
@@ -67,6 +131,21 @@ export function ChatProvider({
           throw new Error('Not supported');
         },
       },
+      onData: (dataPart) => {
+        if (dataPart.type === 'data-title') {
+          qc.setQueryData(['chats'], (oldData: DbChat[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            return oldData.map((chat) =>
+              chat.id === chatId
+                ? { ...chat, title: dataPart.data as string }
+                : chat
+            );
+          });
+        }
+      },
     });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -77,8 +156,43 @@ export function ChatProvider({
       return;
     }
 
-    if (!input.trim()) {
+    if (!input.trim() || status === 'streaming' || status === 'submitted') {
       return;
+    }
+
+    if (chatId) {
+      // put chat at the top of the chats list
+      qc.setQueryData(['chats'], (oldData: DbChat[] | undefined) => {
+        if (!oldData) {
+          return oldData;
+        }
+
+        const currentChat = oldData.find((chat) => chat.id === chatId);
+
+        if (!currentChat) {
+          return oldData;
+        }
+
+        return [currentChat, ...oldData.filter((chat) => chat.id !== chatId)];
+      });
+    } else {
+      const newChatId = crypto.randomUUID();
+      setChatId(newChatId);
+      qc.setQueryData(['messages', newChatId], []); // set query cache for new chat to prevent fetch on route change
+
+      qc.setQueryData(['chats'], (oldData: DbChat[] | undefined) => {
+        const newChat: DbChat = {
+          id: newChatId,
+          title: 'New Chat',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: user.id,
+        };
+
+        return oldData ? [newChat, ...oldData] : [newChat];
+      });
+
+      window.history.replaceState({}, '', `/c/${newChatId}`);
     }
 
     sendMessage({
@@ -98,6 +212,9 @@ export function ChatProvider({
     setInput,
     handleInputChange,
     handleSubmit,
+    chats,
+    isLoadingChats,
+    isLoadingMessages,
   };
 
   return <ChatContext value={value}>{children}</ChatContext>;

@@ -1,7 +1,12 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function TanstackQueryClientProvider({
   children,
@@ -16,6 +21,18 @@ export function TanstackQueryClientProvider({
             retry: false,
           },
         },
+        queryCache: new QueryCache({
+          onError: (error) => {
+            toast.error(`Error: ${error.message}`, {
+              action: {
+                label: 'retry',
+                onClick: () => {
+                  queryClient.invalidateQueries();
+                },
+              },
+            });
+          },
+        }),
       })
   );
 

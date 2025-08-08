@@ -6,7 +6,6 @@ import {
   createIdGenerator,
   createUIMessageStream,
   generateText,
-  type InferToolInput,
   type InferToolOutput,
   stepCountIs,
   streamText,
@@ -16,7 +15,7 @@ import {
 import { eq } from 'drizzle-orm';
 import Exa from 'exa-js';
 import { z } from 'zod';
-import { chats, messages as messagesTable, parts } from '@/backend/db/schema';
+import { chats, messages as messagesTable } from '@/backend/db/schema';
 import { CHAT_MODELS, type ModelId, type ReasoningEffort } from '@/lib/models';
 import { generalChatPrompt, titleGenPrompt } from '@/lib/prompts';
 import { protectedProcedure } from '../middleware';
@@ -56,7 +55,6 @@ const searchWebTool = tool({
   },
 });
 
-export type searchWebToolInput = InferToolInput<typeof searchWebTool>;
 export type searchWebToolOutput = InferToolOutput<typeof searchWebTool>;
 
 const messageMetadataSchema = z.object({
@@ -96,7 +94,7 @@ export const chatStreamRouter = {
         isNewChat,
       } = input;
 
-      const { db } = context;
+      const { user, db } = context;
 
       const gateway = createGateway({
         apiKey,
@@ -137,6 +135,7 @@ export const chatStreamRouter = {
           let reasoningDuration = 0;
 
           let titlePromise: Promise<string> | undefined;
+          let generatedTitle = 'New Chat';
 
           if (isNewChat) {
             titlePromise = (async () => {
@@ -148,18 +147,26 @@ export const chatStreamRouter = {
                 });
 
                 if (response.text) {
+                  generatedTitle = response.text;
                   await db
-                    .update(chats)
-                    .set({
+                    .insert(chats)
+                    .values({
+                      id: chatId,
+                      userId: user.id,
                       title: response.text,
                     })
-                    .where(eq(chats.id, chatId));
+                    .onConflictDoUpdate({
+                      target: [chats.id],
+                      set: {
+                        title: response.text,
+                      },
+                    });
                 }
 
-                return response.text;
+                return generatedTitle;
               } catch (error) {
                 console.error(error);
-                return 'New Chat'; // Return generic fallback to not break stream
+                return generatedTitle;
               }
             })();
           }
@@ -274,50 +281,32 @@ export const chatStreamRouter = {
                 const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
 
                 await db.transaction(async (tx) => {
+                  if (isNewChat) {
+                    await tx
+                      .insert(chats)
+                      .values({
+                        id: chatId,
+                        userId: user.id,
+                        title: generatedTitle,
+                      })
+                      .onConflictDoNothing();
+                  }
+
                   await tx.insert(messagesTable).values(
                     latestMessages.map((message) => ({
                       id: message.id,
                       chatId,
                       role: message.role,
+                      parts: message.parts,
                     }))
                   );
 
-                  const partRows = latestMessages.flatMap((message) =>
-                    message.parts.map((part, index) => ({
-                      messageId: message.id,
-                      order: index + 1,
-                      text_text: part.type === 'text' ? part.text : undefined,
-                      reasoning_text:
-                        part.type === 'reasoning' ? part.text : undefined,
-                      file_mediaType:
-                        part.type === 'file' ? part.mediaType : undefined,
-                      file_url: part.type === 'file' ? part.url : undefined,
-                      tool_toolCallId:
-                        part.type === 'tool-searchWeb'
-                          ? part.toolCallId
-                          : undefined,
-                      tool_state:
-                        part.type === 'tool-searchWeb' ? part.state : undefined,
-                      tool_errorText:
-                        part.type === 'tool-searchWeb'
-                          ? part.errorText
-                          : undefined,
-                      tool_searchWeb_input:
-                        part.type === 'tool-searchWeb'
-                          ? (part.input as searchWebToolInput)
-                          : undefined,
-                      tool_searchWeb_output:
-                        part.type === 'tool-searchWeb'
-                          ? (part.output as searchWebToolOutput)
-                          : undefined,
-                      data_messageMetadata:
-                        part.type === 'data-messageMetadata'
-                          ? (part.data as MessageMetadata)
-                          : undefined,
-                    }))
-                  ) satisfies (typeof parts.$inferInsert)[];
-
-                  await tx.insert(parts).values(partRows);
+                  await tx
+                    .update(chats)
+                    .set({
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(chats.id, chatId));
                 });
               },
             })

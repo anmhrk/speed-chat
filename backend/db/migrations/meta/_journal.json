@@ -15,6 +15,13 @@
       "when": 1754593438101,
       "tag": "0001_short_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754645925638,
+      "tag": "0002_naive_cargill",
+      "breakpoints": true
     }
   ]
 }
