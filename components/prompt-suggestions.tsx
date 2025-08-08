@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 
 const PROMPT_SUGGESTIONS = [
-  'Explain how AI learns in a way a 5 year old can understand',
+  'Explain how AI works in a way a 5 year old can understand',
   'How do I survive a long flight without losing my mind?',
   'What are the best sources of protein?',
   'Help me plan my summer vacation in Europe',

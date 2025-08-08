@@ -68,31 +68,35 @@ const messageMetadataSchema = z.object({
 
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
+export type ChatStreamBody = {
+  chatId: string;
+  modelId: ModelId;
+  apiKey: string;
+  reasoningEffort: ReasoningEffort;
+  shouldUseReasoning: boolean;
+  shouldSearchWeb: boolean;
+  isNewChat: boolean;
+};
+
 export const chatStreamRouter = {
   stream: protectedProcedure
     .input(
       type<{
-        chatId: string;
         messages: UIMessage[];
-        modelId: ModelId;
-        apiKey: string;
-        reasoningEffort: ReasoningEffort;
-        shouldUseReasoning: boolean;
-        shouldSearchWeb: boolean;
-        isNewChat: boolean;
+        body: ChatStreamBody;
       }>()
     )
     .handler(({ context, input }) => {
+      const { messages, body } = input;
       const {
         chatId,
-        messages,
         modelId,
         apiKey,
         reasoningEffort,
         shouldUseReasoning,
         shouldSearchWeb,
         isNewChat,
-      } = input;
+      } = body;
 
       const { user, db } = context;
 
@@ -281,34 +285,32 @@ export const chatStreamRouter = {
                 // allMessages is the full list of messages, including the latest response message
                 const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
 
-                await db.transaction(async (tx) => {
-                  if (isNewChat) {
-                    await tx
-                      .insert(chats)
-                      .values({
-                        id: chatId,
-                        userId: user.id,
-                        title: generatedTitle,
-                      })
-                      .onConflictDoNothing();
-                  }
-
-                  await tx.insert(messagesTable).values(
-                    latestMessages.map((message) => ({
-                      id: message.id,
-                      chatId,
-                      role: message.role,
-                      parts: message.parts,
-                    }))
-                  );
-
-                  await tx
-                    .update(chats)
-                    .set({
-                      updatedAt: new Date(),
+                if (isNewChat) {
+                  await db
+                    .insert(chats)
+                    .values({
+                      id: chatId,
+                      userId: user.id,
+                      title: generatedTitle,
                     })
-                    .where(eq(chats.id, chatId));
-                });
+                    .onConflictDoNothing();
+                }
+
+                await db.insert(messagesTable).values(
+                  latestMessages.map((message) => ({
+                    id: message.id,
+                    chatId,
+                    role: message.role,
+                    parts: message.parts,
+                  }))
+                );
+
+                await db
+                  .update(chats)
+                  .set({
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(chats.id, chatId));
               },
             })
           );

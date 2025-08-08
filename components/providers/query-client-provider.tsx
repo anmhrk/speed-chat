@@ -23,14 +23,7 @@ export function TanstackQueryClientProvider({
         },
         queryCache: new QueryCache({
           onError: (error) => {
-            toast.error(`Error: ${error.message}`, {
-              action: {
-                label: 'retry',
-                onClick: () => {
-                  queryClient.invalidateQueries();
-                },
-              },
-            });
+            toast.error(`Error: ${error.message}`);
           },
         }),
       })

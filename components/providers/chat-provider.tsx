@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { DbChat } from '@/backend/db/schema';
 import { orpc } from '@/backend/orpc';
+import type { ChatStreamBody } from '@/backend/orpc/routers/chat-stream';
 import { CHAT_MODELS } from '@/lib/models';
 import { useChatConfig } from './chat-config-provider';
 
@@ -42,8 +43,19 @@ export function ChatProvider({
 }) {
   const qc = useQueryClient();
   const router = useRouter();
-  const chatIdParams = usePathname().split('/c/')[1] ?? '';
+  const pathname = usePathname();
+  const chatIdParams = pathname.startsWith('/c/') ? pathname.slice(3) : '';
   const [chatId, setChatId] = useState(chatIdParams);
+  const chatIdRef = useRef(chatId);
+
+  // Sync chatId state and ref with the URL state
+  useEffect(() => {
+    if (chatIdParams !== chatId) {
+      setChatId(chatIdParams);
+      chatIdRef.current = chatIdParams;
+    }
+  }, [chatIdParams, chatId]);
+
   const isNewChat = !chatIdParams;
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
@@ -58,7 +70,6 @@ export function ChatProvider({
     data: chats,
     isLoading: isLoadingChats,
     isError: isErrorChats,
-    error: errorChats,
   } = useQuery(
     orpc.chatRouter.getChats.queryOptions({
       enabled: !!user,
@@ -70,7 +81,6 @@ export function ChatProvider({
     data: initialMessages,
     isLoading: isLoadingMessages,
     isError: isErrorMessages,
-    error: errorMessages,
   } = useQuery(
     orpc.chatRouter.getMessages.queryOptions({
       input: { chatId },
@@ -80,32 +90,16 @@ export function ChatProvider({
   );
 
   useEffect(() => {
-    if (isErrorChats) {
-      toast.error('Error loading chats', {
-        description: errorChats?.message,
-      });
+    if (isErrorChats || isErrorMessages) {
+      // error text will be surfaced by query client provider
+      // just route back to home here
       router.push('/');
     }
-
-    if (isErrorMessages) {
-      toast.error(`Error loading messages for chat ${chatId}`, {
-        description: errorMessages?.message,
-      });
-      router.push('/');
-    }
-  }, [
-    isErrorChats,
-    router,
-    errorChats,
-    isErrorMessages,
-    errorMessages,
-    chatId,
-  ]);
+  }, [isErrorChats, router, isErrorMessages]);
 
   const { messages, sendMessage, setMessages, stop, status, regenerate } =
     useChat({
       id: chatId,
-      messages: initialMessages,
       generateId: createIdGenerator({
         prefix: 'user',
         size: 16,
@@ -115,16 +109,8 @@ export function ChatProvider({
           return eventIteratorToStream(
             await orpc.chatStreamRouter.stream.call(
               {
-                chatId,
                 messages: options.messages,
-                modelId:
-                  CHAT_MODELS.find((m) => m.id === model)?.id ??
-                  'anthropic/claude-sonnet-4', // Default so that typescript is happy
-                apiKey: apiKeys.aiGateway,
-                reasoningEffort,
-                shouldUseReasoning,
-                shouldSearchWeb: searchWeb,
-                isNewChat,
+                body: options.body as ChatStreamBody,
               },
               { signal: options.abortSignal }
             )
@@ -150,6 +136,13 @@ export function ChatProvider({
         }
       },
     });
+
+  // initialMessages is undefined on first load and ai sdk doesn't dynamically update when they populate if set as messages: initialMessages
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages, setMessages]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -181,6 +174,8 @@ export function ChatProvider({
     } else {
       const newChatId = crypto.randomUUID();
       setChatId(newChatId);
+      chatIdRef.current = newChatId;
+
       qc.setQueryData(['messages', newChatId], []); // set query cache for new chat to prevent fetch on route change
 
       qc.setQueryData(['chats'], (oldData: DbChat[] | undefined) => {
@@ -201,9 +196,24 @@ export function ChatProvider({
       window.history.replaceState({}, '', `/c/${newChatId}`);
     }
 
-    sendMessage({
-      text: input,
-    });
+    sendMessage(
+      {
+        text: input,
+      },
+      {
+        body: {
+          chatId: chatId ?? chatIdRef.current, // ref exists only for new chats
+          modelId:
+            CHAT_MODELS.find((m) => m.name === model)?.id ??
+            'anthropic/claude-sonnet-4', // Default so that typescript is happy
+          apiKey: apiKeys.aiGateway,
+          reasoningEffort,
+          shouldUseReasoning,
+          shouldSearchWeb: searchWeb,
+          isNewChat,
+        },
+      }
+    );
     setInput('');
   };
 

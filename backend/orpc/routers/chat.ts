@@ -1,5 +1,6 @@
+import { ORPCError } from '@orpc/client';
 import type { UIMessage } from 'ai';
-import { asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { chats, messages as messagesTable } from '@/backend/db/schema';
 import { protectedProcedure } from '../middleware';
@@ -22,16 +23,32 @@ export const chatRouter = {
     )
     .handler(async ({ context, input }) => {
       const { chatId } = input;
-      const { db } = context;
+      const { user, db } = context;
 
-      return (await db
+      const result = await db
         .select({
-          id: messagesTable.id,
+          messageId: messagesTable.id,
           role: messagesTable.role,
           parts: messagesTable.parts,
+          chatId: chats.id,
+          chatUserId: chats.userId,
         })
-        .from(messagesTable)
-        .where(eq(messagesTable.chatId, chatId))
-        .orderBy(asc(messagesTable.createdAt))) satisfies UIMessage[];
+        .from(chats)
+        .leftJoin(messagesTable, eq(messagesTable.chatId, chats.id))
+        .where(and(eq(chats.id, chatId), eq(chats.userId, user.id)))
+        .orderBy(asc(messagesTable.createdAt));
+
+      // If no results at all, chat doesn't exist or doesn't belong to user
+      if (result.length === 0) {
+        throw new ORPCError(`Chat ${chatId} not found`);
+      }
+
+      const messages = result.map((row) => ({
+        id: row.messageId,
+        role: row.role,
+        parts: row.parts,
+      }));
+
+      return messages as UIMessage[];
     }),
 };

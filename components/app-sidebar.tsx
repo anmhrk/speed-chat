@@ -82,7 +82,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {pinnedChats?.map((chat) => (
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton asChild>
-                      <Link href={`/c/${chat.id}`}>{chat.title}</Link>
+                      <Link href={`/c/${chat.id}`}>
+                        <span className="truncate">{chat.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -96,7 +98,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {normalChats?.map((chat) => (
                   <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton asChild>
-                      <Link href={`/c/${chat.id}`}>{chat.title}</Link>
+                      <Link href={`/c/${chat.id}`}>
+                        <span className="truncate">{chat.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

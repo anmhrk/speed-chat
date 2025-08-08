@@ -51,6 +51,12 @@ export function ChatInput() {
         autoFocus
         className="!text-[15px] !bg-transparent max-h-[200px] min-h-[80px] w-full resize-none border-0 px-1 shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
         onChange={handleInputChange}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            e.currentTarget.form?.requestSubmit();
+          }
+        }}
         placeholder="Send a message"
         ref={inputRef}
         value={input}
