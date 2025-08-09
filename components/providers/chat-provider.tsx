@@ -38,6 +38,7 @@ type ChatContextType = {
   isLoadingMessages: boolean;
   isStreaming: boolean;
   buildBody: () => ChatStreamBody;
+  currentChatId: string;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -256,6 +257,7 @@ export function ChatProvider({
     isLoadingMessages,
     isStreaming,
     buildBody,
+    currentChatId: chatId,
   };
 
   return <ChatContext value={value}>{children}</ChatContext>;

@@ -12,7 +12,7 @@ import {
   tool,
   type UIMessage,
 } from 'ai';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import Exa from 'exa-js';
 import { z } from 'zod';
 import { chats, messages as messagesTable } from '@/backend/db/schema';
@@ -296,14 +296,22 @@ export const chatStreamRouter = {
                     .onConflictDoNothing();
                 }
 
-                await db.insert(messagesTable).values(
-                  latestMessages.map((message) => ({
-                    id: message.id,
-                    chatId,
-                    role: message.role,
-                    parts: message.parts,
-                  }))
-                );
+                await db
+                  .insert(messagesTable)
+                  .values(
+                    latestMessages.map((message) => ({
+                      id: message.id,
+                      chatId,
+                      role: message.role,
+                      parts: message.parts,
+                    }))
+                  )
+                  .onConflictDoUpdate({
+                    target: [messagesTable.id],
+                    set: {
+                      parts: sql`excluded.parts`,
+                    },
+                  });
 
                 await db
                   .update(chats)

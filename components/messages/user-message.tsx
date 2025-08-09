@@ -1,13 +1,34 @@
+// import { useMutation } from '@tanstack/react-query';
 import type { UIMessage } from 'ai';
 import { Check, Copy, PenBox } from 'lucide-react';
+// import { useState } from 'react';
+// import { orpc } from '@/backend/orpc';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+// import { useCustomChat } from '../providers/chat-provider';
 import { MessageActionButton } from '.';
 
 export function UserMessage({ message }: { message: UIMessage }) {
+  // const { messages } = useCustomChat();
   const { copyToClipboard, isCopied } = useCopyToClipboard();
+  // const [isEditing, setIsEditing] = useState(false);
   const messageContent = message.parts.find(
     (part) => part.type === 'text'
   )?.text;
+  // const [messagesToDelete, setMessagesToDelete] = useState<string[]>([]);
+
+  // const deleteMessages = useMutation(
+  //   orpc.chatActionsRouter.deleteMessages.mutationOptions()
+  // );
+
+  // const handleEditMessage = () => {
+  //   setIsEditing(false);
+  //   const editingMessageIndex = messages.findIndex((m) => m.id === message.id);
+
+  //   const messagesToCheck = messages.slice(editingMessageIndex + 1);
+  //   setMessagesToDelete(messagesToCheck.map((m) => m.id));
+  //   deleteMessages.mutate();
+  //   messages.splice(editingMessageIndex + 1);
+  // };
 
   return (
     <div className="group flex flex-col items-end gap-2">
@@ -19,7 +40,7 @@ export function UserMessage({ message }: { message: UIMessage }) {
           icon={PenBox}
           label="Edit Message"
           onClick={() => {
-            // TODO: Implement edit message
+            console.log('edit message');
           }}
         />
         <MessageActionButton
