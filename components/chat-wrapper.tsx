@@ -35,8 +35,8 @@ export function ChatWrapper({
   }
 
   return (
-    <main className="flex h-full flex-col px-2">
-      <header className="absolute top-0 right-0 left-0 flex h-12 items-center justify-between px-2">
+    <main className="flex h-full flex-col">
+      <header className="sticky top-0 z-10 flex h-12 items-center justify-between px-2">
         <SidebarTrigger />
         <Button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -49,8 +49,8 @@ export function ChatWrapper({
         </Button>
       </header>
 
-      <div className="flex-1">{children}</div>
-      <div className="pb-2">
+      <div className="flex-1 overflow-y-auto">{children}</div>
+      <div className="px-2 pb-2">
         <ChatInput />
       </div>
     </main>
