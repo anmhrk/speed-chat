@@ -1,3 +1,5 @@
+// reference: https://ai-sdk.dev/elements/components/reasoning
+
 'use client';
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
@@ -10,7 +12,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { Response } from './response';
+import { Markdown } from './markdown';
 
 type ReasoningContextValue = {
   isStreaming: boolean;
@@ -168,7 +170,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Response className="grid gap-2">{children}</Response>
+      <Markdown>{children}</Markdown>
     </CollapsibleContent>
   )
 );

@@ -6,7 +6,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createIdGenerator } from 'ai';
 import type { User } from 'better-auth';
 import { usePathname, useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import type { DbChat } from '@/backend/db/schema';
 import { orpc } from '@/backend/orpc';
@@ -30,6 +37,7 @@ type ChatContextType = {
   isLoadingChats: boolean;
   isLoadingMessages: boolean;
   isStreaming: boolean;
+  buildBody: () => ChatStreamBody;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -144,6 +152,28 @@ export function ChatProvider({
     }
   }, [initialMessages, setMessages]);
 
+  const buildBody = useCallback(() => {
+    return {
+      chatId: chatId ?? chatIdRef.current,
+      modelId:
+        CHAT_MODELS.find((m) => m.name === model)?.id ??
+        'anthropic/claude-sonnet-4', // Default so that typescript is happy
+      apiKey: apiKeys.aiGateway,
+      reasoningEffort,
+      shouldUseReasoning,
+      shouldSearchWeb: searchWeb,
+      isNewChat,
+    } as ChatStreamBody;
+  }, [
+    chatId,
+    model,
+    apiKeys.aiGateway,
+    reasoningEffort,
+    shouldUseReasoning,
+    searchWeb,
+    isNewChat,
+  ]);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -201,17 +231,7 @@ export function ChatProvider({
         text: input,
       },
       {
-        body: {
-          chatId: chatId ?? chatIdRef.current, // ref exists only for new chats
-          modelId:
-            CHAT_MODELS.find((m) => m.name === model)?.id ??
-            'anthropic/claude-sonnet-4', // Default so that typescript is happy
-          apiKey: apiKeys.aiGateway,
-          reasoningEffort,
-          shouldUseReasoning,
-          shouldSearchWeb: searchWeb,
-          isNewChat,
-        },
+        body: buildBody(),
       }
     );
     setInput('');
@@ -235,6 +255,7 @@ export function ChatProvider({
     isLoadingChats,
     isLoadingMessages,
     isStreaming,
+    buildBody,
   };
 
   return <ChatContext value={value}>{children}</ChatContext>;

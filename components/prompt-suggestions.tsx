@@ -15,7 +15,7 @@ export function PromptSuggestions() {
   const { setInput, inputRef } = useCustomChat();
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full max-w-3xl px-2">
       {PROMPT_SUGGESTIONS.map((suggestion, index) => (
         <div key={suggestion}>
           <Button

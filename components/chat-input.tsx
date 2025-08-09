@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useChatConfig } from '@/components/providers/chat-config-provider';
-import { CHAT_MODELS } from '@/lib/models';
+import { CHAT_MODELS, type ModelId } from '@/lib/models';
 import { getModelIcon } from './model-icons';
 import { useCustomChat } from './providers/chat-provider';
 import { Button } from './ui/button';
@@ -70,7 +70,14 @@ export function ChatInput() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button disabled={isLoading} variant="chatInput">
-                {isLoading ? null : model}
+                {isLoading ? null : (
+                  <>
+                    {getModelIcon(
+                      CHAT_MODELS.find((m) => m.name === model)?.id as ModelId
+                    )}
+                    {model}
+                  </>
+                )}
                 <ChevronDown className="text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>

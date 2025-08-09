@@ -1,3 +1,5 @@
+// reference: https://ai-sdk.dev/elements/components/conversation
+
 'use client';
 
 import { ArrowDownIcon } from 'lucide-react';
