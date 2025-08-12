@@ -20,7 +20,7 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 - [Convex](https://www.convex.dev) - Reactive backend as a service platform
 - [TailwindCSS v4](https://tailwindcss.com) - Inline CSS framework
 - [shadcn/ui](https://ui.shadcn.com) - Modern component library built on Radix UI
-- [Convex Auth](https://labs.convex.dev/auth) - Native authentication library for Convex
+- [Clerk](https://clerk.dev) - Hosted auth solution
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
 - [Exa](https://exa.ai) - AI powered web search API
 
@@ -52,9 +52,9 @@ bun dev # app will be available at http://localhost:3000
 bun convex:dev # this will auto set the required env vars for you too
 ```
 
-4. Make sure you have the env vars in `.env.example` setup in your `.env` or `.env.local` file.
+4. Follow the instructions in the [Convex + Clerk](https://docs.convex.dev/auth/clerk) guide to set up auth.
 
-5. Follow the instructions in the [Convex Auth](https://labs.convex.dev/auth/setup) guide to set up Google OAuth.
+5. Make sure you have the env vars in `.env.example` setup in your `.env` or `.env.local` file.
 
 ## 📄 License
 
