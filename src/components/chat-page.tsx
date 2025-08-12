@@ -24,7 +24,7 @@ const PROMPT_SUGGESTIONS = [
 
 interface ChatPageProps {
   user: Doc<"users"> | null;
-  initialMessages?: MyUIMessage[];
+  initialMessages: MyUIMessage[];
 }
 
 export function ChatPage({ user, initialMessages }: ChatPageProps) {
@@ -47,7 +47,7 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-  } = useCustomChat({ initialMessages: initialMessages ?? [], user });
+  } = useCustomChat({ initialMessages, user });
 
   const shouldBlock = useMemo(() => {
     if (isLoading || !user) {

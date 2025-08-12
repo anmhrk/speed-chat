@@ -38,8 +38,9 @@ export const branchOffFromMessage = mutation({
     );
 
     const branchChatConvexId = await ctx.db.insert("chats", {
-      ...parentChat,
       id: branchChatId,
+      title: parentChat.title,
+      userId: parentChat.userId,
       isBranch: true,
       isPinned: false,
       parentChatId: parentChat.id,
@@ -49,9 +50,11 @@ export const branchOffFromMessage = mutation({
 
     for (const message of messagesUntilMessageToBranch) {
       await ctx.db.insert("messages", {
-        ...message,
         id: `${message.id}-branch-${branchChatId}`,
         chatId: branchChatConvexId,
+        role: message.role,
+        parts: message.parts,
+        metadata: message.metadata,
       });
     }
 

@@ -11,7 +11,6 @@ import {
   Paperclip,
   Settings2,
   Square,
-  WandSparkles,
   X,
 } from "lucide-react";
 import { useRef } from "react";
@@ -271,13 +270,6 @@ function SettingsPopover({
               )}
             </div>
           )}
-
-          <Separator />
-
-          <Button className="w-full" variant="outline">
-            <WandSparkles className="mr-1 size-5" strokeWidth={1.7} />
-            Customize
-          </Button>
         </div>
       </PopoverContent>
     </Popover>

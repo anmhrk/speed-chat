@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type FileUIPart } from "ai";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { MyUIMessage } from "@/lib/types";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { nanoid } from "nanoid";
@@ -19,7 +19,6 @@ type CustomChatProps = {
 export function useCustomChat({ initialMessages, user }: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
-  const router = useRouter();
   const pathname = usePathname();
   const urlChatId = useMemo(
     () => pathname.split("/chat/")[1] ?? "",
@@ -51,7 +50,7 @@ export function useCustomChat({ initialMessages, user }: CustomChatProps) {
         chatId,
         modelId:
           CHAT_MODELS.find((m) => m.name === model)?.id ??
-          "anthropic/claude-sonnet-4", // Default so that typescript is happy
+          "anthropic/claude-sonnet-4",
         reasoningEffort,
         shouldUseReasoning,
         shouldSearchWeb: searchWeb,
@@ -86,7 +85,7 @@ export function useCustomChat({ initialMessages, user }: CustomChatProps) {
     }
 
     if (isNewChat) {
-      router.replace(`/chat/${chatId}`);
+      window.history.replaceState({}, "", `/chat/${chatId}`);
       setIsNewChat(false);
     }
 

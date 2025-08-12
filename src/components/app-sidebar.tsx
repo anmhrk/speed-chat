@@ -5,7 +5,6 @@ import {
   Loader2,
   LogIn,
   LogOut,
-  Palette,
   PenBox,
   Search,
   Trash2,
@@ -91,14 +90,6 @@ export function AppSidebar({
                 Search chats
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/library">
-                  <Palette />
-                  Library
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarHeader>
@@ -117,33 +108,38 @@ export function AppSidebar({
             <div className="mx-auto my-auto flex text-muted-foreground text-sm">
               No chats yet.
             </div>
-          ) : pinnedChats?.length !== 0 ? (
-            <>
-              <SidebarGroupLabel>Pinned</SidebarGroupLabel>
-              <SidebarMenu>
-                {pinnedChats?.map((chat) => (
-                  <SidebarChatItem
-                    chat={chat}
-                    currentChatId={currentChatId}
-                    isStreaming={isStreaming}
-                    key={chat.id}
-                  />
-                ))}
-              </SidebarMenu>
-            </>
           ) : (
             <>
-              <SidebarGroupLabel>Chats</SidebarGroupLabel>
-              <SidebarMenu>
-                {normalChats?.map((chat) => (
-                  <SidebarChatItem
-                    chat={chat}
-                    currentChatId={currentChatId}
-                    isStreaming={isStreaming}
-                    key={chat.id}
-                  />
-                ))}
-              </SidebarMenu>
+              {pinnedChats && pinnedChats.length > 0 && (
+                <>
+                  <SidebarGroupLabel>Pinned</SidebarGroupLabel>
+                  <SidebarMenu>
+                    {pinnedChats.map((chat) => (
+                      <SidebarChatItem
+                        chat={chat}
+                        currentChatId={currentChatId}
+                        isStreaming={isStreaming}
+                        key={chat.id}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </>
+              )}
+              {normalChats && normalChats.length > 0 && (
+                <>
+                  <SidebarGroupLabel>Chats</SidebarGroupLabel>
+                  <SidebarMenu>
+                    {normalChats.map((chat) => (
+                      <SidebarChatItem
+                        chat={chat}
+                        currentChatId={currentChatId}
+                        isStreaming={isStreaming}
+                        key={chat.id}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </>
+              )}
             </>
           )}
         </SidebarGroup>

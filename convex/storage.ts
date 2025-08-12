@@ -43,6 +43,7 @@ export const deleteFiles = mutation({
 
       if (attachment) {
         storageIds.push(attachment.id);
+        await ctx.db.delete(attachment._id);
       }
     }
 

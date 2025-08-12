@@ -77,7 +77,7 @@ export function AssistantMessage({
                         part.output ? (
                           <div className="space-y-3">
                             {(part.output as searchWebToolOutput).map(
-                              (result) => (
+                              (result: searchWebToolOutput) => (
                                 <div
                                   className="rounded-lg border p-3 transition-colors"
                                   key={result.url}
@@ -129,7 +129,7 @@ export function AssistantMessage({
                 parentChatId: currentChatId,
                 messageId: message.id,
               }).then((branchChatId) => {
-                router.push(`/c/${branchChatId}`);
+                router.push(`/chat/${branchChatId}`);
               }),
               {
                 loading: "Branching off from this message...",

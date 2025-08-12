@@ -52,7 +52,9 @@ bun dev # app will be available at http://localhost:3000
 bun convex:dev # this will auto set the required env vars for you too
 ```
 
-4. Follow the instructions in the [Convex Auth](https://labs.convex.dev/auth/setup) guide to set up Google OAuth.
+4. Make sure you have the env vars in `.env.example` setup in your `.env` or `.env.local` file.
+
+5. Follow the instructions in the [Convex Auth](https://labs.convex.dev/auth/setup) guide to set up Google OAuth.
 
 ## 📄 License
 

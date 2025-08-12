@@ -31,7 +31,7 @@ export function Messages({
 }: MessagesProps) {
   return (
     <Conversation className="overflow-hidden">
-      <ConversationContent className="mx-auto max-w-3xl space-y-2 pt-10 pb-16 text-sm">
+      <ConversationContent className="mx-auto max-w-3xl pt-10 pb-16 text-sm">
         {messages.map((message) => {
           const isLastMessage = message.id === messages.at(-1)?.id;
 

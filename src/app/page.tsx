@@ -22,5 +22,5 @@ export default async function Home() {
     }
   );
 
-  return <ChatPage user={user} initialMessages={initialMessages ?? []} />;
+  return <ChatPage user={user} initialMessages={initialMessages} />;
 }
