@@ -1,6 +1,9 @@
-import { getUser } from "@/lib/actions";
-import { redirect } from "next/navigation";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 import { ChatPage } from "@/components/chat-page";
+import { redirect } from "next/navigation";
+import { MyUIMessage } from "@/lib/types";
 
 export default async function Page({
   params,
@@ -9,11 +12,30 @@ export default async function Page({
 }) {
   const { id } = await params;
 
-  const user = await getUser();
+  const user = await fetchQuery(
+    api.user.currentUser,
+    {},
+    {
+      token: await convexAuthNextjsToken(),
+    }
+  );
 
-  if (!user) {
+  let initialMessages: MyUIMessage[] = [];
+
+  try {
+    initialMessages = await fetchQuery(
+      api.chat.getMessages,
+      {
+        chatId: id,
+      },
+      {
+        token: await convexAuthNextjsToken(),
+      }
+    );
+  } catch (error) {
+    console.error(error);
     redirect("/");
   }
 
-  return <ChatPage user={user} initialChatId={id} />;
+  return <ChatPage user={user} initialMessages={initialMessages} />;
 }

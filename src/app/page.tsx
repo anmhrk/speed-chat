@@ -1,19 +1,26 @@
 import { ChatPage } from "@/components/chat-page";
-import { getUser } from "@/lib/actions";
-import { getRandomGreeting, getRandomPromptSuggestions } from "@/lib/random";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 
 export default async function Home() {
-  const user = await getUser();
-  const name = user?.name.split(" ")[0];
-
-  const randomGreeting = getRandomGreeting(name ?? "");
-  const randomPromptSuggestions = getRandomPromptSuggestions("text");
-
-  return (
-    <ChatPage
-      user={user}
-      greeting={randomGreeting}
-      promptSuggestions={randomPromptSuggestions}
-    />
+  const user = await fetchQuery(
+    api.user.currentUser,
+    {},
+    {
+      token: await convexAuthNextjsToken(),
+    }
   );
+
+  const initialMessages = await fetchQuery(
+    api.chat.getMessages,
+    {
+      chatId: "",
+    },
+    {
+      token: await convexAuthNextjsToken(),
+    }
+  );
+
+  return <ChatPage user={user} initialMessages={initialMessages ?? []} />;
 }

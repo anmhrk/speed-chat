@@ -1,387 +1,230 @@
+import { useMutation } from "convex/react";
 import {
-  Check,
-  Copy,
-  RotateCcw,
-  Download,
-  ExternalLink,
-  GitBranch,
   Bolt,
-  Cpu,
+  Check,
   Clock,
+  Copy,
+  Cpu,
+  GitBranch,
   Info,
+  RefreshCcw,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { memo, useState, useEffect } from "react";
-import type { Message } from "ai";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { toast } from "sonner";
-import { Markdown } from "@/components/messages/markdown";
-import removeMarkdown from "remove-markdown";
-import "katex/dist/katex.min.css";
-import { UseChatHelpers } from "@ai-sdk/react";
-import Link from "next/link";
-import type {
-  ImageGenerationToolInvocation,
-  MessageAnnotation,
-} from "@/lib/types";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { branchOffChat } from "@/lib/actions";
-import { ReasoningBlock } from "@/components/messages/reasoning-block";
-import { WebSearchBlock } from "@/components/messages/web-search-block";
-import { MemoryBlock } from "@/components/messages/memory";
+import { toast } from "sonner";
+import type { MyUIMessage, searchWebToolOutput } from "@/lib/types";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { MessageActionButton } from ".";
+import { Markdown } from "./markdown";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "./reasoning";
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./tool";
+import { api } from "@/convex/_generated/api";
+import { UseChatHelpers } from "@ai-sdk/react";
+import { useCustomChat } from "@/hooks/use-custom-chat";
 
 interface AssistantMessageProps {
-  message: Message;
   isLastMessage: boolean;
-  reload: UseChatHelpers["reload"];
-  chatId: string;
-  isOnSharedPage: boolean;
+  message: MyUIMessage;
+  regenerate: UseChatHelpers<MyUIMessage>["regenerate"];
+  buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
+  currentChatId: string;
 }
 
-export const AssistantMessage = memo(function AssistantMessage({
-  message,
+export function AssistantMessage({
   isLastMessage,
-  reload,
-  chatId,
-  isOnSharedPage,
+  message,
+  regenerate,
+  buildBodyAndHeaders,
+  currentChatId,
 }: AssistantMessageProps) {
-  const isError = message.id.startsWith("error-");
-  const queryClient = useQueryClient();
   const router = useRouter();
-  const { isMobile } = useMobile();
-  const { isCopied, copyToClipboard } = useCopyClipboard();
-  const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
+  const isMobile = useIsMobile();
+  const { copyToClipboard, isCopied } = useCopyClipboard();
 
-  // Update reasoning streaming state based on message parts
-  useEffect(() => {
-    const hasReasoningPart = message.parts?.some(
-      (part) => part.type === "reasoning"
-    );
-    const hasTextPart = message.parts?.some((part) => part.type === "text");
+  const branchOffFromMessage = useMutation(
+    api.chatActions.branchOffFromMessage
+  );
+  const deleteMessages = useMutation(api.chatActions.deleteMessages);
 
-    if (hasReasoningPart && !hasTextPart) {
-      setIsReasoningStreaming(true);
-    } else if (hasTextPart) {
-      setIsReasoningStreaming(false);
-    }
-  }, [message.parts]);
-
-  const handleBranchOffChat = async (parentChatId: string) => {
-    const newChatId = crypto.randomUUID();
-
-    toast.promise(
-      branchOffChat(parentChatId, newChatId).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
-        router.push(`/chat/${newChatId}`);
-      }),
-      {
-        loading: "Branching...",
-        success: "Chat branched off!",
-        error: "Failed to branch off chat",
-      }
-    );
-  };
+  const reasoningDuration = message.metadata?.reasoningDuration;
 
   return (
-    <div className="flex justify-start text-[15px]">
-      <div className="group relative w-full">
-        {isError ? (
-          <div className="bg-destructive/10 flex justify-start rounded-lg p-3 text-[15px]">
-            <div className="w-full">
-              <div className="text-destructive break-words whitespace-pre-wrap">
-                {message.content}
-              </div>
+    <div className="group flex flex-col items-start gap-2">
+      <div className="w-full bg-transparent text-secondary-foreground">
+        {message.parts?.map((part, i) => {
+          const key = `${message.id}-${i}`;
+          switch (part.type) {
+            case "text":
+              return <Markdown key={key}>{part.text}</Markdown>;
+            case "reasoning":
+              return (
+                <Reasoning duration={reasoningDuration ?? undefined} key={key}>
+                  <ReasoningTrigger />
+                  <ReasoningContent>{part.text}</ReasoningContent>
+                </Reasoning>
+              );
+            case "tool-searchWebTool":
+              return (
+                <Tool defaultOpen={true} key={key}>
+                  <ToolHeader state={part.state} type={part.type} />
+                  <ToolContent>
+                    <ToolInput input={part.input} />
+                    <ToolOutput
+                      errorText={part.errorText}
+                      output={
+                        part.output ? (
+                          <div className="space-y-3">
+                            {(part.output as searchWebToolOutput).map(
+                              (result) => (
+                                <div
+                                  className="rounded-lg border p-3 transition-colors"
+                                  key={result.url}
+                                >
+                                  <div className="flex flex-col gap-2">
+                                    <a
+                                      className="line-clamp-2 font-medium text-blue-500 text-sm hover:underline dark:text-blue-400"
+                                      href={result.url}
+                                      rel="noopener noreferrer"
+                                      target="_blank"
+                                    >
+                                      {result.title}
+                                    </a>
+                                    <div className="flex items-center justify-between text-muted-foreground text-xs">
+                                      <span className="truncate">
+                                        {result.url}
+                                      </span>
+                                      {result.publishedDate && (
+                                        <span>
+                                          {new Date(
+                                            result.publishedDate
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        ) : null
+                      }
+                    />
+                  </ToolContent>
+                </Tool>
+              );
+            default:
+              return null;
+          }
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <MessageActionButton
+          icon={GitBranch}
+          label="Branch off from this message"
+          onClick={() => {
+            toast.promise(
+              branchOffFromMessage({
+                parentChatId: currentChatId,
+                messageId: message.id,
+              }).then((branchChatId) => {
+                router.push(`/c/${branchChatId}`);
+              }),
+              {
+                loading: "Branching off from this message...",
+                success: "Branch created",
+                error: "Failed to branch off from this message",
+              }
+            );
+          }}
+        />
+        {isLastMessage && (
+          <MessageActionButton
+            icon={RefreshCcw}
+            label="Regenerate"
+            onClick={() => {
+              deleteMessages({
+                messageIdsToDelete: [message.id],
+              });
+
+              const { body, headers } = buildBodyAndHeaders();
+              regenerate({
+                body,
+                headers,
+              });
+            }}
+          />
+        )}
+        <MessageActionButton
+          icon={isCopied ? Check : Copy}
+          label="Copy to clipboard"
+          onClick={() => {
+            copyToClipboard(
+              message.parts
+                ?.map((part) => (part.type === "text" ? part.text : ""))
+                .join("") || ""
+            );
+          }}
+        />
+
+        {message.metadata && (
+          <div className="flex w-full items-center text-muted-foreground text-xs opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex w-full items-center">
+              <span className="mr-2 max-w-[40vw] truncate font-medium">
+                {message.metadata.modelName}
+              </span>
+              <div className="flex-1" />
+              {isMobile ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      className="ml-auto h-8 w-8"
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Info className="size-4 text-primary" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-fit p-3">
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Bolt className="size-3" />
+                        <span>{message.metadata.tps.toFixed(2)} tok/s</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Cpu className="size-3" />
+                        <span>{message.metadata.completionTokens} tokens</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="size-3" />
+                        <span>
+                          Time-to-first: {message.metadata.ttft.toFixed(2)} s
+                        </span>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <div className="flex flex-row items-center gap-1.5">
+                  <p className="inline-flex items-center">
+                    <Bolt className="mr-1 inline-block size-3" />
+                    {message.metadata.tps.toFixed(2)} tok/s
+                  </p>
+                  <p className="inline-flex items-center">
+                    <Cpu className="mr-1 inline-block size-3" />
+                    {message.metadata.completionTokens} tokens
+                  </p>
+                  <p className="inline-flex items-center">
+                    <Clock className="mr-1 inline-block size-3" />
+                    Time-to-first: {message.metadata.ttft.toFixed(2)} s
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="text-foreground">
-            {message.parts?.map((part, partIndex) => {
-              if (part.type === "reasoning") {
-                const reasoningDuration =
-                  message.annotations?.[0] &&
-                  typeof message.annotations[0] !== "string"
-                    ? (message.annotations[0] as MessageAnnotation).metadata
-                        .reasoningDuration
-                    : undefined;
-                return (
-                  <ReasoningBlock
-                    key={partIndex}
-                    reasoning={part.reasoning || ""}
-                    isStreaming={isReasoningStreaming}
-                    duration={reasoningDuration}
-                  />
-                );
-              }
-
-              if (part.type === "text") {
-                return (
-                  <div key={partIndex}>
-                    <Markdown>{part.text}</Markdown>
-                  </div>
-                );
-              }
-
-              if (part.type === "tool-invocation") {
-                if (part.toolInvocation.toolName === "generateImage") {
-                  return (
-                    <div
-                      key={partIndex}
-                      className="flex flex-wrap gap-2 mt-4 w-full relative max-w-[66.67%]"
-                    >
-                      {part.toolInvocation.state === "result" ? (
-                        <div className="relative group/image">
-                          <img
-                            src={
-                              (
-                                part.toolInvocation as ImageGenerationToolInvocation
-                              ).result.imageUrl
-                            }
-                            alt="Generated Image"
-                            className="rounded-md w-full max-w-[400px] h-auto aspect-auto cursor-pointer"
-                            width={400}
-                            height={300}
-                            loading="lazy"
-                          />
-
-                          <div className="absolute top-1 right-1 flex gap-1.5">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="rounded-full h-7 w-7 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover/image:opacity-100 transition-opacity"
-                                  asChild
-                                >
-                                  <Link
-                                    href={
-                                      (
-                                        part.toolInvocation as ImageGenerationToolInvocation
-                                      ).result.imageUrl
-                                    }
-                                    target="_blank"
-                                  >
-                                    <ExternalLink className="size-4" />
-                                  </Link>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">
-                                Open in new tab
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="rounded-full h-7 w-7 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover/image:opacity-100 transition-opacity"
-                                  onMouseDown={async (e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-
-                                    const response = await fetch(
-                                      (
-                                        part.toolInvocation as ImageGenerationToolInvocation
-                                      ).result.imageUrl
-                                    );
-                                    const blob = await response.blob();
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement("a");
-                                    a.href = url;
-                                    a.download = "image";
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    URL.revokeObjectURL(url);
-                                  }}
-                                >
-                                  <Download className="size-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">
-                                Download image
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>Generating image...</div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (part.toolInvocation.toolName === "webSearch") {
-                  return (
-                    <WebSearchBlock
-                      key={partIndex}
-                      toolInvocation={part.toolInvocation}
-                    />
-                  );
-                }
-
-                if (part.toolInvocation.toolName === "addMemory") {
-                  return (
-                    <MemoryBlock
-                      key={partIndex}
-                      toolInvocation={part.toolInvocation}
-                    />
-                  );
-                }
-              }
-
-              return null;
-            })}
-          </div>
         )}
-
-        <div className="absolute top-full left-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 items-center">
-          {isLastMessage && !isOnSharedPage && (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleBranchOffChat(chatId)}
-                  >
-                    <GitBranch className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Branch off chat</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => reload()}
-                    className="h-8 w-8"
-                  >
-                    <RotateCcw className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Retry message</TooltipContent>
-              </Tooltip>
-            </>
-          )}
-          {!isError &&
-            !message.parts?.some(
-              (part) =>
-                part.type === "tool-invocation" &&
-                part.toolInvocation.toolName === "generateImage"
-            ) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      copyToClipboard(removeMarkdown(message.content))
-                    }
-                    className="h-8 w-8"
-                  >
-                    {isCopied ? (
-                      <Check className="size-4" />
-                    ) : (
-                      <Copy className="size-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {isCopied ? "Copied!" : "Copy message"}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-          <div
-            className={`text-xs text-muted-foreground flex items-center w-full`}
-          >
-            {message.annotations?.map((annotation, index) => {
-              if (typeof annotation === "string") {
-                return null;
-              }
-              const annotationData = annotation as MessageAnnotation;
-
-              return (
-                <div key={index} className="flex w-full items-center">
-                  <span className="font-medium mr-2 truncate max-w-[40vw]">
-                    {annotationData.metadata.modelName}
-                  </span>
-                  <div className="flex-1" />
-                  {isMobile ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 ml-auto"
-                        >
-                          <Info className="size-4 text-primary" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-fit p-3">
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Bolt className="size-3" />
-                            <span>
-                              {annotationData.metadata.tps.toFixed(2)} tok/s
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Cpu className="size-3" />
-                            <span>
-                              {annotationData.metadata.totalTokens} tokens
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="size-3" />
-                            <span>
-                              Time-to-first:{" "}
-                              {annotationData.metadata.ttft.toFixed(2)} s
-                            </span>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div className="flex flex-row gap-1.5 items-center">
-                      <p className="inline-flex items-center">
-                        <Bolt className="size-3 inline-block mr-1" />
-                        {annotationData.metadata.tps.toFixed(2)} tok/s
-                      </p>
-                      <p className="inline-flex items-center">
-                        <Cpu className="size-3 inline-block mr-1" />
-                        {annotationData.metadata.totalTokens} tokens
-                      </p>
-                      <p className="inline-flex items-center">
-                        <Clock className="size-3 inline-block mr-1" />
-                        Time-to-first: {annotationData.metadata.ttft.toFixed(
-                          2
-                        )}{" "}
-                        s
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
     </div>
   );
-});
+}

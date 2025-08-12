@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import "./src/lib/env";
 
 const nextConfig: NextConfig = {
   images: {
@@ -7,11 +6,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "kbmqctcgvn.ufs.sh",
-        pathname: "/f/*",
       },
     ],
   },

@@ -2,396 +2,361 @@
 
 import {
   ArrowUp,
+  Brain,
+  Check,
+  ChevronDown,
+  Cpu,
   Globe,
-  Loader2,
+  type LucideIcon,
   Paperclip,
+  Settings2,
   Square,
-  X,
-  FileIcon,
   WandSparkles,
-  Mic,
-  MicOff,
+  X,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { useEffect, useMemo, memo, useState } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useSettingsContext } from "@/components/providers/settings-provider";
-import { supportsWebSearch, supportsImageInput } from "@/lib/ai/models";
-import { Toggle } from "./ui/toggle";
-import { UseChatHelpers } from "@ai-sdk/react";
-import Image from "next/image";
-import { ModelPicker } from "./model-picker";
-import type { User } from "better-auth";
-import type { FileMetadata } from "@/lib/types";
-import { Dispatch, SetStateAction } from "react";
-import Link from "next/link";
-import { enhancePrompt } from "@/lib/actions";
-import { isImageGenerationModel } from "@/lib/ai/models";
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from "react-speech-recognition";
+import { useRef } from "react";
 import { toast } from "sonner";
+import { useChatConfig } from "@/providers/chat-config-provider";
+import { useAttachments } from "@/hooks/use-attachments";
+import { CHAT_MODELS } from "@/lib/models";
+import type { ModelId, MyUIMessage } from "@/lib/types";
+import { MemoizedFilePreview } from "./file-preview";
+import { getModelIcon } from "./model-icons";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Separator } from "./ui/separator";
+import { Switch } from "./ui/switch";
+import { Textarea } from "./ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { Doc } from "@/convex/_generated/dataModel";
+import { UseChatHelpers } from "@ai-sdk/react";
+import type { FileUIPart } from "ai";
 
 interface ChatInputProps {
-  input: UseChatHelpers["input"];
-  setInput: UseChatHelpers["setInput"];
-  handleInputChange: UseChatHelpers["handleInputChange"];
+  user: Doc<"users"> | null;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  stop: UseChatHelpers["stop"];
-  isMessageStreaming: boolean;
-  user: User | null;
-  files: File[];
-  setFiles: Dispatch<SetStateAction<File[]>>;
-  fileMetadata: Record<string, FileMetadata>;
-  isUploading: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  removeFile: (fileName: string) => void;
-  acceptsPdf: boolean;
-  searchEnabled: boolean;
-  setSearchEnabled: Dispatch<SetStateAction<boolean>>;
-  isOnSharedPage: boolean;
+  input: string;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
-  isModelPickerOpen: boolean;
-  setIsModelPickerOpen: Dispatch<SetStateAction<boolean>>;
+  stop: UseChatHelpers<MyUIMessage>["stop"];
+  isStreaming: boolean;
+  filesToSend: FileUIPart[];
+  setFilesToSend: React.Dispatch<React.SetStateAction<FileUIPart[]>>;
 }
 
 export function ChatInput({
-  input,
-  setInput,
+  user,
   handleInputChange,
   handleSubmit,
-  stop,
-  isMessageStreaming,
-  user,
-  files,
-  fileMetadata,
-  isUploading,
-  fileInputRef,
-  handleFileChange,
-  removeFile,
-  acceptsPdf,
-  searchEnabled,
-  setSearchEnabled,
-  isOnSharedPage,
+  input,
   inputRef,
-  isModelPickerOpen,
-  setIsModelPickerOpen,
+  stop,
+  isStreaming,
+  filesToSend,
+  setFilesToSend,
 }: ChatInputProps) {
-  const { model, apiKeys, hasAnyKey } = useSettingsContext();
-  const [enhancingPrompt, setEnhancingPrompt] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [inputRef]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-
-      if (isUploading || enhancingPrompt || listening) {
-        return;
-      }
-
-      (e.target as HTMLTextAreaElement).form?.requestSubmit();
-    }
-
-    if (e.key === "Escape") {
-      inputRef.current?.blur();
-    }
-  };
-
-  const {
-    transcript,
-    listening,
-    browserSupportsSpeechRecognition,
-    isMicrophoneAvailable,
-    resetTranscript,
-  } = useSpeechRecognition();
-
-  useEffect(() => {
-    if (transcript && listening) {
-      setInput(transcript);
-    }
-  }, [transcript, setInput, listening]);
-
-  useEffect(() => {
-    if (!listening && transcript) {
-      resetTranscript();
-    }
-  }, [listening, transcript, resetTranscript]);
-
-  useEffect(() => {
-    if (!isMicrophoneAvailable) {
-      toast.error(
-        "Microphone permission denied. Please allow access from browser settings."
-      );
-    }
-  }, [isMicrophoneAvailable]);
+  const { model, setModel, isLoading } = useChatConfig();
+  const { handleFileChange, filesToUpload, removeFile, isUploading } =
+    useAttachments({ filesToSend, setFilesToSend });
 
   return (
     <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl bg-muted/20 dark:bg-muted/30 border p-2 max-w-3xl w-full mx-auto"
+      className="mx-auto w-full max-w-3xl shrink-0 rounded-xl bg-[#F5F5F5] p-2 px-4 sm:px-2 dark:bg-[#262626]"
+      onSubmit={(e) => {
+        if (isUploading) {
+          return;
+        }
+
+        handleSubmit(e);
+      }}
     >
-      {files.length > 0 && (
+      {filesToUpload.length > 0 && (
         <MemoizedFilePreview
-          files={files}
-          fileMetadata={fileMetadata}
+          filesToSend={filesToSend}
+          filesToUpload={filesToUpload}
           isUploading={isUploading}
           removeFile={removeFile}
         />
       )}
       <Textarea
+        autoFocus
+        className="!text-[15px] !bg-transparent max-h-[200px] min-h-[80px] w-full resize-none border-0 px-1 shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+        onChange={handleInputChange}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            e.currentTarget.form?.requestSubmit();
+          }
+        }}
+        placeholder="Send a message"
         ref={inputRef}
         value={input}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask anything..."
-        className="placeholder:text-muted-foreground !bg-transparent max-h-[250px] min-h-[75px] w-full border-0 !text-[15px] shadow-none focus-visible:ring-0"
       />
-      <div className="flex items-center justify-between px-1 pt-2">
-        <div className="flex items-center gap-1.5">
-          <ModelPicker
-            hasFilesUploaded={files.length > 0}
-            isModelPickerOpen={isModelPickerOpen}
-            setIsModelPickerOpen={setIsModelPickerOpen}
-          />
-          {supportsWebSearch(model) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Toggle
-                    variant="outline"
-                    className="gap-1.5 rounded-full px-3 py-2 font-normal"
-                    pressed={searchEnabled}
-                    onPressedChange={(pressed) => setSearchEnabled(pressed)}
-                    disabled={isOnSharedPage || !user || !apiKeys.exa}
-                  >
-                    <Globe className="size-4" />
-                    <span className="hidden md:block">Search</span>
-                  </Toggle>
-                </div>
-              </TooltipTrigger>
-
-              <TooltipContent>
-                {user
-                  ? apiKeys.exa
-                    ? "Enable web search"
-                    : "EXA_API_KEY not set"
-                  : "Please login first"}
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Right now just checking image input cos pdf is supported only when image is supported, atleast for now */}
-          {supportsImageInput(model) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-1.5 rounded-full px-3 py-2 font-normal"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isOnSharedPage || !user}
-                  >
-                    <Paperclip className="size-4" />
-                    <span className="hidden md:block">Attach</span>
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {user
-                  ? `Only images ${acceptsPdf ? "and PDFs" : ""} are supported currently`
-                  : "Please login first"}
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={`image/png, image/jpeg, image/jpg, image/webp${
-              acceptsPdf ? ", application/pdf" : ""
-            }`}
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-          />
+      <div className="flex justify-between px-1 pt-2">
+        <div className="flex items-center gap-2">
+          <SettingsPopover handleFileChange={handleFileChange} user={user} />
+          <SettingsIndicators />
         </div>
-
-        {isMessageStreaming ? (
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button disabled={isLoading} variant="chatInput">
+                {isLoading ? null : (
+                  <>
+                    {getModelIcon(
+                      CHAT_MODELS.find((m) => m.name === model)?.id as ModelId
+                    )}
+                    {model}
+                  </>
+                )}
+                <ChevronDown className="text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 rounded-xl p-2">
+              <div className="flex flex-col gap-1">
+                {CHAT_MODELS.sort((a, b) =>
+                  a.id.split("/")[0].localeCompare(b.id.split("/")[0])
+                ).map((m) => (
+                  <DropdownMenuItem
+                    className="flex items-center justify-between gap-2 rounded-lg py-2"
+                    key={m.id}
+                    onClick={() => setModel(m.name)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {getModelIcon(m.id)}
+                      {m.name}
+                    </div>
+                    {m.name === model && <Check className="size-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
-            size="icon"
-            onClick={stop}
-            className="bg-muted-foreground hover:bg-muted-foreground/80 h-8 w-8"
-          >
-            <Square className="size-6" />
-          </Button>
-        ) : (
-          <div className="flex items-center gap-1.5">
-            {input.length > 30 && hasAnyKey() && user && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setEnhancingPrompt(true);
-                      try {
-                        const newPrompt = await enhancePrompt(
-                          input,
-                          apiKeys.openrouter,
-                          isImageGenerationModel(model)
-                        );
-                        setInput(newPrompt);
-                      } catch (error) {
-                        console.error("Error enhancing prompt:", error);
-                      } finally {
-                        setEnhancingPrompt(false);
-                      }
-                    }}
-                  >
-                    {enhancingPrompt ? (
-                      <Loader2 className="size-5 animate-spin" />
-                    ) : (
-                      <WandSparkles className="size-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {enhancingPrompt
-                    ? "Enhancing prompt..."
-                    : "Enhance this prompt"}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            {isMounted && browserSupportsSpeechRecognition && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => {
-                      if (listening) {
-                        SpeechRecognition.stopListening();
-                      } else {
-                        SpeechRecognition.startListening({
-                          continuous: true,
-                          language: "en-US",
-                          interimResults: true,
-                        });
-                      }
-                    }}
-                  >
-                    {listening ? (
-                      <MicOff className="size-5 text-red-500" />
-                    ) : (
-                      <Mic className="size-5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {listening
-                    ? "Stop recording"
-                    : "Start voice input. Might not work on all browsers."}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            <Button
-              type="submit"
-              size="icon"
-              disabled={
-                isOnSharedPage ||
-                (!input.trim() && !files.length) ||
-                isUploading ||
-                enhancingPrompt ||
-                listening
+            className="rounded-full"
+            disabled={!input || isUploading}
+            onClick={() => {
+              if (isStreaming) {
+                stop();
               }
-              className="h-8 w-8"
-            >
-              <ArrowUp className="size-6" />
-            </Button>
-          </div>
-        )}
+            }}
+            size="icon"
+            type="submit"
+          >
+            {isStreaming ? (
+              <Square className="size-5" />
+            ) : (
+              <ArrowUp className="size-5" />
+            )}
+            <span className="sr-only">
+              {isStreaming ? "Stop" : "Send message"}
+            </span>
+          </Button>
+        </div>
       </div>
     </form>
   );
 }
 
-const FilePreview = ({
-  files,
-  fileMetadata,
-  isUploading,
-  removeFile,
+function SettingsPopover({
+  user,
+  handleFileChange,
 }: {
-  files: File[];
-  fileMetadata: Record<string, FileMetadata>;
-  isUploading: boolean;
-  removeFile: (fileName: string) => void;
-}) => {
-  const previews = useMemo(
-    () =>
-      files.map((file) => {
-        return (
-          <div className="relative group" key={file.name}>
-            {file.type.startsWith("image/") ? (
-              <Image
-                src={URL.createObjectURL(file)}
-                alt="Uploaded file"
-                width={80}
-                height={80}
-                className="rounded-md object-cover w-20 h-20 cursor-pointer"
-                loading="lazy"
-                onClick={() => window.open(URL.createObjectURL(file), "_blank")}
-              />
-            ) : (
-              <Link
-                href={URL.createObjectURL(file)}
-                target="_blank"
-                className="flex flex-col items-center justify-between w-20 h-20 rounded-md bg-background hover:bg-background/60 transition-colors cursor-pointer text-xs gap-1 p-2"
-              >
-                <FileIcon className="size-6 flex-shrink-0 mt-3" />
-                <span className="truncate max-w-full text-center">
-                  {file.name ?? "File"}
-                </span>
-              </Link>
-            )}
-            {isUploading && !fileMetadata[file.name] && (
-              <div className="absolute top-0 right-0 left-0 bottom-0 flex items-center justify-center bg-black/50 rounded-md">
-                <Loader2 className="size-6 animate-spin text-white" />
-              </div>
-            )}
-            {!(isUploading && !fileMetadata[file.name]) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute rounded-full top-0 right-0 h-6 w-6 !bg-black/90 hover:!bg-black/90 text-white hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => removeFile(file.name)}
-              >
-                <X className="size-4" />
-              </Button>
-            )}
+  user: Doc<"users"> | null;
+  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const {
+    model,
+    reasoningEffort,
+    setReasoningEffort,
+    shouldUseReasoning,
+    setShouldUseReasoning,
+    searchWeb,
+    setSearchWeb,
+  } = useChatConfig();
+  const currentModel = CHAT_MODELS.find((m) => m.name === model);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="icon" type="button" variant="chatInput">
+          <Settings2 className="size-5" strokeWidth={1.7} />
+          <span className="sr-only">Settings</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 rounded-xl p-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Paperclip className="size-5" strokeWidth={1.7} />
+              <span className="text-sm">Attach files</span>
+            </div>
+            <Button
+              onClick={() => {
+                if (user) {
+                  fileInputRef.current?.click();
+                } else {
+                  toast.error("Please sign in to attach files");
+                }
+              }}
+              size="sm"
+              variant="outline"
+            >
+              Attach
+            </Button>
+            <input
+              accept="image/*"
+              className="hidden"
+              multiple
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              type="file"
+            />
           </div>
-        );
-      }),
-    [files, isUploading, fileMetadata, removeFile]
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="size-5" strokeWidth={1.7} />
+              <span className="text-sm">Enable web search</span>
+            </div>
+            <Switch checked={searchWeb} onCheckedChange={setSearchWeb} />
+          </div>
+
+          {currentModel?.reasoning !== "none" && (
+            <div className="space-y-4">
+              {currentModel?.reasoning === "hybrid" && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain className="size-5" strokeWidth={1.7} />
+                    <span className="text-sm">Enable reasoning</span>
+                  </div>
+                  <Switch
+                    checked={shouldUseReasoning}
+                    onCheckedChange={setShouldUseReasoning}
+                  />
+                </div>
+              )}
+
+              {(shouldUseReasoning || currentModel?.reasoning === "always") && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="size-5" strokeWidth={1.7} />
+                    <span className="text-sm">Choose reasoning effort</span>
+                  </div>
+                  <div className="grid w-full grid-cols-3 gap-2">
+                    {(["low", "medium", "high"] as const).map((effort) => (
+                      <Button
+                        key={effort}
+                        onClick={() => setReasoningEffort(effort)}
+                        size="sm"
+                        variant={
+                          reasoningEffort === effort ? "default" : "outline"
+                        }
+                      >
+                        {effort.charAt(0).toUpperCase() + effort.slice(1)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <Separator />
+
+          <Button className="w-full" variant="outline">
+            <WandSparkles className="mr-1 size-5" strokeWidth={1.7} />
+            Customize
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
+}
 
-  return <div className="flex flex-wrap gap-2 pb-3 px-2">{previews}</div>;
-};
+function SettingsIndicators() {
+  const {
+    searchWeb,
+    shouldUseReasoning,
+    setSearchWeb,
+    setShouldUseReasoning,
+    reasoningEffort,
+    model,
+  } = useChatConfig();
 
-const MemoizedFilePreview = memo(FilePreview);
+  const currentModel = CHAT_MODELS.find((m) => m.name === model);
+  const isHybrid = currentModel?.reasoning === "hybrid";
+
+  const indicators: {
+    icon: LucideIcon;
+    text: string;
+    type: "search" | "reasoning";
+    onClick: () => void;
+    tooltip: string;
+    showX: boolean;
+  }[] = [];
+
+  if (searchWeb) {
+    indicators.push({
+      icon: Globe,
+      text: "Search",
+      type: "search" as const,
+      onClick: () => setSearchWeb(false),
+      tooltip: "Web search enabled",
+      showX: true,
+    });
+  }
+
+  if (shouldUseReasoning || currentModel?.reasoning === "always") {
+    indicators.push({
+      icon: Brain,
+      text: reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1),
+      type: "reasoning" as const,
+      onClick: () => {
+        if (isHybrid) {
+          setShouldUseReasoning(false);
+        }
+      },
+      tooltip: "Reasoning enabled",
+      showX: isHybrid,
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {indicators.map((indicator) => (
+        <Tooltip key={indicator.type}>
+          <TooltipTrigger asChild>
+            <Button
+              className="gap-1 rounded-full border border-blue-100 bg-[#F5FAFF] text-blue-400 hover:bg-[#F5FAFF] dark:border-none dark:bg-[#40464a] dark:text-blue-400 dark:hover:bg-[#3B4044]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                indicator.onClick();
+              }}
+            >
+              <indicator.icon className="size-5" strokeWidth={1.7} />
+              <span className="hidden font-normal text-[13px] sm:block">
+                {indicator.text}
+              </span>
+              {indicator.showX && (
+                <X className="size-4 text-blue-400" strokeWidth={1.7} />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{indicator.tooltip}</TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
