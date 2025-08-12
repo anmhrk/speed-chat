@@ -1,9 +1,12 @@
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { getAuthToken } from "@/lib/token";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { ChatPage } from "@/components/chat-page";
 import { redirect } from "next/navigation";
 import { MyUIMessage } from "@/lib/types";
+import { Suspense } from "react";
+import { Loader } from "@/components/loader";
+import { auth } from "@clerk/nextjs/server";
 
 export default async function Page({
   params,
@@ -12,24 +15,22 @@ export default async function Page({
 }) {
   const { id } = await params;
 
-  const user = await fetchQuery(
-    api.user.currentUser,
-    {},
-    {
-      token: await convexAuthNextjsToken(),
-    }
-  );
+  const { userId } = await auth();
 
-  let initialMessages: MyUIMessage[] = [];
+  if (!userId) {
+    redirect("/");
+  }
+
+  let initialMessages: Promise<MyUIMessage[]>;
 
   try {
-    initialMessages = await fetchQuery(
+    initialMessages = fetchQuery(
       api.chat.getMessages,
       {
         chatId: id,
       },
       {
-        token: await convexAuthNextjsToken(),
+        token: await getAuthToken(),
       }
     );
   } catch (error) {
@@ -37,5 +38,9 @@ export default async function Page({
     redirect("/");
   }
 
-  return <ChatPage user={user} initialMessages={initialMessages} />;
+  return (
+    <Suspense fallback={<Loader userId={userId} chatId={id} />}>
+      <ChatPage userId={userId} initialMessagesPromise={initialMessages} />
+    </Suspense>
+  );
 }

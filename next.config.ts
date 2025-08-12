@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      {
+        protocol: "https",
+        hostname: "careful-heron-439.convex.cloud",
+      },
     ],
   },
   typescript: {
@@ -16,9 +20,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   devIndicators: false,
-  experimental: {
-    reactCompiler: true,
-  },
 };
 
 export default nextConfig;

@@ -12,8 +12,8 @@ import { ChatInput } from "@/components/chat-input";
 import { Separator } from "./ui/separator";
 import { useCustomChat } from "@/hooks/use-custom-chat";
 import { MyUIMessage } from "@/lib/types";
-import { Doc } from "@/convex/_generated/dataModel";
 import { Messages } from "./messages";
+import { use } from "react";
 
 const PROMPT_SUGGESTIONS = [
   "Explain how AI works in a way a 5 year old can understand",
@@ -23,11 +23,12 @@ const PROMPT_SUGGESTIONS = [
 ];
 
 interface ChatPageProps {
-  user: Doc<"users"> | null;
-  initialMessages: MyUIMessage[];
+  userId: string | null;
+  initialMessagesPromise: Promise<MyUIMessage[]>;
 }
 
-export function ChatPage({ user, initialMessages }: ChatPageProps) {
+export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
+  const initialMessages = use(initialMessagesPromise);
   const { apiKeys, isLoading } = useChatConfig();
   const [open, setOpen] = useState(true);
   const { theme, setTheme } = useTheme();
@@ -47,16 +48,16 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-  } = useCustomChat({ initialMessages, user });
+  } = useCustomChat({ initialMessages, userId });
 
   const shouldBlock = useMemo(() => {
-    if (isLoading || !user) {
+    if (isLoading || !userId) {
       return false;
     }
 
     // AI Gateway key must exist. OpenAI may exist or be empty, but AI Gateway missing is not OK.
     return !apiKeys.aiGateway || apiKeys.aiGateway.trim().length === 0;
-  }, [apiKeys.aiGateway, isLoading, user]);
+  }, [apiKeys.aiGateway, isLoading, userId]);
 
   if (shouldBlock) {
     return <ApiKeysDialog isBlocking onOpenChange={setOpen} open={open} />;
@@ -65,7 +66,7 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
   return (
     <main className="flex h-screen w-full">
       <AppSidebar
-        user={user}
+        userId={userId}
         currentChatId={chatId}
         isStreaming={isStreaming}
       />
@@ -97,9 +98,7 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
             ) : (
               <div className="flex h-full flex-col items-center justify-center space-y-10 text-center">
                 <h1 className="font-medium text-3xl sm:text-4xl">
-                  {user
-                    ? `What's on your mind, ${user.name?.split(" ")[0]}?`
-                    : "What's on your mind?"}
+                  What&apos;s on your mind?
                 </h1>
                 <div className="w-full max-w-3xl px-2">
                   {PROMPT_SUGGESTIONS.map((suggestion, index) => (
@@ -127,6 +126,7 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
           </div>
           <div className="flex-shrink-0 px-2 pb-2">
             <ChatInput
+              userId={userId}
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
               input={input}
@@ -135,7 +135,6 @@ export function ChatPage({ user, initialMessages }: ChatPageProps) {
               stop={stop}
               filesToSend={filesToSend}
               setFilesToSend={setFilesToSend}
-              user={user}
             />
           </div>
         </div>

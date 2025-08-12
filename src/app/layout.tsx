@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Providers } from "@/providers";
 import { Toaster } from "sonner";
 
@@ -31,17 +30,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ConvexAuthNextjsServerProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} overscroll-none antialiased`}
-        >
-          <Providers>
-            <Toaster richColors />
-            {children}
-          </Providers>
-        </body>
-      </html>
-    </ConvexAuthNextjsServerProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} overscroll-none antialiased`}
+      >
+        <Providers>
+          <Toaster richColors />
+          {children}
+        </Providers>
+      </body>
+    </html>
   );
 }

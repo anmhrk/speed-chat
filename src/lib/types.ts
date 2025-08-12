@@ -1,5 +1,5 @@
 import { InferToolOutput, UIMessage } from "ai";
-import { searchWebTool } from "@/convex/chatStream";
+import { searchWebTool } from "@/app/api/chat/route";
 
 export type ReasoningEffort = "low" | "medium" | "high";
 

@@ -6,17 +6,16 @@ import { usePathname } from "next/navigation";
 import type { MyUIMessage } from "@/lib/types";
 import { useState, useRef, useCallback, useMemo } from "react";
 import { nanoid } from "nanoid";
-import { Doc } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { CHAT_MODELS } from "@/lib/models";
 import { useChatConfig } from "@/providers/chat-config-provider";
 
 type CustomChatProps = {
   initialMessages: MyUIMessage[];
-  user: Doc<"users"> | null;
+  userId: string | null;
 };
 
-export function useCustomChat({ initialMessages, user }: CustomChatProps) {
+export function useCustomChat({ initialMessages, userId }: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
   const pathname = usePathname();
@@ -75,7 +74,7 @@ export function useCustomChat({ initialMessages, user }: CustomChatProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!user) {
+    if (!userId) {
       toast.error("Please sign in to chat");
       return;
     }

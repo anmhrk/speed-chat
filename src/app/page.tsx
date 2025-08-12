@@ -1,26 +1,10 @@
 import { ChatPage } from "@/components/chat-page";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
+import { auth } from "@clerk/nextjs/server";
 
 export default async function Home() {
-  const user = await fetchQuery(
-    api.user.currentUser,
-    {},
-    {
-      token: await convexAuthNextjsToken(),
-    }
-  );
+  const { userId } = await auth();
 
-  const initialMessages = await fetchQuery(
-    api.chat.getMessages,
-    {
-      chatId: "",
-    },
-    {
-      token: await convexAuthNextjsToken(),
-    }
+  return (
+    <ChatPage userId={userId} initialMessagesPromise={Promise.resolve([])} />
   );
-
-  return <ChatPage user={user} initialMessages={initialMessages} />;
 }

@@ -35,26 +35,27 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { SidebarChatItem } from "./sidebar-chat-item";
-import { Doc } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { Skeleton } from "./ui/skeleton";
 
 interface AppSidebarProps {
-  user: Doc<"users"> | null;
+  userId: string | null;
   currentChatId: string;
   isStreaming: boolean;
 }
 
 export function AppSidebar({
-  user,
+  userId,
   currentChatId,
   isStreaming,
 }: AppSidebarProps) {
   const router = useRouter();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
-  const { signIn, signOut } = useAuthActions();
+  const { user, isLoaded } = useUser();
+  const clerk = useClerk();
+  const { signOut } = useAuth();
 
   const chats = useQuery(api.chat.getChats, user ? {} : "skip");
   const isLoadingChats = chats === undefined;
@@ -96,7 +97,7 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup className="flex flex-1 flex-col gap-1">
-          {!user ? (
+          {!userId ? (
             <div className="mx-auto my-auto flex text-muted-foreground text-sm">
               Please login to view your chats.
             </div>
@@ -146,66 +147,60 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        {user ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="flex h-12 w-full items-center justify-start gap-3 rounded-lg p-2"
-                variant="ghost"
-              >
-                <Avatar>
-                  <AvatarImage src={user?.image || ""} />
-                  <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="truncate font-normal text-sm">
-                  {user?.name}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem
-                onClick={() =>
-                  void signOut().then(() => {
-                    router.push("/");
-                  })
-                }
-              >
-                <LogOut />
-                Log out
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsApiKeysOpen(true)}>
-                <Key />
-                Configure API keys
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  console.log("delete account");
-                }}
-                variant="destructive"
-              >
-                <Trash2 /> Delete account
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {userId ? (
+          isLoaded ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="flex h-12 w-full items-center justify-start gap-3 rounded-lg p-2"
+                  variant="ghost"
+                >
+                  <Avatar>
+                    <AvatarImage src={user?.imageUrl || ""} />
+                    <AvatarFallback>{user?.fullName?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate font-normal text-sm">
+                    {user?.fullName}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={() =>
+                    void signOut().then(() => {
+                      router.push("/");
+                    })
+                  }
+                >
+                  <LogOut />
+                  Log out
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsApiKeysOpen(true)}>
+                  <Key />
+                  Configure API keys
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    console.log("delete account");
+                  }}
+                  variant="destructive"
+                >
+                  <Trash2 /> Delete account
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Skeleton className="h-12 w-full" />
+          )
         ) : (
           <Button
             className="flex w-full"
-            disabled={isLoggingIn}
-            onClick={() => {
-              setIsLoggingIn(true);
-              void signIn("google").then(() => {
-                setIsLoggingIn(false);
-              });
-            }}
+            onClick={() => clerk.openSignIn()}
             size="lg"
             variant="outline"
           >
-            {isLoggingIn ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <LogIn className="size-5" strokeWidth={1.7} />
-            )}
+            <LogIn className="size-5" strokeWidth={1.7} />
             Login
           </Button>
         )}

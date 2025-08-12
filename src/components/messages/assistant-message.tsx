@@ -77,7 +77,7 @@ export function AssistantMessage({
                         part.output ? (
                           <div className="space-y-3">
                             {(part.output as searchWebToolOutput).map(
-                              (result: searchWebToolOutput) => (
+                              (result) => (
                                 <div
                                   className="rounded-lg border p-3 transition-colors"
                                   key={result.url}

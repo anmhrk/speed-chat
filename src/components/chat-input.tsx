@@ -33,12 +33,11 @@ import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { Doc } from "@/convex/_generated/dataModel";
 import { UseChatHelpers } from "@ai-sdk/react";
 import type { FileUIPart } from "ai";
 
 interface ChatInputProps {
-  user: Doc<"users"> | null;
+  userId: string | null;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   input: string;
@@ -50,7 +49,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({
-  user,
+  userId,
   handleInputChange,
   handleSubmit,
   input,
@@ -99,7 +98,10 @@ export function ChatInput({
       />
       <div className="flex justify-between px-1 pt-2">
         <div className="flex items-center gap-2">
-          <SettingsPopover handleFileChange={handleFileChange} user={user} />
+          <SettingsPopover
+            handleFileChange={handleFileChange}
+            userId={userId}
+          />
           <SettingsIndicators />
         </div>
         <div className="flex items-center gap-2">
@@ -164,10 +166,10 @@ export function ChatInput({
 }
 
 function SettingsPopover({
-  user,
+  userId,
   handleFileChange,
 }: {
-  user: Doc<"users"> | null;
+  userId: string | null;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   const {
@@ -200,7 +202,7 @@ function SettingsPopover({
             </div>
             <Button
               onClick={() => {
-                if (user) {
+                if (userId) {
                   fileInputRef.current?.click();
                 } else {
                   toast.error("Please sign in to attach files");

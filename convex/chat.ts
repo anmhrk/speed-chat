@@ -1,6 +1,5 @@
 import { ConvexError, v } from "convex/values";
 import { action, internalMutation, mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { MyUIMessage } from "@/lib/types";
 import { createGateway } from "@ai-sdk/gateway";
 import { convertToModelMessages, generateText } from "ai";
@@ -9,14 +8,16 @@ import { internal } from "./_generated/api";
 
 export const getChats = query({
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError("User not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Not authenticated");
     }
 
     return await ctx.db
       .query("chats")
-      .withIndex("by_user_id_and_updated_at", (q) => q.eq("userId", userId))
+      .withIndex("by_user_id_and_updated_at", (q) =>
+        q.eq("userId", identity.tokenIdentifier)
+      )
       .order("desc")
       .collect();
   },
@@ -27,19 +28,15 @@ export const getMessages = query({
     chatId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new ConvexError("User not authenticated");
-    }
-
-    if (args.chatId.trim() === "") {
-      return [] as MyUIMessage[];
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Not authenticated");
     }
 
     const chat = await ctx.db
       .query("chats")
       .withIndex("by_chat_id_and_user_id", (q) =>
-        q.eq("id", args.chatId).eq("userId", userId)
+        q.eq("id", args.chatId).eq("userId", identity.tokenIdentifier)
       )
       .first();
 
@@ -68,15 +65,14 @@ export const createChat = mutation({
     chatId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-
-    if (!userId) {
-      throw new ConvexError("User not authenticated");
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Not authenticated");
     }
 
     await ctx.db.insert("chats", {
       id: args.chatId,
-      userId,
+      userId: identity.tokenIdentifier,
       title: "New Chat",
       createdAt: Date.now(),
       updatedAt: Date.now(),

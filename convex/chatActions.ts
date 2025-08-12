@@ -1,6 +1,5 @@
 import { mutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { nanoid } from "nanoid";
 import { Id } from "./_generated/dataModel";
 
@@ -10,12 +9,6 @@ export const branchOffFromMessage = mutation({
     messageId: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-
-    if (!userId) {
-      throw new ConvexError("User not authenticated");
-    }
-
     const branchChatId = nanoid();
 
     const parentChat = await ctx.db
