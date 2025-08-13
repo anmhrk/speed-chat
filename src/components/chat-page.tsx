@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "next-themes";
-import { useChatConfig } from "@/providers/chat-config-provider";
 import { ApiKeysDialog } from "@/components/api-keys-dialog";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -14,6 +13,9 @@ import { useCustomChat } from "@/hooks/use-custom-chat";
 import { MyUIMessage } from "@/lib/types";
 import { Messages } from "./messages";
 import { use } from "react";
+import { SearchDialog } from "./search-dialog";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useRouter } from "next/navigation";
 
 const PROMPT_SUGGESTIONS = [
   "Explain how AI works in a way a 5 year old can understand",
@@ -28,9 +30,10 @@ interface ChatPageProps {
 }
 
 export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
+  const router = useRouter();
   const initialMessages = use(initialMessagesPromise);
-  const { apiKeys, isLoading } = useChatConfig();
-  const [open, setOpen] = useState(true);
+  const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const {
     chatId,
@@ -48,20 +51,16 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-  } = useCustomChat({ initialMessages, userId });
+  } = useCustomChat({ initialMessages, userId, setIsApiKeysOpen });
 
-  const shouldBlock = useMemo(() => {
-    if (isLoading || !userId) {
-      return false;
-    }
-
-    // AI Gateway key must exist. OpenAI may exist or be empty, but AI Gateway missing is not OK.
-    return !apiKeys.aiGateway || apiKeys.aiGateway.trim().length === 0;
-  }, [apiKeys.aiGateway, isLoading, userId]);
-
-  if (shouldBlock) {
-    return <ApiKeysDialog isBlocking onOpenChange={setOpen} open={open} />;
-  }
+  useHotkeys("meta+k, ctrl+k", () => setIsSearchOpen(true), {
+    enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
+    enableOnContentEditable: true,
+  });
+  useHotkeys("meta+shift+o, ctrl+shift+o", () => router.push("/"), {
+    enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
+    enableOnContentEditable: true,
+  });
 
   return (
     <main className="flex h-screen w-full">
@@ -69,6 +68,9 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
         userId={userId}
         currentChatId={chatId}
         isStreaming={isStreaming}
+        setIsApiKeysOpen={setIsApiKeysOpen}
+        isApiKeysOpen={isApiKeysOpen}
+        setIsSearchOpen={setIsSearchOpen}
       />
       <SidebarInset className="flex-1">
         <div className="relative flex h-full flex-col">
@@ -98,7 +100,7 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
             ) : (
               <div className="flex h-full flex-col items-center justify-center space-y-10 text-center">
                 <h1 className="font-medium text-3xl sm:text-4xl">
-                  What&apos;s on your mind?
+                  How can I help you today?
                 </h1>
                 <div className="w-full max-w-3xl px-2">
                   {PROMPT_SUGGESTIONS.map((suggestion, index) => (
@@ -139,6 +141,13 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
           </div>
         </div>
       </SidebarInset>
+
+      <SearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        userId={userId}
+      />
+      <ApiKeysDialog onOpenChange={setIsApiKeysOpen} open={isApiKeysOpen} />
     </main>
   );
 }

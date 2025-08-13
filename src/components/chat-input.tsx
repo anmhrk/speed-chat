@@ -60,8 +60,13 @@ export function ChatInput({
   setFilesToSend,
 }: ChatInputProps) {
   const { model, setModel, isLoading } = useChatConfig();
-  const { handleFileChange, filesToUpload, removeFile, isUploading } =
-    useAttachments({ filesToSend, setFilesToSend });
+  const {
+    handleFileChange,
+    filesToUpload,
+    removeFile,
+    isUploading,
+    setFilesToUpload,
+  } = useAttachments({ filesToSend, setFilesToSend });
 
   return (
     <form
@@ -72,6 +77,7 @@ export function ChatInput({
         }
 
         handleSubmit(e);
+        setFilesToUpload([]);
       }}
     >
       {filesToUpload.length > 0 && (

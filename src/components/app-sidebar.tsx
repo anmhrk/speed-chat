@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  Key,
-  Loader2,
-  LogIn,
-  LogOut,
-  PenBox,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Key, LogIn, LogOut, PenBox, Search, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ApiKeysDialog } from "@/components/api-keys-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,27 +26,35 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { SidebarChatItem } from "./sidebar-chat-item";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { Skeleton } from "./ui/skeleton";
+import { deleteUser } from "@/lib/user-actions";
+import { toast } from "sonner";
 
 interface AppSidebarProps {
   userId: string | null;
   currentChatId: string;
   isStreaming: boolean;
+  isApiKeysOpen: boolean;
+  setIsApiKeysOpen: (open: boolean) => void;
+  setIsSearchOpen: (open: boolean) => void;
 }
 
 export function AppSidebar({
   userId,
   currentChatId,
   isStreaming,
+  isApiKeysOpen,
+  setIsApiKeysOpen,
+  setIsSearchOpen,
 }: AppSidebarProps) {
-  const router = useRouter();
-  const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const { signOut } = useAuth();
+
+  const deleteUserData = useMutation(api.chatActions.deleteUserData);
 
   const chats = useQuery(api.chat.getChats, user ? {} : "skip");
   const isLoadingChats = chats === undefined;
@@ -86,7 +85,7 @@ export function AppSidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>
+              <SidebarMenuButton onClick={() => setIsSearchOpen(true)}>
                 <Search />
                 Search chats
               </SidebarMenuButton>
@@ -165,13 +164,7 @@ export function AppSidebar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  onClick={() =>
-                    void signOut().then(() => {
-                      router.push("/");
-                    })
-                  }
-                >
+                <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/" })}>
                   <LogOut />
                   Log out
                 </DropdownMenuItem>
@@ -181,8 +174,27 @@ export function AppSidebar({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => {
-                    console.log("delete account");
+                  onClick={async () => {
+                    const confirmed = confirm(
+                      "Are you sure you want to delete your account? You will lose all your chats and data."
+                    );
+
+                    if (!confirmed) return;
+
+                    toast.promise(
+                      async () => {
+                        await deleteUserData();
+                        await deleteUser(userId);
+                        await signOut({
+                          redirectUrl: "/",
+                        });
+                      },
+                      {
+                        loading: "Deleting account...",
+                        success: "Account deleted",
+                        error: "Failed to delete account",
+                      }
+                    );
                   }}
                   variant="destructive"
                 >

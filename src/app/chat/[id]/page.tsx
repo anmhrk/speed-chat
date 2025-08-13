@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/token";
+import { getAuthToken } from "@/lib/user-actions";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { ChatPage } from "@/components/chat-page";

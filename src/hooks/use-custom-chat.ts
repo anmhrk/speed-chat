@@ -13,9 +13,14 @@ import { useChatConfig } from "@/providers/chat-config-provider";
 type CustomChatProps = {
   initialMessages: MyUIMessage[];
   userId: string | null;
+  setIsApiKeysOpen: (open: boolean) => void;
 };
 
-export function useCustomChat({ initialMessages, userId }: CustomChatProps) {
+export function useCustomChat({
+  initialMessages,
+  userId,
+  setIsApiKeysOpen,
+}: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
   const pathname = usePathname();
@@ -80,6 +85,16 @@ export function useCustomChat({ initialMessages, userId }: CustomChatProps) {
     }
 
     if (!input.trim() || isStreaming) {
+      return;
+    }
+
+    if (!apiKeys.aiGateway || apiKeys.aiGateway.trim().length === 0) {
+      toast.error("Please set your AI Gateway API key", {
+        action: {
+          label: "Set API key",
+          onClick: () => setIsApiKeysOpen(true),
+        },
+      });
       return;
     }
 

@@ -17,7 +17,7 @@ import { NextRequest } from "next/server";
 import { fetchAction, fetchMutation } from "convex/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/lib/token";
+import { getAuthToken } from "@/lib/user-actions";
 
 export const searchWebTool = tool({
   description: "Search the web for up-to-date information",

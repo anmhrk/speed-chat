@@ -16,15 +16,10 @@ import { Input } from "@/components/ui/input";
 
 type ApiKeysDialogProps = {
   open: boolean;
-  onOpenChange?: (open: boolean) => void;
-  isBlocking?: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function ApiKeysDialog({
-  open,
-  onOpenChange,
-  isBlocking = false,
-}: ApiKeysDialogProps) {
+export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
   const { apiKeys, setApiKeys } = useChatConfig();
   const [localKeys, setLocalKeys] = useState(apiKeys);
 
@@ -37,23 +32,9 @@ export function ApiKeysDialog({
     [localKeys, apiKeys]
   );
 
-  const handleSave = () => {
-    setApiKeys(localKeys);
-    if (!isBlocking) {
-      onOpenChange?.(false);
-    }
-  };
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (isBlocking && !nextOpen) {
-      return; // prevent closing when blocking
-    }
-    onOpenChange?.(nextOpen);
-  };
-
   return (
-    <Dialog onOpenChange={handleOpenChange} open={open}>
-      <DialogContent showCloseButton={!isBlocking}>
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Configure API Keys</DialogTitle>
           <DialogDescription>
@@ -79,7 +60,7 @@ export function ApiKeysDialog({
             <p className="text-muted-foreground text-xs">
               Get your API key from{" "}
               <a
-                className="text-blue-500"
+                className="text-blue-500 hover:underline"
                 href="https://vercel.com/docs/ai-gateway#create-an-api-key"
                 rel="noreferrer"
                 target="_blank"
@@ -105,7 +86,7 @@ export function ApiKeysDialog({
             <p className="text-muted-foreground text-xs">
               Get your API key from{" "}
               <a
-                className="text-blue-500"
+                className="text-blue-500 hover:underline"
                 href="https://platform.openai.com/settings/organization/api-keys"
                 rel="noreferrer"
                 target="_blank"
@@ -124,7 +105,7 @@ export function ApiKeysDialog({
           <Button
             className="ml-auto"
             disabled={isSaveDisabled}
-            onClick={handleSave}
+            onClick={() => setApiKeys(localKeys)}
           >
             Save
           </Button>

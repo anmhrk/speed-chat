@@ -169,7 +169,7 @@ export const upsertMessages = mutation({
       throw new ConvexError(`Chat ${args.chatId} not found`);
     }
 
-    for (const message of args.messages) {
+    for (const message of args.messages as MyUIMessage[]) {
       const existingMessage = await ctx.db
         .query("messages")
         .withIndex("by_message_id", (q) => q.eq("id", message.id))
@@ -182,6 +182,9 @@ export const upsertMessages = mutation({
       } else {
         await ctx.db.insert("messages", {
           ...message,
+          text_part: message.parts
+            .map((part) => (part.type === "text" ? part.text : ""))
+            .join(" "),
           chatId: chat._id,
         });
       }

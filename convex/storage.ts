@@ -1,6 +1,6 @@
 import { Id } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
@@ -13,6 +13,12 @@ export const storeFile = mutation({
     fileId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      throw new ConvexError("User not authenticated");
+    }
+
     const url = await ctx.storage.getUrl(args.fileId);
 
     if (!url) {
@@ -22,6 +28,7 @@ export const storeFile = mutation({
     await ctx.db.insert("attachments", {
       id: args.fileId,
       url,
+      userId: identity.tokenIdentifier,
     });
 
     return url;

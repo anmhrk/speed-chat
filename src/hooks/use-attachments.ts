@@ -126,6 +126,7 @@ export function useAttachments({
 
   return {
     filesToUpload,
+    setFilesToUpload,
     isUploading,
     handleFileChange,
     removeFile,

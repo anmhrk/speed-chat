@@ -4,7 +4,7 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 
 ## 🚀 Features
 
-- **Multiple AI Models** - Support for OpenAI, Anthropic, Google, Meta, DeepSeek, Grok models and more via Vercel AI Gateway
+- **Multiple AI Models** - Support for OpenAI, Anthropic, Google models via Vercel AI Gateway
 - **Web Search Integration** - Enhanced responses with real-time web search using Exa
 - **File Upload Support** - Upload and send images with your messages
 - **Image Generation** - Built-in support for GPT Image 1 to edit and create images
@@ -24,7 +24,7 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
 - [Exa](https://exa.ai) - AI powered web search API
 
-### 🤖 AI Models Supported
+### AI Models Supported
 
 - **OpenAI** - GPT 5, GPT 5 mini, GPT Image 1
 - **Anthropic** - Claude Sonnet 4, Claude Opus 4.1
@@ -54,7 +54,7 @@ bun convex:dev # this will auto set the required env vars for you too
 
 4. Follow the instructions in the [Convex + Clerk](https://docs.convex.dev/auth/clerk) guide to set up auth.
 
-5. Make sure you have the env vars in `.env.example` setup in your `.env` or `.env.local` file.
+5. Make sure you have setup all the env vars in `.env.example` in your `.env.local` file.
 
 ## 📄 License
 

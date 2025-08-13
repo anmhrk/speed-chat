@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as chat from "../chat.js";
 import type * as chatActions from "../chatActions.js";
+import type * as search from "../search.js";
 import type * as storage from "../storage.js";
 
 /**
@@ -28,6 +29,7 @@ import type * as storage from "../storage.js";
 declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   chatActions: typeof chatActions;
+  search: typeof search;
   storage: typeof storage;
 }>;
 export declare const api: FilterApi<
