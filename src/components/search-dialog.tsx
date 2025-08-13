@@ -48,9 +48,10 @@ export function SearchDialog({
     };
   }, [searchQuery, debouncedSetQuery]);
 
-  const searchResults = useQuery(api.search.searchAll, {
-    query: debouncedQuery,
-  });
+  const searchResults = useQuery(
+    api.search.searchAll,
+    userId && debouncedQuery.length > 0 ? { query: debouncedQuery } : "skip"
+  );
 
   const handleSelectResult = useCallback(
     (result: SearchResult[number]) => {

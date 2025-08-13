@@ -10,9 +10,7 @@ import { Button } from "./ui/button";
 import { ChatInput } from "@/components/chat-input";
 import { Separator } from "./ui/separator";
 import { useCustomChat } from "@/hooks/use-custom-chat";
-import { MyUIMessage } from "@/lib/types";
 import { Messages } from "./messages";
-import { use } from "react";
 import { SearchDialog } from "./search-dialog";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useRouter } from "next/navigation";
@@ -26,12 +24,10 @@ const PROMPT_SUGGESTIONS = [
 
 interface ChatPageProps {
   userId: string | null;
-  initialMessagesPromise: Promise<MyUIMessage[]>;
 }
 
-export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
+export function ChatPage({ userId }: ChatPageProps) {
   const router = useRouter();
-  const initialMessages = use(initialMessagesPromise);
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -51,7 +47,8 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-  } = useCustomChat({ initialMessages, userId, setIsApiKeysOpen });
+    loadingMessages,
+  } = useCustomChat({ userId, setIsApiKeysOpen });
 
   useHotkeys("meta+k, ctrl+k", () => setIsSearchOpen(true), {
     enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
@@ -88,7 +85,11 @@ export function ChatPage({ userId, initialMessagesPromise }: ChatPageProps) {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            {messages.length > 0 ? (
+            {loadingMessages ? (
+              <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+                Loading messages...
+              </div>
+            ) : messages.length > 0 ? (
               <Messages
                 messages={messages}
                 sendMessage={sendMessage}
