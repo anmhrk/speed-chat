@@ -3,8 +3,6 @@ import { searchWebTool } from "@/app/api/chat/route";
 
 export type ReasoningEffort = "low" | "medium" | "high";
 
-export type Provider = "aiGateway" | "openai";
-
 export type ModelId =
   | "anthropic/claude-sonnet-4"
   | "anthropic/claude-opus-4.1"

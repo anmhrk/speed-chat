@@ -1,13 +1,12 @@
 # Speed Chat
 
-An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring multiple AI models, attachment support, web search, and built in image generation.
+An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring multiple AI models, image upload support, and web search.
 
 ## 🚀 Features
 
 - **Multiple AI Models** - Support for OpenAI, Anthropic, Google models via Vercel AI Gateway
 - **Web Search Integration** - Enhanced responses with real-time web search using Exa
-- **File Upload Support** - Upload and send images with your messages
-- **Image Generation** - Built-in support for GPT Image 1 to edit and create images
+- **Image Upload Support** - Upload and send images with your messages
 - **Persistent Chat History** - Fully synced chat history to use across devices
 - **Branching Conversations** - Create a new chat from an existing message in a chat
 - **Search Chats** - Search through your chat history and messages
@@ -26,7 +25,7 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 
 ### AI Models Supported
 
-- **OpenAI** - GPT 5, GPT 5 mini, GPT Image 1
+- **OpenAI** - GPT 5, GPT 5 mini
 - **Anthropic** - Claude Sonnet 4, Claude Opus 4.1
 - **Google** - Gemini 2.5 Flash, Gemini 2.5 Pro
 

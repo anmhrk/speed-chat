@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { Provider, ReasoningEffort } from "@/lib/types";
+import type { ReasoningEffort } from "@/lib/types";
 import { CHAT_MODELS } from "@/lib/models";
 
 const chatConfigSchema = z.object({
-  apiKeys: z.record(z.enum(["aiGateway", "openai"]), z.string()),
+  apiKey: z.string(),
   model: z.enum(CHAT_MODELS.map((model) => model.name)),
   reasoningEffort: z.enum(["low", "medium", "high"]),
   shouldUseReasoning: z.boolean(),
@@ -17,7 +17,7 @@ const chatConfigSchema = z.object({
 type ChatConfig = z.infer<typeof chatConfigSchema>;
 
 type ChatConfigContextType = ChatConfig & {
-  setApiKeys: (apiKeys: Record<Provider, string>) => void;
+  setApiKey: (apiKey: string) => void;
   setModel: (model: string) => void;
   setReasoningEffort: (reasoningEffort: ReasoningEffort) => void;
   setShouldUseReasoning: (shouldUseReasoning: boolean) => void;
@@ -28,10 +28,7 @@ type ChatConfigContextType = ChatConfig & {
 const LOCAL_STORAGE_KEY = "chat_config";
 
 const DEFAULT_CONFIG: ChatConfig = {
-  apiKeys: {
-    aiGateway: "",
-    openai: "",
-  },
+  apiKey: "",
   model: CHAT_MODELS.find((model) => model.default)?.name ?? "",
   reasoningEffort: "low",
   shouldUseReasoning: false,
@@ -83,7 +80,7 @@ export function ChatConfigProvider({
 
   const value: ChatConfigContextType = {
     ...chatConfig,
-    setApiKeys: (apiKeys) => handleChatConfigChange({ ...chatConfig, apiKeys }),
+    setApiKey: (apiKey) => handleChatConfigChange({ ...chatConfig, apiKey }),
     setModel: (model) => handleChatConfigChange({ ...chatConfig, model }),
     setReasoningEffort: (reasoningEffort) =>
       handleChatConfigChange({ ...chatConfig, reasoningEffort }),

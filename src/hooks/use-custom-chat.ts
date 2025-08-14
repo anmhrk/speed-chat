@@ -20,7 +20,7 @@ type CustomChatProps = {
 
 export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
   const { user } = useUser();
-  const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
+  const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKey } =
     useChatConfig();
   const pathname = usePathname();
   const urlChatId = pathname.split("/chat/")[1] ?? "";
@@ -92,13 +92,13 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
         isNewChat,
       },
       headers: {
-        "x-ai-gateway-api-key": apiKeys.aiGateway,
+        "x-ai-gateway-api-key": apiKey,
       },
     };
   }, [
     chatId,
     model,
-    apiKeys.aiGateway,
+    apiKey,
     reasoningEffort,
     shouldUseReasoning,
     searchWeb,
@@ -125,7 +125,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
       return;
     }
 
-    if (!apiKeys.aiGateway || apiKeys.aiGateway.trim().length === 0) {
+    if (!apiKey || apiKey.trim().length === 0) {
       toast.error("Please set your AI Gateway API key", {
         action: {
           label: "Set API key",

@@ -20,16 +20,16 @@ type ApiKeysDialogProps = {
 };
 
 export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
-  const { apiKeys, setApiKeys } = useChatConfig();
-  const [localKeys, setLocalKeys] = useState(apiKeys);
+  const { apiKey, setApiKey } = useChatConfig();
+  const [localKey, setLocalKey] = useState(apiKey);
 
   useEffect(() => {
-    setLocalKeys(apiKeys);
-  }, [apiKeys]);
+    setLocalKey(apiKey);
+  }, [apiKey]);
 
   const isSaveDisabled = useMemo(
-    () => localKeys.aiGateway.trim().length === 0 || localKeys === apiKeys,
-    [localKeys, apiKeys]
+    () => localKey.trim().length === 0 || localKey === apiKey,
+    [localKey, apiKey]
   );
 
   return (
@@ -37,9 +37,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Configure API Keys</DialogTitle>
-          <DialogDescription>
-            Enter your API keys. AI Gateway API Key is required.
-          </DialogDescription>
+          <DialogDescription>Enter your AI Gatwat API key.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
@@ -50,12 +48,10 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
             <Input
               autoComplete="off"
               id="ai-gateway-key"
-              onChange={(e) =>
-                setLocalKeys({ ...localKeys, aiGateway: e.target.value })
-              }
+              onChange={(e) => setLocalKey(e.target.value)}
               placeholder="Enter your API key"
               type="password"
-              value={localKeys.aiGateway}
+              value={localKey}
             />
             <p className="text-muted-foreground text-xs">
               Get your API key from{" "}
@@ -69,43 +65,17 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
               </a>
             </p>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="font-medium text-sm" htmlFor="openai-key">
-              OpenAI API Key (optional, used for image generation)
-            </label>
-            <Input
-              autoComplete="off"
-              id="openai-key"
-              onChange={(e) =>
-                setLocalKeys({ ...localKeys, openai: e.target.value })
-              }
-              placeholder="Enter your API key"
-              type="password"
-              value={localKeys.openai}
-            />
-            <p className="text-muted-foreground text-xs">
-              Get your API key from{" "}
-              <a
-                className="text-blue-500 hover:underline"
-                href="https://platform.openai.com/settings/organization/api-keys"
-                rel="noreferrer"
-                target="_blank"
-              >
-                OpenAI
-              </a>
-            </p>
-          </div>
         </div>
 
         <DialogFooter className="flex w-full items-center">
           <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
-            <AlertCircle className="size-4" /> These keys are stored locally in
+            <AlertCircle className="size-4" /> This key is stored locally in
             your browser.
           </p>
           <Button
             className="ml-auto"
             disabled={isSaveDisabled}
-            onClick={() => setApiKeys(localKeys)}
+            onClick={() => setApiKey(localKey)}
           >
             Save
           </Button>
