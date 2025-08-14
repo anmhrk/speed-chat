@@ -1,68 +1,146 @@
-import type { Message } from "ai";
-import { AssistantMessage } from "@/components/messages/assistant-message";
-import { UserMessage } from "@/components/messages/user-message";
-import {
-  AIConversation,
-  AIConversationContent,
-  AIConversationScrollButton,
-} from "@/components/ui/kibo-ui/ai/conversation";
+import { MyUIMessage } from "@/lib/types";
 import { UseChatHelpers } from "@ai-sdk/react";
-import { Spinner } from "@/components/ui/kibo-ui/spinner";
+import { AssistantMessage } from "./assistant-message";
+import { UserMessage } from "./user-message";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "./conversation";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Button } from "../ui/button";
+import type { LucideIcon } from "lucide-react";
+import { useCustomChat } from "@/hooks/use-custom-chat";
 
 interface MessagesProps {
-  allMessages: Message[];
-  status: UseChatHelpers["status"];
-  reload: UseChatHelpers["reload"];
-  append: UseChatHelpers["append"];
-  setMessages: UseChatHelpers["setMessages"];
-  chatId: string;
-  isOnSharedPage: boolean;
+  messages: MyUIMessage[];
+  sendMessage: UseChatHelpers<MyUIMessage>["sendMessage"];
+  setMessages: UseChatHelpers<MyUIMessage>["setMessages"];
+  regenerate: UseChatHelpers<MyUIMessage>["regenerate"];
+  buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
+  status: UseChatHelpers<MyUIMessage>["status"];
+  currentChatId: string;
+  error: UseChatHelpers<MyUIMessage>["error"];
 }
 
 export function Messages({
-  allMessages,
-  status,
-  reload,
-  append,
+  messages,
+  sendMessage,
   setMessages,
-  chatId,
-  isOnSharedPage,
+  regenerate,
+  buildBodyAndHeaders,
+  status,
+  currentChatId,
+  error,
 }: MessagesProps) {
-  const showLoading =
-    status === "submitted" &&
-    allMessages[allMessages.length - 1].role === "user";
+  // Show loader when:
+  // 1. Status is "submitted" and last message is user (waiting for assistant response)
+  // 2. Last message is assistant but has no content yet (empty assistant message)
+  const showLoader =
+    (status === "submitted" &&
+      messages.length > 0 &&
+      messages.at(-1)?.role === "user") ||
+    (messages.length > 0 &&
+      messages.at(-1)?.role === "assistant" &&
+      (!messages.at(-1)?.parts || messages.at(-1)?.parts?.length === 0));
 
   return (
-    <AIConversation className="relative size-full">
-      <div className="absolute max-w-[750px] mx-auto top-0 left-0 right-0 h-2 bg-gradient-to-b from-background to-transparent pointer-events-none z-10" />
-      <AIConversationContent className="flex w-full flex-col gap-10 max-w-[750px] mx-auto pb-16 pt-8 px-5 md:px-0">
-        {allMessages.map((message) => (
-          <div key={message.id} className="w-full">
-            {message.role === "user" ? (
+    <Conversation className="overflow-hidden">
+      <ConversationContent className="mx-auto max-w-3xl pt-10 pb-16 text-sm">
+        {messages
+          .filter((message) => {
+            // Don't render empty assistant messages - the loader will handle the visual feedback
+            if (
+              message.role === "assistant" &&
+              (!message.parts || message.parts.length === 0)
+            ) {
+              return false;
+            }
+            return true;
+          })
+          .map((message) => {
+            const isLastMessage = message.id === messages.at(-1)?.id;
+
+            return message.role === "user" ? (
               <UserMessage
+                key={message.id}
+                allMessages={messages}
                 message={message}
-                allMessages={allMessages}
-                append={append}
                 setMessages={setMessages}
-                isOnSharedPage={isOnSharedPage}
+                sendMessage={sendMessage}
+                buildBodyAndHeaders={buildBodyAndHeaders}
               />
             ) : (
               <AssistantMessage
+                isLastMessage={isLastMessage}
+                key={message.id}
                 message={message}
-                isLastMessage={
-                  message.id === allMessages[allMessages.length - 1]?.id
-                }
-                reload={reload}
-                chatId={chatId}
-                isOnSharedPage={isOnSharedPage}
+                regenerate={regenerate}
+                buildBodyAndHeaders={buildBodyAndHeaders}
+                currentChatId={currentChatId}
               />
-            )}
+            );
+          })}
+        {error && (
+          <div className="flex flex-col items-start gap-2 p-4 border border-red-200 bg-red-50 rounded-lg dark:border-red-800 dark:bg-red-950">
+            <div className="text-red-600 dark:text-red-400 text-sm">
+              {error.message ||
+                "An error occurred while generating the response"}
+            </div>
+            <Button
+              onClick={() => {
+                setMessages(messages.slice(0, -1)); // Remove last message (which is the error)
+                regenerate({
+                  body: buildBodyAndHeaders().body,
+                  headers: buildBodyAndHeaders().headers,
+                });
+              }}
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-200 hover:bg-red-100 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900"
+            >
+              Retry
+            </Button>
           </div>
-        ))}
-        {showLoading && <Spinner variant="ellipsis" />}
-        <div className="absolute max-w-[750px] mx-auto bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
-      </AIConversationContent>
-      <AIConversationScrollButton />
-    </AIConversation>
+        )}
+        {showLoader && !error && (
+          <div className="flex space-x-1 mt-4">
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/20"></div>
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/20 [animation-delay:0.15s]"></div>
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/20 [animation-delay:0.3s]"></div>
+          </div>
+        )}
+      </ConversationContent>
+      <ConversationScrollButton />
+    </Conversation>
+  );
+}
+
+export function MessageActionButton({
+  onClick,
+  label,
+  icon: Icon,
+}: {
+  onClick: () => void;
+  label: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div>
+          <Button
+            className="opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={onClick}
+            size="icon"
+            variant="ghost"
+          >
+            <Icon className="size-4" />
+            <span className="sr-only">{label}</span>
+          </Button>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

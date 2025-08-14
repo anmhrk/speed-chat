@@ -1,223 +1,134 @@
-"use client";
-
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useUploadThing } from "@/lib/utils";
+import { api } from "@/convex/_generated/api";
+import { FileUIPart } from "ai";
+import { useMutation } from "convex/react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { deleteFiles } from "@/lib/actions/uploadthing";
-import type { FileMetadata, Models } from "@/lib/types";
-import type { Attachment } from "@ai-sdk/ui-utils";
-import { useDropzone } from "react-dropzone";
-import { supportsPdfInput } from "@/lib/ai/models";
 
-export function useAttachments(model: Models) {
-  const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-  const [fileMetadata, setFileMetadata] = useState<
-    Record<string, FileMetadata>
-  >({});
+interface UseAttachmentsProps {
+  filesToSend: FileUIPart[];
+  setFilesToSend: React.Dispatch<React.SetStateAction<FileUIPart[]>>;
+}
 
-  const acceptsPdf = supportsPdfInput(model);
+export function useAttachments({
+  filesToSend,
+  setFilesToSend,
+}: UseAttachmentsProps) {
+  const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const { startUpload, isUploading } = useUploadThing("fileUploader", {
-    onClientUploadComplete: (res) => {
-      res.forEach((file) => {
-        setFileMetadata((prev) => ({
-          ...prev,
-          [file.name]: {
-            url: file.ufsUrl,
-            name: file.name,
-            type: file.type.startsWith("image/") ? "image" : "pdf",
-            extension: file.type.startsWith("image/")
-              ? file.type.split("/")[1]
-              : "pdf",
-          },
-        }));
+  const maxFileSize = 4 * 1024 * 1024;
+  const supportedImageFormats = [
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+  ];
+
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const storeFile = useMutation(api.storage.storeFile);
+  const deleteFiles = useMutation(api.storage.deleteFiles);
+
+  const startUpload = (files: File[]) => {
+    setIsUploading(true);
+
+    const uploadPromises = files.map(async (file) => {
+      const postUrl = await generateUploadUrl();
+
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
       });
-    },
-    onUploadError: (error: Error) => {
-      console.error(error);
-      toast.error("Failed to upload files");
-      clearFiles();
-    },
-  });
 
-  // Sync attachments with fileMetadata state
-  useEffect(() => {
-    const newAttachments = Object.values(fileMetadata).map((file) => ({
-      name: file.name,
-      contentType:
-        file.type === "image" ? `image/${file.extension}` : "application/pdf",
-      url: file.url,
-    }));
+      const { storageId } = await result.json();
 
-    if (JSON.stringify(attachments) !== JSON.stringify(newAttachments)) {
-      setAttachments(newAttachments);
-    }
-  }, [fileMetadata, attachments]);
+      const url = await storeFile({ fileId: storageId });
 
-  const handleFileDrop = (files: File[]) => {
-    setDroppedFiles(files);
-    setTimeout(() => setDroppedFiles([]), 100);
+      return {
+        type: "file",
+        filename: file.name,
+        mediaType: file.type,
+        url,
+      };
+    });
+
+    Promise.all(uploadPromises)
+      .then((urls) => {
+        setFilesToSend((prev) => [...prev, ...urls] as FileUIPart[]);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Failed to upload files");
+      })
+      .finally(() => setIsUploading(false));
   };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleFileDrop,
-    noClick: true,
-    noKeyboard: true,
-    multiple: true,
-  });
-
-  const processFiles = useCallback(
-    (selectedFiles: File[]) => {
-      const maxFileSize = 4 * 1024 * 1024;
-
-      const acceptedFileTypes = new Set<string>([
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/webp",
-        ...(acceptsPdf ? ["application/pdf"] : []),
-      ]);
-
-      if (selectedFiles.length > 0) {
-        const unsupportedFiles = selectedFiles.filter(
-          (file) => !acceptedFileTypes.has(file.type)
-        );
-
-        if (unsupportedFiles.length > 0) {
-          toast.error(
-            `Unsupported file type${unsupportedFiles.length > 1 ? "s" : ""}: ${unsupportedFiles
-              .map((f) => f.name)
-              .join(", ")}`
-          );
-          return;
-        }
-
-        // Filter out duplicates - check against both files and fileMetadata
-        const uniqueFiles = selectedFiles.filter(
-          (file) =>
-            !files.some((f) => f.name === file.name) && !fileMetadata[file.name]
-        );
-
-        const duplicateCount = selectedFiles.length - uniqueFiles.length;
-        if (duplicateCount > 0) {
-          toast.info(
-            `Removed ${duplicateCount} duplicate file${duplicateCount > 1 ? "s" : ""}`
-          );
-        }
-
-        // Count current files by type
-        const currentImages = files.filter((file) =>
-          file.type.startsWith("image/")
-        ).length;
-        const currentPdfs = files.filter(
-          (file) => file.type === "application/pdf"
-        ).length;
-
-        // Count new files by type
-        const newImages = uniqueFiles.filter((file) =>
-          file.type.startsWith("image/")
-        ).length;
-        const newPdfs = uniqueFiles.filter(
-          (file) => file.type === "application/pdf"
-        ).length;
-
-        // Calculate totals after adding new files
-        const totalImages = currentImages + newImages;
-        const totalPdfs = currentPdfs + newPdfs;
-
-        // Apply file count limits based on content
-        const hasPdfs = totalPdfs > 0;
-
-        if (hasPdfs) {
-          // If PDFs are present: max 2 images and 2 PDFs
-          if (totalImages > 2 || totalPdfs > 2) {
-            toast.error(
-              "When PDFs are included, max 2 images and 2 PDFs per message"
-            );
-            return;
-          }
-        } else {
-          // If no PDFs: max 5 images
-          if (totalImages > 5) {
-            toast.error("Max 5 images per message");
-            return;
-          }
-        }
-
-        // File size limit check
-        const exceedsSizeLimitFiles = uniqueFiles
-          .filter((file) => file.size > maxFileSize)
-          .map((file) => file.name);
-
-        if (exceedsSizeLimitFiles.length > 0) {
-          toast.error(
-            `Files exceeds size limit: ${exceedsSizeLimitFiles.join(", ")}`
-          );
-          return;
-        }
-
-        if (uniqueFiles.length > 0) {
-          setFiles((prev) => [...prev, ...uniqueFiles]);
-          startUpload(uniqueFiles);
-        }
-      }
-    },
-    [files, startUpload]
-  );
-
-  // Process files from dropzone
-  useEffect(() => {
-    if (droppedFiles && droppedFiles.length > 0) {
-      processFiles(droppedFiles);
-    }
-  }, [droppedFiles]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const allSelectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    processFiles(allSelectedFiles);
+    const files = Array.from(e.target.files || []);
+    processFilesAndUpload(files);
   };
 
-  const removeFile = async (fileName: string) => {
-    const fileToRemove = fileMetadata[fileName];
+  const removeFile = (file: File) => {
+    const fileToRemove = filesToSend.find((f) => f.filename === file.name);
     if (fileToRemove) {
       toast.promise(
-        deleteFiles([fileToRemove.url]).finally(() => {
-          setFiles((prev) => prev.filter((f) => f.name !== fileName));
-          setFileMetadata((prev) => {
-            const { [fileName]: _, ...rest } = prev;
-            return rest;
-          });
+        deleteFiles({ fileUrls: [fileToRemove.url] }).then(() => {
+          setFilesToUpload((prev) => prev.filter((f) => f.name !== file.name));
+          setFilesToSend((prev) =>
+            prev.filter((f) => f.filename !== file.name)
+          );
         }),
         {
-          loading: "Deleting file...",
-          success: "File deleted",
-          error: "Failed to delete file",
+          loading: "Removing file...",
+          success: "File removed",
+          error: "Failed to remove file",
         }
       );
     }
   };
 
-  const clearFiles = () => {
-    setFiles([]);
-    setFileMetadata({});
+  const processFilesAndUpload = (files: File[]) => {
+    if (files.some((file) => !supportedImageFormats.includes(file.type))) {
+      toast.error("Only image files are allowed");
+      return;
+    }
+
+    // Max file size check
+    const exceedMaxFiles = files.filter((file) => file.size > maxFileSize);
+    if (exceedMaxFiles.length > 0) {
+      toast.error(
+        `File ${exceedMaxFiles.map((f) => f.name).join(", ")} size exceeds 4MB`
+      );
+      return;
+    }
+
+    // Duplicate file check
+    const duplicateFiles = files.filter((file) =>
+      filesToSend.some((f) => f.filename === file.name)
+    );
+
+    if (duplicateFiles.length > 0) {
+      toast.error(
+        `File ${duplicateFiles.map((f) => f.name).join(", ")} is already uploaded`
+      );
+      return;
+    }
+
+    // Max file count check
+    if (files.length + filesToSend.length > 5) {
+      toast.error("You can only upload up to 5 files");
+      return;
+    }
+
+    setFilesToUpload((prev) => [...prev, ...files]);
+    startUpload(files);
   };
 
   return {
-    fileMetadata,
-    attachments,
-    files,
-    setFiles,
+    filesToUpload,
+    setFilesToUpload,
     isUploading,
-    acceptsPdf,
-    getRootProps,
-    getInputProps,
-    isDragActive,
-    fileInputRef,
     handleFileChange,
     removeFile,
-    clearFiles,
   };
 }

@@ -1,461 +1,285 @@
-import { NextRequest } from "next/server";
 import {
-  streamText,
-  APICallError,
-  InvalidPromptError,
-  RetryError,
-  ToolExecutionError,
+  convertToModelMessages,
   createIdGenerator,
   smoothStream,
-  appendResponseMessages,
-  type LanguageModel,
-  experimental_generateImage as generateImage,
-  type ImageModel,
+  stepCountIs,
+  streamText,
   tool,
-  createDataStreamResponse,
-  NoImageGeneratedError,
 } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createFal } from "@ai-sdk/fal";
-import type { Models, ChatRequest, Providers } from "@/lib/types";
-import {
-  AVAILABLE_MODELS,
-  hasEffortControl,
-  isImageGenerationModel,
-  isReasoningModel,
-} from "@/lib/ai/models";
-import {
-  addMemory,
-  saveMessages,
-  generateChatTitle,
-  getMemories,
-  uploadBase64Image,
-  getUser,
-} from "@/lib/actions";
+import { createGateway } from "@ai-sdk/gateway";
+import type { ChatRequest, MessageMetadata } from "@/lib/types";
+import { generalChatPrompt } from "@/lib/prompts";
+import { CHAT_MODELS } from "@/lib/models";
 import { z } from "zod";
-import { chatPrompt, imageGenerationPrompt } from "@/lib/ai/prompts";
 import Exa from "exa-js";
-import type { Memory } from "@/lib/db/schema";
-import { env } from "@/lib/env";
+import { NextRequest } from "next/server";
+import { fetchAction, fetchMutation } from "convex/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { api } from "@/convex/_generated/api";
+import { getAuthToken } from "@/lib/user-actions";
 
-type DimensionFormat = "size" | "aspectRatio";
+export const searchWebTool = tool({
+  description: "Search the web for up-to-date information",
+  inputSchema: z.object({
+    query: z.string().min(1).max(100).describe("The search query"),
+    category: z
+      .enum([
+        "company",
+        "financial report",
+        "github",
+        "linkedin profile",
+        "news",
+        "pdf",
+        "personal site",
+        "research paper",
+      ])
+      .optional()
+      .describe(
+        "The category of the search query. Optional. Dont provide if not relevant."
+      ),
+  }),
+  outputSchema: z.array(
+    z.object({
+      title: z.string(),
+      url: z.url(),
+      publishedDate: z.string(),
+    })
+  ),
+  execute: async ({ query, category }) => {
+    try {
+      const exa = new Exa(process.env.EXA_API_KEY);
+      const { results } = await exa.searchAndContents(query, {
+        type: "auto",
+        livecrawl: "always",
+        numResults: 10,
+        text: true,
+        category: category ?? undefined,
+      });
+
+      return results.map((result) => ({
+        title: result.title,
+        url: result.url,
+        publishedDate: result.publishedDate,
+      }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  },
+});
 
 export async function POST(request: NextRequest) {
-  try {
-    const body: ChatRequest = await request.json();
-    const {
-      messages,
-      chatId,
-      model,
-      reasoningEffort,
-      temporaryChat,
-      isNewChat,
-      customization,
-      searchEnabled,
-      reasoningEnabled,
-    } = body;
+  const { userId } = await auth();
 
-    const user = await getUser();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
-    if (!user) {
-      throw new Error("Unauthorized");
+  const token = await getAuthToken();
+
+  const body: ChatRequest = await request.json();
+  const {
+    messages,
+    chatId,
+    modelId,
+    reasoningEffort,
+    shouldUseReasoning,
+    shouldSearchWeb,
+    isNewChat,
+  } = body;
+
+  const headers = request.headers;
+  const apiKey = headers.get("x-ai-gateway-api-key");
+
+  if (!apiKey) {
+    return new Response("Missing API key", { status: 400 });
+  }
+
+  const gateway = createGateway({
+    apiKey,
+  });
+
+  const calculateThinkingBudget = () => {
+    // choosing 15k max budget for now, but can be changed later
+    switch (reasoningEffort) {
+      case "low":
+        return 15_000 / 4;
+      case "medium":
+        return 15_000 / 2;
+      case "high":
+        return 15_000;
+      default:
+        return 15_000 / 4;
     }
+  };
 
-    let aiModel: LanguageModel;
-    let imageModel: ImageModel;
-    let dimensionFormat: DimensionFormat;
-    let storedMemories: Memory[] = [];
+  const thinkingBudget = calculateThinkingBudget();
 
-    const isImageModel = isImageGenerationModel(model);
-    const isReasoningModelActive = isReasoningModel(model, reasoningEnabled);
+  const isReasoningModel =
+    CHAT_MODELS.find((m) => m.id === modelId)?.reasoning === "hybrid" ||
+    CHAT_MODELS.find((m) => m.id === modelId)?.reasoning === "always";
 
-    const noThinkQwen = model.includes("qwen") && !reasoningEnabled;
+  const isHybridReasoningModel =
+    CHAT_MODELS.find((m) => m.id === modelId)?.reasoning === "hybrid";
 
-    const headers = request.headers;
-    const apiKeys = {
-      openrouter: headers.get("X-OpenRouter-Api-Key") ?? "",
-      falai: headers.get("X-FalAi-Api-Key") ?? "",
-      openai: headers.get("X-OpenAI-Api-Key") ?? "",
-      exa: headers.get("X-Exa-Api-Key") ?? "",
-    };
+  const modelName =
+    CHAT_MODELS.find((m) => m.id === modelId)?.name ?? "Unknown Model";
 
-    const openrouterHeaders =
-      env.NODE_ENV === "production" && env.SITE_URL
-        ? {
-            "HTTP-Referer": env.SITE_URL,
-            "X-Title": "Speed Chat",
-          }
-        : undefined;
+  const startTime = Date.now();
+  let ttftCalculated = false;
+  let ttft = 0;
 
-    const openrouter = createOpenRouter({
-      apiKey: apiKeys.openrouter ?? env.OPENROUTER_API_KEY,
-      ...(isReasoningModelActive && {
-        extraBody: {
-          include_reasoning: true,
-        },
-      }),
-      ...(openrouterHeaders && { headers: openrouterHeaders }),
-    });
-
-    if (isImageModel) {
-      const modelConfig = AVAILABLE_MODELS.find((m) => m.id === model);
-      const provider = modelConfig?.providerId;
-
-      if (provider === "openai") {
-        dimensionFormat = "size";
-      } else {
-        dimensionFormat = "aspectRatio";
+  // Create chat immediately and generate title if it's a new chat
+  if (isNewChat) {
+    await fetchMutation(
+      api.chat.createChat,
+      {
+        chatId,
+      },
+      {
+        token,
       }
+    );
 
-      aiModel = openrouter.chat("google/gemini-2.5-flash");
-      imageModel = buildImageModel(model, apiKeys, provider!);
-    } else {
-      if (model.includes("o3")) {
-        const openai = createOpenAI({
-          apiKey: apiKeys.openai,
-        });
-        aiModel = openai(model);
-      } else {
-        aiModel = openrouter.chat(model);
-      }
-
-      storedMemories = await getMemories();
-    }
-
-    const modelName = AVAILABLE_MODELS.find((m) => m.id === model)?.name;
-
-    const calculateThinkingBudget = () => {
-      // choosing 15k max budget for now, but can be changed later
-      if (reasoningEffort === "low") return 15000 / 4;
-      if (reasoningEffort === "medium") return 15000 / 2;
-      if (reasoningEffort === "high") return 15000;
-      return 15000 / 4;
-    };
-
-    return createDataStreamResponse({
-      execute: async (dataStream) => {
-        const startTime = Date.now();
-        let ttftCalculated = false;
-        let ttft = 0;
-        let reasoningStartTime: number | null = null;
-        let reasoningDuration = 0;
-
-        // Both titlePromise and streamText will run in parallel
-        let titlePromise: Promise<string> | undefined;
-        if (!temporaryChat && isNewChat) {
-          titlePromise = generateChatTitle(
-            chatId,
-            messages[messages.length - 1],
-            openrouter.chat("google/gemini-2.5-flash-lite-preview-06-17")
-          );
-        }
-
-        const result = streamText({
-          model: aiModel,
-          system: isImageModel
-            ? imageGenerationPrompt(messages[messages.length - 1].content)
-            : chatPrompt(
-                modelName!,
-                customization,
-                searchEnabled,
-                storedMemories,
-                noThinkQwen
-              ),
-          experimental_transform: [
-            smoothStream({
-              chunking: "word",
-            }),
-          ],
+    try {
+      fetchAction(
+        api.chat.generateChatTitle,
+        {
+          chatId,
+          apiKey,
           messages,
-          ...(isReasoningModelActive && {
-            providerOptions: {
-              openrouter: {
-                reasoning:
-                  model.includes("openai") || model.includes("x-ai")
-                    ? { effort: reasoningEffort }
-                    : { max_tokens: calculateThinkingBudget() },
-              },
-              openai: {
-                reasoningEffort: reasoningEffort,
+        },
+        {
+          token,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to generate chat title:", error);
+      // Title generation failure shouldn't affect the main chat flow in case api key is invalid
+    }
+  } else {
+    fetchMutation(
+      api.chat.updateChatUpdatedAt,
+      {
+        chatId,
+      },
+      {
+        token,
+      }
+    );
+  }
+
+  try {
+    const result = streamText({
+      model: gateway(modelId),
+      ...(isReasoningModel && {
+        providerOptions: {
+          ...(shouldUseReasoning && {
+            anthropic: {
+              thinking: {
+                type: "enabled",
+                budgetTokens: thinkingBudget,
               },
             },
           }),
-          tools: {
-            ...(isImageModel && {
-              generateImage: tool({
-                description: "Generate an image based on the user's prompt",
-                parameters: z.object({
-                  prompt: z
-                    .string()
-                    .describe("The prompt to generate an image from"),
-                }),
-                execute: async ({ prompt }) => {
-                  const { image } = await generateImage({
-                    model: imageModel,
-                    prompt,
-                    ...(dimensionFormat === "size"
-                      ? { size: "1024x1024" }
-                      : { aspectRatio: "1:1" }),
-                  });
-
-                  const userMessageId = messages[messages.length - 1].id;
-                  const imageName = `image-${userMessageId}.png`;
-                  const imageUrl = await uploadBase64Image(
-                    imageName,
-                    image.base64
-                  );
-
-                  return { imageUrl };
-                },
-              }),
-            }),
-            ...(searchEnabled && {
-              webSearch: tool({
-                description:
-                  "Search the web for current information to help answer the user's question. Use this when you need up-to-date information or facts not in your training data.",
-                parameters: z.object({
-                  query: z
-                    .string()
-                    .describe(
-                      "The search query to find information relevant to the user's question."
-                    ),
-                  resultCategory: z
-                    .enum([
-                      "auto",
-                      "company",
-                      "research paper",
-                      "news",
-                      "pdf",
-                      "github",
-                      "personal site",
-                      "linkedin profile",
-                      "financial report",
-                    ])
-                    .describe("The category of the result to search for."),
-                }),
-                execute: async ({ query, resultCategory }) => {
-                  const exa = new Exa(apiKeys.exa);
-
-                  const result = await exa.searchAndContents(query, {
-                    type: "auto",
-                    category:
-                      resultCategory === "auto" ? undefined : resultCategory,
-                    numResults: 8,
-                    text: {
-                      maxCharacters: 800,
-                    },
-                  });
-
-                  return {
-                    query: query,
-                    totalResults: result.results.length,
-                    results: result.results.map((item, index) => ({
-                      rank: index + 1,
-                      title: item.title,
-                      url: item.url,
-                      content: item.text || "No content available",
-                      publishedDate: item.publishedDate || "Date not available",
-                    })),
-                  };
-                },
-              }),
-            }),
-            ...(!isImageModel && {
-              addMemory: tool({
-                description:
-                  "Add a useful detail about the user to remember for future conversations. This helps personalize responses and maintain context across chats.",
-                parameters: z.object({
-                  memory: z
-                    .string()
-                    .describe(
-                      "A concise, useful detail about the user to remember (e.g., preferences, context, goals, or personal information)"
-                    ),
-                }),
-                execute: async ({ memory }) => {
-                  await addMemory(memory);
-
-                  return {
-                    success: true,
-                    memory: memory,
-                  };
-                },
-              }),
-            }),
+          openai: {
+            reasoningEffort,
+            reasoningSummary: "detailed",
           },
-          ...(isImageModel && { toolChoice: "required" }),
-          ...(!isImageModel && { maxSteps: 10 }),
-          toolCallStreaming: true,
-          onChunk: (event) => {
-            if (
-              !ttftCalculated &&
-              (event.chunk.type === "text-delta" ||
-                event.chunk.type === "reasoning")
-            ) {
-              // Time to first token (in seconds) the moment text delta or reasoning starts
-              ttft = (Date.now() - startTime) / 1000;
-              ttftCalculated = true;
-            }
-
-            // Track reasoning duration
-            if (event.chunk.type === "reasoning") {
-              if (reasoningStartTime === null) {
-                reasoningStartTime = Date.now();
-              }
-            } else if (
-              reasoningStartTime !== null &&
-              event.chunk.type === "text-delta"
-            ) {
-              // Reasoning ended when we start getting text
-              reasoningDuration = Math.round(
-                (Date.now() - reasoningStartTime) / 1000
-              );
-              reasoningStartTime = null;
-            }
-          },
-          onFinish: async ({ response, usage }) => {
-            const endTime = Date.now();
-            const elapsedTime = endTime - startTime;
-            // Tokens per second
-            const tps = usage.totalTokens / (elapsedTime / 1000);
-
-            const metadata = {
-              ...usage,
-              elapsedTime,
-              tps,
-              ttft,
-              modelName: modelName!.concat(
-                isReasoningModelActive && hasEffortControl(model)
-                  ? ` (${reasoningEffort.charAt(0).toUpperCase() + reasoningEffort.slice(1)})`
-                  : ""
-              ),
-              ...(reasoningDuration > 0 && { reasoningDuration }),
-            };
-
-            dataStream.writeMessageAnnotation({
-              metadata,
-            });
-
-            try {
-              if (temporaryChat) {
-                return;
-              }
-
-              const latestUserMessage = messages[messages.length - 1];
-              const newMessages = appendResponseMessages({
-                messages: [latestUserMessage],
-                responseMessages: response.messages,
-              });
-
-              const messagesWithAnnotations = newMessages.map((message) => {
-                if (message.role === "assistant") {
-                  return {
-                    ...message,
-                    annotations: [{ metadata }],
-                  };
-                }
-                return message;
-              });
-
-              await saveMessages(chatId, messagesWithAnnotations);
-            } catch (error) {
-              console.error("[Chat API] Database save failed:", error);
-            }
-          },
-        });
-
-        if (titlePromise) {
-          titlePromise.then((title) => {
-            if (title !== "New Chat") {
-              dataStream.writeData({
-                type: "title",
-                payload: title,
-              });
-            }
-          });
-        }
-
-        result.mergeIntoDataStream(dataStream, {
-          sendReasoning: true,
-        });
+          // Have to use this for gemini models, because flash is hybrid and pro isn't
+          ...((shouldUseReasoning || !isHybridReasoningModel) && {
+            google: {
+              thinkingConfig: {
+                thinkingBudget,
+                includeThoughts: true,
+              },
+            },
+          }),
+        },
+      }),
+      system: generalChatPrompt(modelName, shouldSearchWeb),
+      messages: convertToModelMessages(messages),
+      tools: {
+        searchWebTool,
       },
-      onError: (error) => {
-        console.error("[Chat API] Error:", error);
-
-        let errorContent = "";
+      experimental_transform: smoothStream({
+        delayInMs: 20,
+        chunking: "word",
+      }),
+      stopWhen: stepCountIs(10),
+      toolChoice: shouldSearchWeb ? "required" : "auto",
+      onChunk: (event) => {
         if (
-          APICallError.isInstance(error) ||
-          InvalidPromptError.isInstance(error)
+          !ttftCalculated &&
+          (event.chunk.type === "text-delta" ||
+            event.chunk.type === "reasoning-delta" ||
+            event.chunk.type === "tool-call")
         ) {
-          errorContent = `Error: ${error.message}`;
-        } else if (RetryError.isInstance(error)) {
-          // Extract the actual error message from the lastError property
-          if (error.lastError && APICallError.isInstance(error.lastError)) {
-            errorContent = `Error: ${error.lastError.message}`;
-          } else {
-            // Fallback to parsing the message string
-            const lastErrorMatch = error.message.match(/Last error: (.+)$/);
-            errorContent = lastErrorMatch
-              ? `Error: ${lastErrorMatch[1].trim()}`
-              : `Error: ${error.message}`;
-          }
-        } else if (ToolExecutionError.isInstance(error)) {
-          errorContent = `There was a problem executing the tool: ${error.toolName}. Please try again.`;
-        } else if (NoImageGeneratedError.isInstance(error)) {
-          errorContent =
-            "There was a problem generating the image. Please try again.";
-        } else {
-          errorContent = "An unknown error occurred. Please try again.";
+          // Time to first token (in seconds) the moment text delta or reasoning or tool call starts
+          ttft = (Date.now() - startTime) / 1000;
+          ttftCalculated = true;
         }
+      },
+    });
 
-        // Save error in db to not keep the user message hanging on refresh
-        try {
-          const latestUserMessage = messages[messages.length - 1];
-          const errorMessage = {
-            id: createIdGenerator({
-              prefix: "error",
-              size: 16,
-            })(),
-            role: "assistant" as const,
-            content: errorContent,
-            createdAt: new Date(),
-            parts: [{ type: "text" as const, text: errorContent }],
+    return result.toUIMessageStreamResponse({
+      originalMessages: messages,
+      generateMessageId: () =>
+        createIdGenerator({
+          prefix: "assistant",
+          size: 16,
+        })(),
+      messageMetadata: ({ part }) => {
+        if (part.type === "finish") {
+          const usage = part.totalUsage;
+          const endTime = Date.now();
+          const elapsedTime = endTime - startTime;
+          const outputTokens =
+            (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0); // total tokens includes input + system prompt too so using this instead
+          const tps = outputTokens ? outputTokens / (elapsedTime / 1000) : 0;
+
+          const metadata: MessageMetadata = {
+            modelName,
+            tps,
+            ttft,
+            elapsedTime,
+            completionTokens: outputTokens,
           };
 
-          const newMessages = [latestUserMessage, errorMessage];
-          saveMessages(chatId, newMessages);
-        } catch (dbError) {
-          console.error(
-            "[Chat API] Failed to save error message to database:",
-            dbError
-          );
+          return metadata;
+        }
+      },
+      onFinish: async ({ messages: allMessages, responseMessage }) => {
+        // allMessages is the full list of messages, including the latest response message
+        const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
+
+        if (responseMessage.parts?.length === 0) {
+          // If the response message has no parts, it means the model returned an error
+          // This should actually not be happening, why is onFinish being called if there's an error?
+          // But it is being hit for some reason, so just doing an early return for now to prevent db save
+          return;
         }
 
-        return errorContent;
+        await fetchMutation(
+          api.chat.upsertMessages,
+          {
+            chatId,
+            messages: latestMessages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              metadata: message.metadata as MessageMetadata,
+            })),
+          },
+          {
+            token,
+          }
+        );
       },
     });
   } catch (error) {
-    console.log("[Chat API] Error:", error);
+    // Throw any errors outside of streaming
+    console.error("Chat route error:", error);
     throw error;
   }
-}
-
-function buildImageModel(
-  model: Models,
-  apiKeys: Record<Providers, string>,
-  provider: Providers
-): ImageModel {
-  if (provider === "openai") {
-    const openai = createOpenAI({
-      apiKey: apiKeys.openai,
-    });
-    return openai.image(model);
-  } else if (provider === "falai") {
-    const fal = createFal({
-      apiKey: apiKeys.falai,
-    });
-    return fal.image(model);
-  }
-
-  throw new Error("Invalid model");
 }

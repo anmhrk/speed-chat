@@ -1,19 +1,13 @@
-import { getUser } from "@/lib/actions";
-import { redirect } from "next/navigation";
 import { ChatPage } from "@/components/chat-page";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default async function Page() {
+  const { userId } = await auth();
 
-  const user = await getUser();
-
-  if (!user) {
+  if (!userId) {
     redirect("/");
   }
 
-  return <ChatPage user={user} initialChatId={id} />;
+  return <ChatPage userId={userId} />;
 }

@@ -1,21 +1,19 @@
 import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
-import { CodeBlock } from "@/components/messages/code-block";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { Code } from "@/components/messages/code";
 
 export function Markdown({ children }: { children: React.ReactNode }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkMath, remarkGfm]}
-      rehypePlugins={[rehypeKatex]}
       components={{
-        code: CodeBlock,
+        code: Code,
 
-        hr: () => <hr className="border-border my-10" />,
+        hr: () => <hr className="my-10 border-border" />,
 
         p: ({ children }) => (
-          <p className="my-4 whitespace-pre-wrap last:mb-0 leading-[1.8]">
+          <p className="my-4 whitespace-pre-wrap leading-[1.8] last:mb-0">
             {children}
           </p>
         ),
@@ -33,37 +31,37 @@ export function Markdown({ children }: { children: React.ReactNode }) {
         ),
 
         h1: ({ children }) => (
-          <h1 className="mt-6 mb-4 text-2xl font-bold">{children}</h1>
+          <h1 className="mt-6 mb-4 font-bold text-2xl">{children}</h1>
         ),
 
         h2: ({ children }) => (
-          <h2 className="mt-5 mb-3 text-xl font-bold">{children}</h2>
+          <h2 className="mt-5 mb-3 font-bold text-xl">{children}</h2>
         ),
 
         h3: ({ children }) => (
-          <h3 className="mt-4 mb-3 text-lg font-bold">{children}</h3>
+          <h3 className="mt-4 mb-3 font-bold text-lg">{children}</h3>
         ),
 
         h4: ({ children }) => (
-          <h4 className="mt-3 mb-2 text-base font-bold">{children}</h4>
+          <h4 className="mt-3 mb-2 font-bold text-base">{children}</h4>
         ),
 
         h5: ({ children }) => (
-          <h5 className="mt-3 mb-2 text-sm font-bold">{children}</h5>
+          <h5 className="mt-3 mb-2 font-bold text-sm">{children}</h5>
         ),
 
         h6: ({ children }) => (
-          <h6 className="mt-3 mb-2 text-xs font-bold">{children}</h6>
+          <h6 className="mt-3 mb-2 font-bold text-xs">{children}</h6>
         ),
 
         blockquote: ({ children }) => (
-          <blockquote className="border-primary bg-muted my-6 border-l-4 py-2 pl-4 italic">
+          <blockquote className="my-6 border-primary border-l-4 bg-muted py-2 pl-4 italic">
             {children}
           </blockquote>
         ),
 
         table: ({ children }) => (
-          <div className="border-border my-6 overflow-hidden rounded-lg border last:mb-0">
+          <div className="my-6 overflow-hidden rounded-lg border border-border last:mb-0">
             <table className="min-w-full border-collapse">{children}</table>
           </div>
         ),
@@ -88,15 +86,17 @@ export function Markdown({ children }: { children: React.ReactNode }) {
 
         a: ({ children, href }) => (
           <a
+            className="text-blue-600 hover:underline dark:text-blue-400"
             href={href}
-            className="dark:text-blue-400 text-blue-600 hover:underline"
-            target="_blank"
             rel="noopener noreferrer"
+            target="_blank"
           >
             {children}
           </a>
         ),
       }}
+      rehypePlugins={[rehypeKatex]}
+      remarkPlugins={[remarkMath, remarkGfm]}
     >
       {String(children)}
     </ReactMarkdown>

@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import "./src/lib/env";
 
 const nextConfig: NextConfig = {
   images: {
@@ -10,8 +9,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "kbmqctcgvn.ufs.sh",
-        pathname: "/f/*",
+        hostname: "careful-heron-439.convex.cloud",
       },
     ],
   },
@@ -22,9 +20,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   devIndicators: false,
-  experimental: {
-    reactCompiler: true,
-  },
 };
 
 export default nextConfig;

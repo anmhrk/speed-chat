@@ -1,44 +1,47 @@
-import type { Message } from "ai";
-import { Check, Copy, Edit, ExternalLink, FileIcon, X } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { useRef, useState } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { Textarea } from "../ui/textarea";
+import { useMutation } from "convex/react";
+import { Check, Copy, PenBox, X } from "lucide-react";
 import Image from "next/image";
-import { UseChatHelpers } from "@ai-sdk/react";
-import { deleteFiles } from "@/lib/actions/uploadthing";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import type { MyUIMessage } from "@/lib/types";
+import { Textarea } from "@/components/ui/textarea";
 import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { deleteMessages } from "@/lib/actions";
+import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { MessageActionButton } from ".";
+import { api } from "@/convex/_generated/api";
+import { UseChatHelpers } from "@ai-sdk/react";
+import { useCustomChat } from "@/hooks/use-custom-chat";
 
 interface UserMessageProps {
-  message: Message;
-  allMessages: Message[];
-  append: UseChatHelpers["append"];
-  setMessages: UseChatHelpers["setMessages"];
-  isOnSharedPage: boolean;
+  message: MyUIMessage;
+  allMessages: MyUIMessage[];
+  setMessages: UseChatHelpers<MyUIMessage>["setMessages"];
+  sendMessage: UseChatHelpers<MyUIMessage>["sendMessage"];
+  buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
 }
 
 export function UserMessage({
   message,
   allMessages,
-  append,
   setMessages,
-  isOnSharedPage,
+  sendMessage,
+  buildBodyAndHeaders,
 }: UserMessageProps) {
-  const { isCopied, copyToClipboard } = useCopyClipboard();
+  const { copyToClipboard, isCopied } = useCopyClipboard();
+  const messageContent = message.parts?.find(
+    (part) => part.type === "text"
+  )?.text;
+  const files = message.parts?.filter((part) => part.type === "file") ?? [];
+
+  const deleteMessages = useMutation(api.chatActions.deleteMessages);
+  const deleteFiles = useMutation(api.storage.deleteFiles);
+
   const [isEditing, setIsEditing] = useState(false);
-  const [editedMessage, setEditedMessage] = useState(message.content);
+  const [editedMessage, setEditedMessage] = useState(messageContent);
   const editRef = useRef<HTMLTextAreaElement>(null);
-  const originalMessagesRef = useRef<Message[]>(allMessages);
-  const [removedAttachmentUrls, setRemovedAttachmentUrls] = useState<string[]>(
-    []
-  );
+  const originalMessagesRef = useRef<MyUIMessage[]>(allMessages);
+  const [removedFileUrls, setRemovedFileUrls] = useState<string[]>([]);
 
   const handleSelectEdit = () => {
     originalMessagesRef.current = allMessages;
@@ -54,56 +57,51 @@ export function UserMessage({
     }, 50);
   };
 
-  const handleEdit = () => {
-    setIsEditing(false);
-
-    const editedMessageIndex = allMessages.findIndex(
-      (m) => m.id === message.id
-    );
-    const currentEditedMessage = allMessages[editedMessageIndex];
-
-    const messagesToCheck = allMessages.slice(editedMessageIndex + 1);
-    deleteMessages([...messagesToCheck.map((m) => m.id), message.id]);
-
-    const futureAttachmentUrls = messagesToCheck.flatMap((m) =>
-      m.experimental_attachments?.map((a) => a.url)
-    );
-    const futureToolInvocationUrls = messagesToCheck.flatMap(
-      (m) =>
-        m.parts?.map((part) => {
-          if (part.type === "tool-invocation") {
-            const invocation: any = part.toolInvocation;
-            return invocation?.result?.imageUrl ?? null;
-          }
-        }) ?? []
-    );
-
-    const urlsToDelete = [
-      ...removedAttachmentUrls,
-      ...futureAttachmentUrls,
-      ...futureToolInvocationUrls,
-    ].filter((url): url is string => Boolean(url));
-
-    if (urlsToDelete.length > 0) {
-      deleteFiles(urlsToDelete);
+  const handleEditMessage = () => {
+    if (!editedMessage?.trim()) {
+      handleCancelEdit();
+      toast.error("Message cannot be empty");
+      return;
     }
 
-    allMessages.splice(editedMessageIndex);
+    setIsEditing(false);
+    const editingMessageIndex = allMessages.findIndex(
+      (m) => m.id === message.id
+    );
 
-    append({
-      id: message.id,
-      role: "user",
-      content: editedMessage,
-      experimental_attachments:
-        currentEditedMessage.experimental_attachments ?? [],
+    // Delete the edited message and all messages below it from the db and messages array
+    const messagesToDelete = allMessages.slice(editingMessageIndex);
+    deleteMessages({
+      messageIdsToDelete: messagesToDelete.map((m) => m.id),
     });
-    setRemovedAttachmentUrls([]);
+
+    const updatedMessages = allMessages.slice(0, editingMessageIndex);
+    setMessages(updatedMessages);
+
+    if (removedFileUrls.length > 0) {
+      deleteFiles({ fileUrls: removedFileUrls });
+      setRemovedFileUrls([]);
+    }
+
+    const { body, headers } = buildBodyAndHeaders();
+
+    sendMessage(
+      {
+        text: editedMessage,
+        ...(files.length > 0 && {
+          files,
+        }),
+      },
+      {
+        body,
+        headers,
+      }
+    );
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditedMessage(message.content);
-    setRemovedAttachmentUrls([]);
+    setEditedMessage(messageContent);
 
     // Revert to the snapshot captured at the start of editing if attachments were
     // removed while the user was editing but they decide to cancel
@@ -113,165 +111,107 @@ export function UserMessage({
   };
 
   return (
-    <div className="flex justify-end text-[15px]">
+    <div className="group flex flex-col items-end gap-2 mt-4">
       <div
-        className={cn("group relative max-w-[66.67%]", isEditing && "w-full")}
+        className={cn(
+          isEditing ? "w-full" : "max-w-[80%]",
+          "rounded-lg bg-primary/5 p-3 text-secondary-foreground dark:bg-primary/10"
+        )}
       >
-        <div
-          className={cn(
-            isEditing ? "bg-primary/20 w-full" : "bg-accent",
-            "rounded-lg px-4 py-3"
-          )}
-        >
-          <div className="break-words whitespace-pre-wrap">
-            {isEditing ? (
-              <Textarea
-                ref={editRef}
-                value={editedMessage}
-                onChange={(e) => setEditedMessage(e.target.value)}
-                className="w-full resize-none border-0 !bg-transparent shadow-none focus-visible:ring-0"
-                onBlur={(e) => {
-                  // Don't exit editing if user clicked on an attachment removal button
-                  const relatedTarget = e.relatedTarget as HTMLElement;
-                  if (relatedTarget?.closest("[data-attachment-remove]")) {
-                    return;
-                  }
+        {message.parts?.map((part, i) => {
+          const key = `${message.id}-${i}`;
 
-                  handleCancelEdit();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    handleCancelEdit();
-                  }
+          switch (part.type) {
+            case "text":
+              return isEditing ? (
+                <Textarea
+                  className="!bg-transparent w-full resize-none border-0 px-0 shadow-none focus-visible:ring-0"
+                  key={key}
+                  onBlur={handleCancelEdit}
+                  onChange={(e) => setEditedMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      handleCancelEdit();
+                    }
 
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleEdit();
-                  }
-                }}
-              />
-            ) : (
-              message.content
-            )}
-          </div>
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleEditMessage();
+                    }
+                  }}
+                  ref={editRef}
+                  value={editedMessage}
+                />
+              ) : (
+                messageContent
+              );
 
-          {message.experimental_attachments && (
-            <div
-              className={cn(
-                "mt-4 relative",
-                isEditing ? "flex flex-col gap-2" : "flex flex-wrap gap-2"
-              )}
-            >
-              {message.experimental_attachments.map((attachment, index) => (
+            case "file":
+              return (
                 <div
-                  key={`${message.id}-attachment-${index}`}
                   className={cn(
-                    "flex items-center gap-2",
-                    isEditing && "justify-between w-full"
+                    "flex items-center py-2",
+                    isEditing ? "justify-between" : "justify-start"
                   )}
+                  key={key}
                 >
-                  {attachment.contentType?.startsWith("image/") ? (
-                    <Image
-                      src={attachment.url}
-                      alt={attachment.name ?? "Attachment"}
-                      className={cn(
-                        "rounded-md aspect-auto h-auto cursor-pointer",
-                        isEditing ? "max-w-[350px]" : "max-w-full"
-                      )}
-                      onClick={() => window.open(attachment.url, "_blank")}
-                      width={400}
-                      height={300}
-                    />
-                  ) : (
-                    <Link
-                      href={attachment.url}
-                      target="_blank"
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background hover:bg-background/60 transition-colors cursor-pointer text-sm"
-                    >
-                      <FileIcon className="size-4 flex-shrink-0" />
-                      <span className="truncate max-w-[200px]">
-                        {attachment.name ?? "File"}
-                      </span>
-                      <ExternalLink className="size-4 flex-shrink-0" />
-                    </Link>
-                  )}
-
+                  <Image
+                    alt={part.filename ?? ""}
+                    className="h-auto w-auto cursor-pointer rounded-md"
+                    height={100}
+                    onClick={() => window.open(part.url, "_blank")}
+                    src={part.url}
+                    width={100}
+                  />
                   {isEditing && (
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full !bg-black/90 hover:!bg-black/90 text-white hover:text-white flex-shrink-0"
-                      data-attachment-remove
+                      className="rounded-full"
                       onMouseDown={(e) => {
-                        e.stopPropagation();
                         e.preventDefault();
 
-                        setRemovedAttachmentUrls((prev) => [
-                          ...prev,
-                          attachment.url,
-                        ]);
+                        setRemovedFileUrls((prev) => [...prev, part.url]);
 
-                        const messageWithoutAttachment = {
+                        const messageWithUpdatedParts = {
                           ...message,
-                          experimental_attachments:
-                            message.experimental_attachments?.filter(
-                              (a) => a.url !== attachment.url
-                            ),
+                          parts: message.parts.filter(
+                            (p) => p.type !== "file" || p.url !== part.url
+                          ),
                         };
 
                         setMessages(
                           allMessages.map((m) =>
-                            m.id === message.id ? messageWithoutAttachment : m
+                            m.id === message.id ? messageWithUpdatedParts : m
                           )
                         );
                       }}
+                      size="icon"
+                      variant="outline"
                     >
-                      <X className="size-4" />
+                      <X />
                     </Button>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="absolute top-full right-0 mt-1 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-          {!isOnSharedPage && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSelectEdit}
-                  className="h-8 w-8"
-                >
-                  <Edit className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Edit message</TooltipContent>
-            </Tooltip>
-          )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => copyToClipboard(message.content)}
-                className="h-8 w-8"
-              >
-                {isCopied ? (
-                  <Check className="size-4" />
-                ) : (
-                  <Copy className="size-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {isCopied ? "Copied!" : "Copy message"}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+              );
+            default:
+              return null;
+          }
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <MessageActionButton
+          icon={PenBox}
+          label="Edit Message"
+          onClick={handleSelectEdit}
+        />
+        <MessageActionButton
+          icon={isCopied ? Check : Copy}
+          label="Copy to clipboard"
+          onClick={() => {
+            if (messageContent) {
+              copyToClipboard(messageContent);
+            }
+          }}
+        />
       </div>
     </div>
   );
