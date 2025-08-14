@@ -1,6 +1,7 @@
 import { Id } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import { betterAuthComponent } from "./auth";
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
@@ -13,9 +14,9 @@ export const storeFile = mutation({
     fileId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
 
-    if (!identity) {
+    if (!userId) {
       throw new ConvexError("User not authenticated");
     }
 
@@ -28,7 +29,7 @@ export const storeFile = mutation({
     await ctx.db.insert("attachments", {
       id: args.fileId,
       url,
-      userId: identity.tokenIdentifier,
+      userId: userId as Id<"users">,
     });
 
     return url;

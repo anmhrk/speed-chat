@@ -37,7 +37,7 @@ import { UseChatHelpers } from "@ai-sdk/react";
 import type { FileUIPart } from "ai";
 
 interface ChatInputProps {
-  userId: string | null;
+  isAuthenticated: boolean;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   input: string;
@@ -50,7 +50,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({
-  userId,
+  isAuthenticated,
   handleInputChange,
   handleSubmit,
   input,
@@ -108,7 +108,7 @@ export function ChatInput({
         <div className="flex items-center gap-2">
           <SettingsPopover
             handleFileChange={handleFileChange}
-            userId={userId}
+            isAuthenticated={isAuthenticated}
           />
           <SettingsIndicators />
         </div>
@@ -174,10 +174,10 @@ export function ChatInput({
 }
 
 function SettingsPopover({
-  userId,
+  isAuthenticated,
   handleFileChange,
 }: {
-  userId: string | null;
+  isAuthenticated: boolean;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   const {
@@ -210,7 +210,7 @@ function SettingsPopover({
             </div>
             <Button
               onClick={() => {
-                if (userId) {
+                if (isAuthenticated) {
                   fileInputRef.current?.click();
                 } else {
                   toast.error("Please sign in to attach files");

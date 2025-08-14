@@ -2,10 +2,14 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
+  users: defineTable({
+    // Fields are optional
+  }),
+
   chats: defineTable({
     id: v.string(),
     title: v.string(),
-    userId: v.string(),
+    userId: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
     isBranch: v.boolean(),
@@ -50,7 +54,7 @@ const schema = defineSchema({
   // could add messageId field too to make it easier to delete attachments if message is deleted
   // but we don't know what the messageId is at the time of upload
   attachments: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     id: v.id("_storage"),
     url: v.string(),
   })

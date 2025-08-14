@@ -11,15 +11,16 @@ import { CHAT_MODELS } from "@/lib/models";
 import { useChatConfig } from "@/providers/chat-config-provider";
 import { useQuery } from "convex-helpers/react/cache/hooks";
 import { api } from "@/convex/_generated/api";
-import { useUser } from "@clerk/nextjs";
 
 type CustomChatProps = {
-  userId: string | null;
+  isAuthenticated: boolean;
   setIsApiKeysOpen: (open: boolean) => void;
 };
 
-export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
-  const { user } = useUser();
+export function useCustomChat({
+  isAuthenticated,
+  setIsApiKeysOpen,
+}: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKey } =
     useChatConfig();
   const pathname = usePathname();
@@ -54,7 +55,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
 
   const initialMessages = useQuery(
     api.chat.getMessages,
-    !!urlChatId && user && !newlyCreatedChatId ? { chatId } : "skip"
+    !!urlChatId && isAuthenticated && !newlyCreatedChatId ? { chatId } : "skip"
   );
 
   const {
@@ -129,7 +130,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!userId) {
+    if (!isAuthenticated) {
       toast.error("Please sign in to chat");
       return;
     }

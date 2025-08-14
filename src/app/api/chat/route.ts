@@ -13,10 +13,9 @@ import { CHAT_MODELS } from "@/lib/models";
 import { z } from "zod";
 import Exa from "exa-js";
 import { NextRequest } from "next/server";
-import { fetchAction, fetchMutation } from "convex/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { fetchAction, fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { getAuthToken } from "@/lib/user-actions";
+import { getAuthToken } from "@/lib/auth/token";
 
 export const searchWebTool = tool({
   description: "Search the web for up-to-date information",
@@ -69,13 +68,12 @@ export const searchWebTool = tool({
 });
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
+  const token = await getAuthToken();
+  const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
-  if (!userId) {
+  if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }
-
-  const token = await getAuthToken();
 
   const body: ChatRequest = await request.json();
   const {

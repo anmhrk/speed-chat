@@ -21,13 +21,13 @@ import type { SearchResult } from "@/convex/search";
 interface SearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: string | null;
+  isAuthenticated: boolean;
 }
 
 export function SearchDialog({
   open,
   onOpenChange,
-  userId,
+  isAuthenticated,
 }: SearchDialogProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,11 +50,11 @@ export function SearchDialog({
 
   const searchResults = useQuery(
     api.search.searchAll,
-    userId && debouncedQuery.length > 0 ? { query: debouncedQuery } : "skip"
+    isAuthenticated && debouncedQuery.length > 0 ? { query: debouncedQuery } : "skip"
   );
 
   const handleSelectResult = useCallback(
-    (result: SearchResult[number]) => {
+    (result: NonNullable<SearchResult>[number]) => {
       const chatId = result.type === "chat" ? result.id : result.chatId;
       router.push(`/chat/${chatId}`);
       onOpenChange(false);
@@ -63,11 +63,11 @@ export function SearchDialog({
   );
 
   const isLoading =
-    userId && debouncedQuery.length > 0 && searchResults === undefined;
+    isAuthenticated && debouncedQuery.length > 0 && searchResults === undefined;
   const hasResults = searchResults && searchResults.length > 0;
   const showEmptyState =
-    userId && debouncedQuery.length > 0 && !isLoading && !hasResults;
-  const isSignedOut = !userId;
+    isAuthenticated && debouncedQuery.length > 0 && !isLoading && !hasResults;
+  const isSignedOut = !isAuthenticated;
 
   // Helper function to highlight search query in text
   const highlightText = (text: string, query: string) => {
