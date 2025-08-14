@@ -14,6 +14,7 @@ import { Messages } from "./messages";
 import { SearchDialog } from "./search-dialog";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useRouter } from "next/navigation";
+import { useConvexAuth } from "convex/react";
 
 const PROMPT_SUGGESTIONS = [
   "Explain how AI works in a way a 5 year old can understand",
@@ -22,12 +23,9 @@ const PROMPT_SUGGESTIONS = [
   "Help me plan my summer vacation in Europe",
 ];
 
-interface ChatPageProps {
-  userId: string | null;
-}
-
-export function ChatPage({ userId }: ChatPageProps) {
+export function ChatPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -50,7 +48,7 @@ export function ChatPage({ userId }: ChatPageProps) {
     loadingMessages,
     status,
     error,
-  } = useCustomChat({ userId, setIsApiKeysOpen });
+  } = useCustomChat({ isAuthenticated, setIsApiKeysOpen });
 
   useHotkeys("meta+k, ctrl+k", () => setIsSearchOpen(true), {
     enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
@@ -64,7 +62,7 @@ export function ChatPage({ userId }: ChatPageProps) {
   return (
     <main className="flex h-screen w-full">
       <AppSidebar
-        userId={userId}
+        authLoading={isLoading}
         currentChatId={chatId}
         isStreaming={isStreaming}
         setIsApiKeysOpen={setIsApiKeysOpen}
@@ -89,7 +87,7 @@ export function ChatPage({ userId }: ChatPageProps) {
           <div className="flex min-h-0 flex-1 flex-col">
             {loadingMessages ? (
               <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-                Loading messages...
+                Loading...
               </div>
             ) : messages.length > 0 ? (
               <Messages
@@ -133,7 +131,7 @@ export function ChatPage({ userId }: ChatPageProps) {
           </div>
           <div className="flex-shrink-0 px-2 pb-2">
             <ChatInput
-              userId={userId}
+              isAuthenticated={isAuthenticated}
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
               input={input}
@@ -151,7 +149,7 @@ export function ChatPage({ userId }: ChatPageProps) {
       <SearchDialog
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        userId={userId}
+        isAuthenticated={isAuthenticated}
       />
       <ApiKeysDialog onOpenChange={setIsApiKeysOpen} open={isApiKeysOpen} />
     </main>

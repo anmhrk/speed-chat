@@ -17,9 +17,9 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 - [Next.js 15 App Router](https://nextjs.org) - Full stack React framework with server components/actions and api routes
 - [React 19](https://react.dev) - Latest React
 - [Convex](https://www.convex.dev) - Reactive backend as a service platform
+- [Better Auth](https://better-auth.com) - Comprehensive auth library
 - [TailwindCSS v4](https://tailwindcss.com) - Inline CSS framework
 - [shadcn/ui](https://ui.shadcn.com) - Modern component library built on Radix UI
-- [Clerk](https://clerk.dev) - Hosted auth solution
 - [AI SDK](https://ai-sdk.dev) - Typescript AI toolkit to build AI applications
 - [Exa](https://exa.ai) - AI powered web search API
 
@@ -51,7 +51,7 @@ bun dev # app will be available at http://localhost:3000
 bun convex:dev # this will auto set the required env vars for you too
 ```
 
-4. Follow the instructions in the [Convex + Clerk](https://docs.convex.dev/auth/clerk) guide to set up auth.
+4. Follow the instructions in the [Convex + Better Auth](https://convex-better-auth.netlify.app/) guide to set up auth.
 
 5. Make sure you have setup all the env vars in `.env.example` in your `.env.local` file.
 

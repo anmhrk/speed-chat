@@ -2,7 +2,8 @@ import { FunctionReturnType } from "convex/server";
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
+import { betterAuthComponent } from "./auth";
 
 export type SearchResult = FunctionReturnType<typeof api.search.searchAll>;
 
@@ -12,13 +13,12 @@ export const searchAll = query({
     query: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
 
-    if (identity === null) {
-      throw new Error("Not authenticated");
+    if (!userId) {
+      return null;
     }
 
-    const userId = identity.tokenIdentifier;
     const limit = 20;
     const query = args.query.trim();
 
@@ -26,7 +26,7 @@ export const searchAll = query({
     const chatResults = await ctx.db
       .query("chats")
       .withSearchIndex("by_title", (q) =>
-        q.search("title", query).eq("userId", userId)
+        q.search("title", query).eq("userId", userId as Id<"users">)
       )
       .take(limit);
 
@@ -34,7 +34,9 @@ export const searchAll = query({
     // So first collect all chatIds of the user to query the messages search index
     const allChatsForUser = await ctx.db
       .query("chats")
-      .withIndex("by_user_id_and_updated_at", (q) => q.eq("userId", userId))
+      .withIndex("by_user_id_and_updated_at", (q) =>
+        q.eq("userId", userId as Id<"users">)
+      )
       .collect();
 
     const chatIdsNeeded = allChatsForUser.map((chat) => chat._id);

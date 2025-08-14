@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { Id } from "./_generated/dataModel";
 import { MyUIMessage } from "@/lib/types";
 import { internal } from "./_generated/api";
+import { betterAuthComponent } from "./auth";
 
 export const branchOffFromMessage = mutation({
   args: {
@@ -196,16 +197,16 @@ export const deleteChat = mutation({
 
 export const deleteUserData = mutation({
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
 
-    if (!identity) {
+    if (!userId) {
       throw new ConvexError("User not authenticated");
     }
 
     const chats = await ctx.db
       .query("chats")
       .withIndex("by_user_id_and_updated_at", (q) =>
-        q.eq("userId", identity.tokenIdentifier)
+        q.eq("userId", userId as Id<"users">)
       )
       .collect();
 
@@ -224,7 +225,7 @@ export const deleteUserData = mutation({
 
     const attachments = await ctx.db
       .query("attachments")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.tokenIdentifier))
+      .withIndex("by_user_id", (q) => q.eq("userId", userId as Id<"users">))
       .collect();
 
     for (const attachment of attachments) {

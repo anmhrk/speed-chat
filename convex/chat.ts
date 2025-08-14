@@ -5,18 +5,20 @@ import { createGateway } from "@ai-sdk/gateway";
 import { convertToModelMessages, generateText } from "ai";
 import { titleGenPrompt } from "@/lib/prompts";
 import { internal } from "./_generated/api";
+import { betterAuthComponent } from "./auth";
+import { Id } from "./_generated/dataModel";
 
 export const getChats = query({
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) {
-      throw new Error("Not authenticated");
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
+      return null;
     }
 
     return await ctx.db
       .query("chats")
       .withIndex("by_user_id_and_updated_at", (q) =>
-        q.eq("userId", identity.tokenIdentifier)
+        q.eq("userId", userId as Id<"users">)
       )
       .order("desc")
       .collect();
@@ -28,15 +30,15 @@ export const getMessages = query({
     chatId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) {
-      throw new Error("Not authenticated");
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
+      return null;
     }
 
     const chat = await ctx.db
       .query("chats")
       .withIndex("by_chat_id_and_user_id", (q) =>
-        q.eq("id", args.chatId).eq("userId", identity.tokenIdentifier)
+        q.eq("id", args.chatId).eq("userId", userId as Id<"users">)
       )
       .first();
 
@@ -65,14 +67,14 @@ export const createChat = mutation({
     chatId: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) {
-      throw new Error("Not authenticated");
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
+      return null;
     }
 
     await ctx.db.insert("chats", {
       id: args.chatId,
-      userId: identity.tokenIdentifier,
+      userId: userId as Id<"users">,
       title: "New Chat",
       createdAt: Date.now(),
       updatedAt: Date.now(),
