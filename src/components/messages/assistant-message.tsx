@@ -30,7 +30,6 @@ interface AssistantMessageProps {
   regenerate: UseChatHelpers<MyUIMessage>["regenerate"];
   buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
   currentChatId: string;
-  status: UseChatHelpers<MyUIMessage>["status"];
 }
 
 export function AssistantMessage({
@@ -39,7 +38,6 @@ export function AssistantMessage({
   regenerate,
   buildBodyAndHeaders,
   currentChatId,
-  status,
 }: AssistantMessageProps) {
   const router = useRouter();
   const isMobile = useIsMobile();

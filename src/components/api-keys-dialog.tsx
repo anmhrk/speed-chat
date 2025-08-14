@@ -37,7 +37,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Configure API Keys</DialogTitle>
-          <DialogDescription>Enter your AI Gatwat API key.</DialogDescription>
+          <DialogDescription>Enter your AI Gateway API key.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
@@ -75,7 +75,10 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
           <Button
             className="ml-auto"
             disabled={isSaveDisabled}
-            onClick={() => setApiKey(localKey)}
+            onClick={() => {
+              setApiKey(localKey);
+              onOpenChange(false);
+            }}
           >
             Save
           </Button>

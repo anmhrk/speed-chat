@@ -1,5 +1,4 @@
 import {
-  APICallError,
   convertToModelMessages,
   createIdGenerator,
   smoothStream,
@@ -142,17 +141,22 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    fetchAction(
-      api.chat.generateChatTitle,
-      {
-        chatId,
-        apiKey,
-        messages,
-      },
-      {
-        token,
-      }
-    );
+    try {
+      fetchAction(
+        api.chat.generateChatTitle,
+        {
+          chatId,
+          apiKey,
+          messages,
+        },
+        {
+          token,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to generate chat title:", error);
+      // Title generation failure shouldn't affect the main chat flow in case api key is invalid
+    }
   } else {
     fetchMutation(
       api.chat.updateChatUpdatedAt,
@@ -165,115 +169,117 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = streamText({
-    model: gateway(modelId),
-    ...(isReasoningModel && {
-      providerOptions: {
-        ...(shouldUseReasoning && {
-          anthropic: {
-            thinking: {
-              type: "enabled",
-              budgetTokens: thinkingBudget,
+  try {
+    const result = streamText({
+      model: gateway(modelId),
+      ...(isReasoningModel && {
+        providerOptions: {
+          ...(shouldUseReasoning && {
+            anthropic: {
+              thinking: {
+                type: "enabled",
+                budgetTokens: thinkingBudget,
+              },
             },
+          }),
+          openai: {
+            reasoningEffort,
+            reasoningSummary: "detailed",
           },
-        }),
-        openai: {
-          reasoningEffort,
-          reasoningSummary: "detailed",
+          // Have to use this for gemini models, because flash is hybrid and pro isn't
+          ...((shouldUseReasoning || !isHybridReasoningModel) && {
+            google: {
+              thinkingConfig: {
+                thinkingBudget,
+                includeThoughts: true,
+              },
+            },
+          }),
         },
-        // Have to use this for gemini models, because flash is hybrid and pro isn't
-        ...((shouldUseReasoning || !isHybridReasoningModel) && {
-          google: {
-            thinkingConfig: {
-              thinkingBudget,
-              includeThoughts: true,
-            },
-          },
-        }),
+      }),
+      system: generalChatPrompt(modelName, shouldSearchWeb),
+      messages: convertToModelMessages(messages),
+      tools: {
+        searchWebTool,
       },
-    }),
-    system: generalChatPrompt(modelName, shouldSearchWeb),
-    messages: convertToModelMessages(messages),
-    tools: {
-      searchWebTool,
-    },
-    experimental_transform: smoothStream({
-      delayInMs: 20,
-      chunking: "word",
-    }),
-    stopWhen: stepCountIs(10),
-    toolChoice: shouldSearchWeb ? "required" : "auto",
-    onChunk: (event) => {
-      if (
-        !ttftCalculated &&
-        (event.chunk.type === "text-delta" ||
-          event.chunk.type === "reasoning-delta" ||
-          event.chunk.type === "tool-call")
-      ) {
-        // Time to first token (in seconds) the moment text delta or reasoning or tool call starts
-        ttft = (Date.now() - startTime) / 1000;
-        ttftCalculated = true;
-      }
-    },
-  });
-
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    generateMessageId: () =>
-      createIdGenerator({
-        prefix: "assistant",
-        size: 16,
-      })(),
-    messageMetadata: ({ part }) => {
-      if (part.type === "finish") {
-        const usage = part.totalUsage;
-        const endTime = Date.now();
-        const elapsedTime = endTime - startTime;
-        const outputTokens =
-          (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0); // total tokens includes input + system prompt too so using this instead
-        const tps = outputTokens ? outputTokens / (elapsedTime / 1000) : 0;
-
-        const metadata: MessageMetadata = {
-          modelName,
-          tps,
-          ttft,
-          elapsedTime,
-          completionTokens: outputTokens,
-        };
-
-        return metadata;
-      }
-    },
-    onFinish: async ({ messages: allMessages }) => {
-      // allMessages is the full list of messages, including the latest response message
-      const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
-
-      await fetchMutation(
-        api.chat.upsertMessages,
-        {
-          chatId,
-          messages: latestMessages.map((message) => ({
-            id: message.id,
-            role: message.role,
-            parts: message.parts,
-            metadata: message.metadata as MessageMetadata,
-          })),
-        },
-        {
-          token,
+      experimental_transform: smoothStream({
+        delayInMs: 20,
+        chunking: "word",
+      }),
+      stopWhen: stepCountIs(10),
+      toolChoice: shouldSearchWeb ? "required" : "auto",
+      onChunk: (event) => {
+        if (
+          !ttftCalculated &&
+          (event.chunk.type === "text-delta" ||
+            event.chunk.type === "reasoning-delta" ||
+            event.chunk.type === "tool-call")
+        ) {
+          // Time to first token (in seconds) the moment text delta or reasoning or tool call starts
+          ttft = (Date.now() - startTime) / 1000;
+          ttftCalculated = true;
         }
-      );
-    },
-    onError: (error) => {
-      console.error(error);
-      let errorMessage = "An error occurred while generating the response";
+      },
+    });
 
-      // Usually this is the error type
-      if (APICallError.isInstance(error)) {
-        errorMessage = error.message;
-      }
+    return result.toUIMessageStreamResponse({
+      originalMessages: messages,
+      generateMessageId: () =>
+        createIdGenerator({
+          prefix: "assistant",
+          size: 16,
+        })(),
+      messageMetadata: ({ part }) => {
+        if (part.type === "finish") {
+          const usage = part.totalUsage;
+          const endTime = Date.now();
+          const elapsedTime = endTime - startTime;
+          const outputTokens =
+            (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0); // total tokens includes input + system prompt too so using this instead
+          const tps = outputTokens ? outputTokens / (elapsedTime / 1000) : 0;
 
-      return errorMessage;
-    },
-  });
+          const metadata: MessageMetadata = {
+            modelName,
+            tps,
+            ttft,
+            elapsedTime,
+            completionTokens: outputTokens,
+          };
+
+          return metadata;
+        }
+      },
+      onFinish: async ({ messages: allMessages, responseMessage }) => {
+        // allMessages is the full list of messages, including the latest response message
+        const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
+
+        if (responseMessage.parts?.length === 0) {
+          // If the response message has no parts, it means the model returned an error
+          // This should actually not be happening, why is onFinish being called if there's an error?
+          // But it is being hit for some reason, so just doing an early return for now to prevent db save
+          return;
+        }
+
+        await fetchMutation(
+          api.chat.upsertMessages,
+          {
+            chatId,
+            messages: latestMessages.map((message) => ({
+              id: message.id,
+              role: message.role,
+              parts: message.parts,
+              metadata: message.metadata as MessageMetadata,
+            })),
+          },
+          {
+            token,
+          }
+        );
+      },
+    });
+  } catch (error) {
+    // Throw any errors outside of streaming
+    console.error("Chat route error:", error);
+    throw error;
+  }
 }

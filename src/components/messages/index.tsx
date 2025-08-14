@@ -20,6 +20,7 @@ interface MessagesProps {
   buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
   status: UseChatHelpers<MyUIMessage>["status"];
   currentChatId: string;
+  error: UseChatHelpers<MyUIMessage>["error"];
 }
 
 export function Messages({
@@ -30,6 +31,7 @@ export function Messages({
   buildBodyAndHeaders,
   status,
   currentChatId,
+  error,
 }: MessagesProps) {
   // Show loader when:
   // 1. Status is "submitted" and last message is user (waiting for assistant response)
@@ -76,11 +78,32 @@ export function Messages({
                 regenerate={regenerate}
                 buildBodyAndHeaders={buildBodyAndHeaders}
                 currentChatId={currentChatId}
-                status={status}
               />
             );
           })}
-        {showLoader && (
+        {error && (
+          <div className="flex flex-col items-start gap-2 p-4 border border-red-200 bg-red-50 rounded-lg dark:border-red-800 dark:bg-red-950">
+            <div className="text-red-600 dark:text-red-400 text-sm">
+              {error.message ||
+                "An error occurred while generating the response"}
+            </div>
+            <Button
+              onClick={() => {
+                setMessages(messages.slice(0, -1)); // Remove last message (which is the error)
+                regenerate({
+                  body: buildBodyAndHeaders().body,
+                  headers: buildBodyAndHeaders().headers,
+                });
+              }}
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-200 hover:bg-red-100 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900"
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+        {showLoader && !error && (
           <div className="flex space-x-1 mt-4">
             <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/20"></div>
             <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/20 [animation-delay:0.15s]"></div>

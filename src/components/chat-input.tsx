@@ -46,6 +46,7 @@ interface ChatInputProps {
   isStreaming: boolean;
   filesToSend: FileUIPart[];
   setFilesToSend: React.Dispatch<React.SetStateAction<FileUIPart[]>>;
+  status: UseChatHelpers<MyUIMessage>["status"];
 }
 
 export function ChatInput({
@@ -58,6 +59,7 @@ export function ChatInput({
   isStreaming,
   filesToSend,
   setFilesToSend,
+  status,
 }: ChatInputProps) {
   const { model, setModel, isLoading } = useChatConfig();
   const {
@@ -147,7 +149,7 @@ export function ChatInput({
           </DropdownMenu>
           <Button
             className="rounded-full"
-            disabled={!input || isUploading}
+            disabled={status === "ready" && (!input || isUploading)}
             onClick={() => {
               if (isStreaming) {
                 stop();

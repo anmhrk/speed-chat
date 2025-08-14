@@ -57,14 +57,27 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
     !!urlChatId && user && !newlyCreatedChatId ? { chatId } : "skip"
   );
 
-  const { messages, sendMessage, setMessages, stop, status, regenerate } =
-    useChat<MyUIMessage>({
-      id: chatId,
-      generateId: createIdGenerator({
-        prefix: "user",
-        size: 16,
-      }),
-    });
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    stop,
+    status,
+    regenerate,
+    error,
+  } = useChat<MyUIMessage>({
+    id: chatId,
+    generateId: createIdGenerator({
+      prefix: "user",
+      size: 16,
+    }),
+    onError: async (error) => {
+      console.error(error);
+      toast.error(
+        error.message || "An error occurred while generating the response"
+      );
+    },
+  });
 
   // initialMessages is undefined on first render, ai sdk doesn't update messages once initialMessages is populated
   useEffect(() => {
@@ -176,5 +189,6 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
     setFilesToSend,
     buildBodyAndHeaders,
     status,
+    error,
   };
 }
