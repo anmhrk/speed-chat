@@ -30,7 +30,6 @@ const schema = defineSchema({
         ttft: v.number(),
         elapsedTime: v.number(),
         completionTokens: v.number(),
-        reasoningDuration: v.optional(v.number()),
       })
     ),
     role: v.union(

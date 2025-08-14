@@ -153,18 +153,14 @@ export function SidebarChatItem({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                toast.promise(
-                  deleteChat({ chatId: chat.id }).then(() => {
-                    if (chat.id === currentChatId) {
-                      router.push("/");
-                    }
-                  }),
-                  {
-                    loading: "Deleting chat...",
-                    success: "Chat deleted",
-                    error: "Failed to delete chat",
-                  }
-                );
+                if (chat.id === currentChatId) {
+                  router.push("/");
+                }
+                toast.promise(deleteChat({ chatId: chat.id }), {
+                  loading: "Deleting chat...",
+                  success: "Chat deleted",
+                  error: "Failed to delete chat",
+                });
               }}
               variant="destructive"
             >

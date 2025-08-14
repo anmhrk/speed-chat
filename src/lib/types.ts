@@ -36,7 +36,6 @@ export type MessageMetadata = {
   ttft: number; // time to first token
   elapsedTime: number;
   completionTokens: number;
-  reasoningDuration: number | undefined;
 };
 
 export type MyUIMessage = UIMessage<MessageMetadata>;

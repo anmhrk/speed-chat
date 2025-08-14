@@ -30,6 +30,7 @@ interface AssistantMessageProps {
   regenerate: UseChatHelpers<MyUIMessage>["regenerate"];
   buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
   currentChatId: string;
+  status: UseChatHelpers<MyUIMessage>["status"];
 }
 
 export function AssistantMessage({
@@ -38,6 +39,7 @@ export function AssistantMessage({
   regenerate,
   buildBodyAndHeaders,
   currentChatId,
+  status,
 }: AssistantMessageProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -47,8 +49,6 @@ export function AssistantMessage({
     api.chatActions.branchOffFromMessage
   );
   const deleteMessages = useMutation(api.chatActions.deleteMessages);
-
-  const reasoningDuration = message.metadata?.reasoningDuration;
 
   return (
     <div className="group flex flex-col items-start gap-2">
@@ -60,14 +60,14 @@ export function AssistantMessage({
               return <Markdown key={key}>{part.text}</Markdown>;
             case "reasoning":
               return (
-                <Reasoning duration={reasoningDuration ?? undefined} key={key}>
+                <Reasoning isStreaming={part.state === "streaming"} key={key}>
                   <ReasoningTrigger />
                   <ReasoningContent>{part.text}</ReasoningContent>
                 </Reasoning>
               );
             case "tool-searchWebTool":
               return (
-                <Tool defaultOpen={true} key={key}>
+                <Tool defaultOpen={part.state !== "output-available"} key={key}>
                   <ToolHeader state={part.state} type={part.type} />
                   <ToolContent>
                     <ToolInput input={part.input} />

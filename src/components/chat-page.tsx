@@ -48,6 +48,7 @@ export function ChatPage({ userId }: ChatPageProps) {
     setFilesToSend,
     buildBodyAndHeaders,
     loadingMessages,
+    status,
   } = useCustomChat({ userId, setIsApiKeysOpen });
 
   useHotkeys("meta+k, ctrl+k", () => setIsSearchOpen(true), {
@@ -97,6 +98,7 @@ export function ChatPage({ userId }: ChatPageProps) {
                 regenerate={regenerate}
                 buildBodyAndHeaders={buildBodyAndHeaders}
                 currentChatId={chatId}
+                status={status}
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center space-y-10 text-center">

@@ -129,8 +129,6 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let ttftCalculated = false;
   let ttft = 0;
-  let reasoningStartTime: number | null = null;
-  let reasoningDuration = 0;
 
   // Create chat immediately and generate title if it's a new chat
   if (isNewChat) {
@@ -200,6 +198,7 @@ export async function POST(request: NextRequest) {
       searchWebTool,
     },
     experimental_transform: smoothStream({
+      delayInMs: 20,
       chunking: "word",
     }),
     stopWhen: stepCountIs(10),
@@ -214,22 +213,6 @@ export async function POST(request: NextRequest) {
         // Time to first token (in seconds) the moment text delta or reasoning or tool call starts
         ttft = (Date.now() - startTime) / 1000;
         ttftCalculated = true;
-      }
-
-      if (event.chunk.type === "reasoning-delta") {
-        // Track reasoning duration
-        if (reasoningStartTime === null) {
-          reasoningStartTime = Date.now();
-        }
-      } else if (
-        reasoningStartTime !== null &&
-        event.chunk.type === "text-delta"
-      ) {
-        // Reasoning ended when we start getting text
-        reasoningDuration = Math.round(
-          (Date.now() - reasoningStartTime) / 1000
-        );
-        reasoningStartTime = null;
       }
     },
   });
@@ -256,8 +239,6 @@ export async function POST(request: NextRequest) {
           ttft,
           elapsedTime,
           completionTokens: outputTokens,
-          reasoningDuration:
-            reasoningDuration > 0 ? reasoningDuration : undefined,
         };
 
         return metadata;

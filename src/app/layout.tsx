@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Providers } from "@/providers";
 import { Toaster } from "sonner";
+import { AppErrorBoundary } from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,7 @@ export default async function RootLayout({
       >
         <Providers>
           <Toaster richColors />
-          {children}
+          <AppErrorBoundary>{children}</AppErrorBoundary>
         </Providers>
       </body>
     </html>

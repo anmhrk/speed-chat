@@ -17,7 +17,7 @@ export const CHAT_MODELS: ChatModel[] = [
     default: true,
     name: "GPT 5",
     id: "openai/gpt-5",
-    reasoning: "hybrid",
+    reasoning: "always",
   },
   {
     default: false,

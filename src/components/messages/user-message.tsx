@@ -111,11 +111,11 @@ export function UserMessage({
   };
 
   return (
-    <div className="group flex flex-col items-end gap-2">
+    <div className="group flex flex-col items-end gap-2 mt-4">
       <div
         className={cn(
           isEditing ? "w-full" : "max-w-[80%]",
-          "rounded-lg bg-primary/5 px-4 py-2 text-secondary-foreground dark:bg-primary/10"
+          "rounded-lg bg-primary/5 p-3 text-secondary-foreground dark:bg-primary/10"
         )}
       >
         {message.parts?.map((part, i) => {

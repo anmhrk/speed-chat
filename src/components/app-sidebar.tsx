@@ -32,6 +32,7 @@ import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { Skeleton } from "./ui/skeleton";
 import { deleteUser } from "@/lib/user-actions";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface AppSidebarProps {
   userId: string | null;
@@ -53,6 +54,7 @@ export function AppSidebar({
   const { user, isLoaded } = useUser();
   const clerk = useClerk();
   const { signOut } = useAuth();
+  const router = useRouter();
 
   const deleteUserData = useMutation(api.chatActions.deleteUserData);
 
@@ -181,13 +183,14 @@ export function AppSidebar({
 
                     if (!confirmed) return;
 
+                    // getMessages is reactive, we have to push user to homepage first and can't do after signout
+                    // because if user is on chat page, once chat is deleted, getMessages will throw
+                    router.push("/");
                     toast.promise(
                       async () => {
                         await deleteUserData();
                         await deleteUser(userId);
-                        await signOut({
-                          redirectUrl: "/",
-                        });
+                        await signOut();
                       },
                       {
                         loading: "Deleting account...",

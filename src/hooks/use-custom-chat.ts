@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { createIdGenerator, type FileUIPart } from "ai";
 import { usePathname } from "next/navigation";
 import type { MyUIMessage } from "@/lib/types";
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { CHAT_MODELS } from "@/lib/models";
@@ -23,12 +23,27 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKeys } =
     useChatConfig();
   const pathname = usePathname();
-  const urlChatId = useMemo(
-    () => pathname.split("/chat/")[1] ?? "",
-    [pathname]
-  );
-  const [chatId] = useState<string>(() => urlChatId || nanoid());
+  const urlChatId = pathname.split("/chat/")[1] ?? "";
+  const [chatId, setChatId] = useState<string>(() => urlChatId || nanoid());
   const [isNewChat, setIsNewChat] = useState<boolean>(() => !urlChatId);
+  const [newlyCreatedChatId, setNewlyCreatedChatId] = useState<string | null>(
+    null
+  );
+
+  // Update chatId when URL changes
+  useEffect(() => {
+    if (urlChatId) {
+      // Navigating to an existing chat
+      setChatId(urlChatId);
+      setIsNewChat(false);
+    } else {
+      // Navigating to home
+      const newId = nanoid();
+      setChatId(newId);
+      setIsNewChat(true);
+      setNewlyCreatedChatId(null);
+    }
+  }, [urlChatId]);
 
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -39,7 +54,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
 
   const initialMessages = useQuery(
     api.chat.getMessages,
-    !!urlChatId && user ? { chatId } : "skip"
+    !!urlChatId && user && !newlyCreatedChatId ? { chatId } : "skip"
   );
 
   const { messages, sendMessage, setMessages, stop, status, regenerate } =
@@ -60,6 +75,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
 
   const loadingMessages =
     !!urlChatId &&
+    !newlyCreatedChatId &&
     (initialMessages === undefined ||
       (initialMessages && initialMessages.length > 0 && messages.length === 0));
 
@@ -89,6 +105,12 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
     isNewChat,
   ]);
 
+  useEffect(() => {
+    if (chatId !== newlyCreatedChatId) {
+      setNewlyCreatedChatId(null);
+    }
+  }, [chatId, newlyCreatedChatId]);
+
   const isStreaming = status === "streaming" || status === "submitted";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -114,6 +136,7 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
     }
 
     if (isNewChat) {
+      setNewlyCreatedChatId(chatId);
       window.history.replaceState({}, "", `/chat/${chatId}`);
       setIsNewChat(false);
     }
@@ -152,5 +175,6 @@ export function useCustomChat({ userId, setIsApiKeysOpen }: CustomChatProps) {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
+    status,
   };
 }

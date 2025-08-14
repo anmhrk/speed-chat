@@ -18,7 +18,6 @@ type ReasoningContextValue = {
   isStreaming: boolean;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  duration: number;
 };
 
 const ReasoningContext = createContext<ReasoningContextValue | null>(null);
@@ -36,7 +35,6 @@ export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  duration?: number;
 };
 
 export const Reasoning = memo(
@@ -46,7 +44,6 @@ export const Reasoning = memo(
     open,
     defaultOpen = false,
     onOpenChange,
-    duration: durationProp,
     children,
     ...props
   }: ReasoningProps) => {
@@ -55,48 +52,44 @@ export const Reasoning = memo(
       defaultProp: defaultOpen,
       onChange: onOpenChange,
     });
-    const [duration, setDuration] = useControllableState({
-      prop: durationProp,
-      defaultProp: 0,
-    });
 
+    const [wasStreamingRef, setWasStreamingRef] = useState(false);
     const [hasAutoClosedRef, setHasAutoClosedRef] = useState(false);
-    const [startTime, setStartTime] = useState<number | null>(null);
-
-    // Track duration when streaming starts and ends
-    useEffect(() => {
-      if (isStreaming) {
-        if (startTime === null) {
-          setStartTime(Date.now());
-        }
-      } else if (startTime !== null) {
-        setDuration(Math.round((Date.now() - startTime) / 1000));
-        setStartTime(null);
-      }
-    }, [isStreaming, startTime, setDuration]);
 
     // Auto-open when streaming starts, auto-close when streaming ends (once only)
     useEffect(() => {
       if (isStreaming && !isOpen) {
+        setWasStreamingRef(true); // Mark that this reasoning block was streaming
         setIsOpen(true);
-      } else if (!isStreaming && isOpen && !defaultOpen && !hasAutoClosedRef) {
-        // Add a small delay before closing to allow user to see the content
+      } else if (
+        !isStreaming &&
+        isOpen &&
+        !defaultOpen &&
+        !hasAutoClosedRef &&
+        wasStreamingRef
+      ) {
+        // Only auto-close if this reasoning block was previously streaming
         const timer = setTimeout(() => {
           setIsOpen(false);
           setHasAutoClosedRef(true);
         }, 1000);
         return () => clearTimeout(timer);
       }
-    }, [isStreaming, isOpen, defaultOpen, setIsOpen, hasAutoClosedRef]);
+    }, [
+      isStreaming,
+      isOpen,
+      defaultOpen,
+      setIsOpen,
+      hasAutoClosedRef,
+      wasStreamingRef,
+    ]);
 
     const handleOpenChange = (openBlock: boolean) => {
       setIsOpen(openBlock);
     };
 
     return (
-      <ReasoningContext.Provider
-        value={{ isStreaming, isOpen, setIsOpen, duration }}
-      >
+      <ReasoningContext.Provider value={{ isStreaming, isOpen, setIsOpen }}>
         <Collapsible
           className={cn("not-prose mb-4", className)}
           onOpenChange={handleOpenChange}
@@ -123,7 +116,7 @@ export const ReasoningTrigger = memo(
     children,
     ...props
   }: ReasoningTriggerProps) => {
-    const { isStreaming, isOpen, duration } = useReasoning();
+    const { isOpen } = useReasoning();
 
     return (
       <CollapsibleTrigger
@@ -136,11 +129,7 @@ export const ReasoningTrigger = memo(
         {children ?? (
           <>
             <BrainIcon className="size-4" />
-            {isStreaming || duration === 0 ? (
-              <p>Thinking...</p>
-            ) : (
-              <p>Thought for {duration} seconds</p>
-            )}
+            <p>{isOpen ? "Hide reasoning" : "Show reasoning"}</p>
             <ChevronDownIcon
               className={cn(
                 "size-4 text-muted-foreground transition-transform",
