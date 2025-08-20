@@ -1,19 +1,23 @@
-"use client";
+'use client';
 
-import { Key, LogIn, LogOut, PenBox, Search, Trash2 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useMemo } from "react";
-import { ApiKeysDialog } from "@/components/api-keys-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { useMutation } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache/hooks';
+import { Key, LogIn, LogOut, PenBox, Search, Trash2 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { toast } from 'sonner';
+import { ApiKeysDialog } from '@/components/api-keys-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -24,24 +28,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { SidebarChatItem } from "./sidebar-chat-item";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache/hooks";
-import { api } from "@/convex/_generated/api";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth/client";
-import { Skeleton } from "./ui/skeleton";
+} from '@/components/ui/sidebar';
+import { api } from '@/convex/_generated/api';
+import type { Doc } from '@/convex/_generated/dataModel';
+import { authClient } from '@/lib/auth/client';
+import { SidebarChatItem } from './sidebar-chat-item';
+import { Skeleton } from './ui/skeleton';
 
-interface AppSidebarProps {
+type AppSidebarProps = {
   authLoading: boolean;
   currentChatId: string;
   isStreaming: boolean;
   isApiKeysOpen: boolean;
   setIsApiKeysOpen: (open: boolean) => void;
   setIsSearchOpen: (open: boolean) => void;
-}
+};
 
 export function AppSidebar({
   authLoading,
@@ -56,16 +57,8 @@ export function AppSidebar({
   const user = useQuery(api.auth.getCurrentUser);
   const deleteUserData = useMutation(api.chatActions.deleteUserData);
 
-  const chats = useQuery(api.chat.getChats, user ? {} : "skip");
+  const chats = useQuery(api.chat.getChats, user ? {} : 'skip');
   const isLoadingChats = chats === undefined;
-
-  const pinnedChats = useMemo(() => {
-    return chats?.filter((chat) => chat.isPinned);
-  }, [chats]);
-
-  const normalChats = useMemo(() => {
-    return chats?.filter((chat) => !chat.isPinned);
-  }, [chats]);
 
   return (
     <Sidebar variant="inset">
@@ -96,56 +89,14 @@ export function AppSidebar({
 
       <SidebarContent>
         <SidebarGroup className="flex flex-1 flex-col gap-1">
-          {authLoading ? (
-            <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-              Loading...
-            </div>
-          ) : !user ? (
-            <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-              Please login to view your chats.
-            </div>
-          ) : isLoadingChats ? (
-            <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-              Loading...
-            </div>
-          ) : chats?.length === 0 ? (
-            <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-              No chats yet.
-            </div>
-          ) : (
-            <>
-              {pinnedChats && pinnedChats.length > 0 && (
-                <>
-                  <SidebarGroupLabel>Pinned</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {pinnedChats.map((chat) => (
-                      <SidebarChatItem
-                        chat={chat}
-                        currentChatId={currentChatId}
-                        isStreaming={isStreaming}
-                        key={chat.id}
-                      />
-                    ))}
-                  </SidebarMenu>
-                </>
-              )}
-              {normalChats && normalChats.length > 0 && (
-                <>
-                  <SidebarGroupLabel>Chats</SidebarGroupLabel>
-                  <SidebarMenu>
-                    {normalChats.map((chat) => (
-                      <SidebarChatItem
-                        chat={chat}
-                        currentChatId={currentChatId}
-                        isStreaming={isStreaming}
-                        key={chat.id}
-                      />
-                    ))}
-                  </SidebarMenu>
-                </>
-              )}
-            </>
-          )}
+          <SidebarChatList
+            authLoading={authLoading}
+            chats={chats ?? []}
+            currentChatId={currentChatId}
+            isLoadingChats={isLoadingChats}
+            isStreaming={isStreaming}
+            user={user}
+          />
         </SidebarGroup>
       </SidebarContent>
 
@@ -160,7 +111,7 @@ export function AppSidebar({
                 variant="ghost"
               >
                 <Avatar>
-                  <AvatarImage src={user?.image || ""} />
+                  <AvatarImage src={user?.image ?? ''} />
                   <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="truncate font-normal text-sm">
@@ -174,7 +125,7 @@ export function AppSidebar({
                   authClient.signOut({
                     fetchOptions: {
                       onSuccess: () => {
-                        router.push("/");
+                        router.push('/');
                       },
                     },
                   })
@@ -189,14 +140,14 @@ export function AppSidebar({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={async () => {
+                onClick={() => {
                   const confirmed = confirm(
-                    "Are you sure you want to delete your account? You will lose all your chats and data."
+                    'Are you sure you want to delete your account? You will lose all your chats and data.'
                   );
 
                   if (!confirmed) return;
 
-                  router.push("/");
+                  router.push('/');
                   toast.promise(
                     async () => {
                       await deleteUserData();
@@ -204,9 +155,9 @@ export function AppSidebar({
                       await authClient.signOut();
                     },
                     {
-                      loading: "Deleting account...",
-                      success: "Account deleted",
-                      error: "Failed to delete account",
+                      loading: 'Deleting account...',
+                      success: 'Account deleted',
+                      error: 'Failed to delete account',
                     }
                   );
                 }}
@@ -219,7 +170,7 @@ export function AppSidebar({
         ) : (
           <Button
             className="flex w-full"
-            onClick={() => authClient.signIn.social({ provider: "google" })}
+            onClick={() => authClient.signIn.social({ provider: 'google' })}
             size="lg"
             variant="outline"
           >
@@ -230,5 +181,97 @@ export function AppSidebar({
         <ApiKeysDialog onOpenChange={setIsApiKeysOpen} open={isApiKeysOpen} />
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function SidebarChatList({
+  authLoading,
+  user,
+  isLoadingChats,
+  chats,
+  currentChatId,
+  isStreaming,
+}: {
+  authLoading: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: useQuery returns any?
+  user: any;
+  isLoadingChats: boolean;
+  chats: Doc<'chats'>[];
+  currentChatId: string;
+  isStreaming: boolean;
+}) {
+  const pinnedChats = useMemo(() => {
+    return chats?.filter((chat) => chat.isPinned);
+  }, [chats]);
+
+  const normalChats = useMemo(() => {
+    return chats?.filter((chat) => !chat.isPinned);
+  }, [chats]);
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+        Please login to view your chats.
+      </div>
+    );
+  }
+
+  if (isLoadingChats) {
+    return (
+      <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+        Loading...
+      </div>
+    );
+  }
+
+  if (chats?.length === 0) {
+    return (
+      <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+        No chats yet.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {pinnedChats && pinnedChats.length > 0 && (
+        <>
+          <SidebarGroupLabel>Pinned</SidebarGroupLabel>
+          <SidebarMenu>
+            {pinnedChats.map((chat) => (
+              <SidebarChatItem
+                chat={chat}
+                currentChatId={currentChatId}
+                isStreaming={isStreaming}
+                key={chat.id}
+              />
+            ))}
+          </SidebarMenu>
+        </>
+      )}
+      {normalChats && normalChats.length > 0 && (
+        <>
+          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+          <SidebarMenu>
+            {normalChats.map((chat) => (
+              <SidebarChatItem
+                chat={chat}
+                currentChatId={currentChatId}
+                isStreaming={isStreaming}
+                key={chat.id}
+              />
+            ))}
+          </SidebarMenu>
+        </>
+      )}
+    </>
   );
 }

@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { toast } from "sonner";
-import { z } from "zod";
-import type { ReasoningEffort } from "@/lib/types";
-import { CHAT_MODELS } from "@/lib/models";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { CHAT_MODELS } from '@/lib/models';
+import type { ReasoningEffort } from '@/lib/types';
 
 const chatConfigSchema = z.object({
   apiKey: z.string(),
   model: z.enum(CHAT_MODELS.map((model) => model.name)),
-  reasoningEffort: z.enum(["low", "medium", "high"]),
+  reasoningEffort: z.enum(['low', 'medium', 'high']),
   shouldUseReasoning: z.boolean(),
   searchWeb: z.boolean(),
 });
@@ -25,12 +25,12 @@ type ChatConfigContextType = ChatConfig & {
   isLoading: boolean;
 };
 
-const LOCAL_STORAGE_KEY = "chat_config";
+const LOCAL_STORAGE_KEY = 'chat_config';
 
 const DEFAULT_CONFIG: ChatConfig = {
-  apiKey: "",
-  model: CHAT_MODELS.find((model) => model.default)?.name ?? "",
-  reasoningEffort: "low",
+  apiKey: '',
+  model: CHAT_MODELS.find((model) => model.default)?.name ?? '',
+  reasoningEffort: 'low',
   shouldUseReasoning: false,
   searchWeb: false,
 };
@@ -63,8 +63,8 @@ export function ChatConfigProvider({
       }
     } catch (error) {
       // TODO: Don't wipe the entire thing on bad parse. Only wipe the invalid fields.
-      toast.error("Failed to load chat config. Default config will be used.", {
-        description: error instanceof Error ? error.message : "Unknown error",
+      toast.error('Failed to load chat config. Default config will be used.', {
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
       setChatConfig(DEFAULT_CONFIG);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_CONFIG));
@@ -97,7 +97,7 @@ export function ChatConfigProvider({
 export function useChatConfig() {
   const context = useContext(ChatConfigContext);
   if (!context) {
-    throw new Error("useChatConfig must be used within a ChatConfigProvider");
+    throw new Error('useChatConfig must be used within a ChatConfigProvider');
   }
   return context;
 }

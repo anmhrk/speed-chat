@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
-import { debounce } from "lodash";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useQuery } from 'convex/react';
+import { debounce } from 'lodash';
+import { LogIn, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Command,
   CommandEmpty,
@@ -12,17 +12,17 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/convex/_generated/api";
-import { MessageSquare, LogIn } from "lucide-react";
-import type { SearchResult } from "@/convex/search";
+} from '@/components/ui/command';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { api } from '@/convex/_generated/api';
+import type { SearchResult } from '@/convex/search';
 
-interface SearchDialogProps {
+type SearchDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isAuthenticated: boolean;
-}
+};
 
 export function SearchDialog({
   open,
@@ -30,8 +30,8 @@ export function SearchDialog({
   isAuthenticated,
 }: SearchDialogProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   const debouncedSetQuery = useMemo(
     () =>
@@ -50,12 +50,14 @@ export function SearchDialog({
 
   const searchResults = useQuery(
     api.search.searchAll,
-    isAuthenticated && debouncedQuery.length > 0 ? { query: debouncedQuery } : "skip"
+    isAuthenticated && debouncedQuery.length > 0
+      ? { query: debouncedQuery }
+      : 'skip'
   );
 
   const handleSelectResult = useCallback(
     (result: NonNullable<SearchResult>[number]) => {
-      const chatId = result.type === "chat" ? result.id : result.chatId;
+      const chatId = result.type === 'chat' ? result.id : result.chatId;
       router.push(`/chat/${chatId}`);
       onOpenChange(false);
     },
@@ -74,8 +76,8 @@ export function SearchDialog({
     if (!query.trim()) return text;
 
     const regex = new RegExp(
-      `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-      "gi"
+      `(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+      'gi'
     );
     const parts = text.split(regex);
 
@@ -84,8 +86,8 @@ export function SearchDialog({
         {parts.map((part, index) =>
           regex.test(part) ? (
             <span
+              className="bg-cyan-500 text-white dark:bg-cyan-700"
               key={index}
-              className="bg-cyan-500 dark:bg-cyan-700 text-white"
             >
               {part}
             </span>
@@ -98,31 +100,31 @@ export function SearchDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="max-w-2xl max-h-[80vh] p-0"
+        className="max-h-[80vh] max-w-2xl p-0"
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">Search Chats and Messages</DialogTitle>
         <Command>
           <CommandInput
+            className="border-none focus:ring-0"
+            disabled={isSignedOut}
+            onValueChange={setSearchQuery}
             placeholder={
               isSignedOut
-                ? "Sign in to search..."
-                : "Search your chats and messages"
+                ? 'Sign in to search...'
+                : 'Search your chats and messages'
             }
             value={searchQuery}
-            onValueChange={setSearchQuery}
-            disabled={isSignedOut}
-            className="border-none focus:ring-0"
           />
           <CommandList className="max-h-[60vh] overflow-y-auto">
             {isLoading && (
-              <div className="p-4 space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-3">
-                    <Skeleton className="w-5 h-5 rounded-full" />
-                    <div className="space-y-2 flex-1">
+              <div className="space-y-4 p-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div className="flex items-center space-x-3" key={i}>
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-4 w-1/2" />
                     </div>
@@ -143,22 +145,22 @@ export function SearchDialog({
               <CommandGroup>
                 {searchResults.map((result) => (
                   <CommandItem
+                    className="flex cursor-pointer items-center space-x-3 p-3"
                     key={`${result.type}-${result._id}`}
-                    value={`${result.type}-${result.type === "chat" ? result.title : result.text_part}`}
                     onSelect={() => handleSelectResult(result)}
-                    className="flex items-center space-x-3 p-3 cursor-pointer"
+                    value={`${result.type}-${result.type === 'chat' ? result.title : result.text_part}`}
                   >
                     <div className="flex-shrink-0">
                       <MessageSquare className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {result.type === "chat"
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">
+                        {result.type === 'chat'
                           ? highlightText(result.title, debouncedQuery)
                           : highlightText(result.chatTitle, debouncedQuery)}
                       </div>
-                      <div className="text-sm text-muted-foreground truncate">
-                        {result.type === "chat"
+                      <div className="truncate text-muted-foreground text-sm">
+                        {result.type === 'chat'
                           ? highlightText(result.title, debouncedQuery)
                           : highlightText(
                               result.highlightSnippet,
@@ -173,8 +175,8 @@ export function SearchDialog({
 
             {isSignedOut && (
               <div className="p-6 text-center text-muted-foreground">
-                <LogIn className="mx-auto size-12 mb-4 opacity-50" />
-                <p className="text-sm mb-4">
+                <LogIn className="mx-auto mb-4 size-12 opacity-50" />
+                <p className="mb-4 text-sm">
                   You need to be signed in to search your chats and messages
                 </p>
               </div>
@@ -182,7 +184,7 @@ export function SearchDialog({
 
             {!isSignedOut && debouncedQuery.length === 0 && (
               <div className="p-6 text-center text-muted-foreground">
-                <MessageSquare className="mx-auto size-12 mb-4 opacity-50" />
+                <MessageSquare className="mx-auto mb-4 size-12 opacity-50" />
                 <p className="text-sm">
                   Find chats by title or search through message content
                 </p>

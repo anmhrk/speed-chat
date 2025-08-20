@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 const schema = defineSchema({
   users: defineTable({
@@ -9,24 +9,24 @@ const schema = defineSchema({
   chats: defineTable({
     id: v.string(),
     title: v.string(),
-    userId: v.id("users"),
+    userId: v.id('users'),
     createdAt: v.number(),
     updatedAt: v.number(),
     isBranch: v.boolean(),
     isPinned: v.boolean(),
     parentChatId: v.optional(v.string()),
   })
-    .index("by_chat_id", ["id"])
-    .index("by_chat_id_and_user_id", ["id", "userId"])
-    .index("by_user_id_and_updated_at", ["userId", "updatedAt"])
-    .searchIndex("by_title", {
-      searchField: "title",
-      filterFields: ["userId"],
+    .index('by_chat_id', ['id'])
+    .index('by_chat_id_and_user_id', ['id', 'userId'])
+    .index('by_user_id_and_updated_at', ['userId', 'updatedAt'])
+    .searchIndex('by_title', {
+      searchField: 'title',
+      filterFields: ['userId'],
     }),
 
   messages: defineTable({
     id: v.string(),
-    chatId: v.id("chats"),
+    chatId: v.id('chats'),
     metadata: v.optional(
       v.object({
         modelName: v.string(),
@@ -37,29 +37,29 @@ const schema = defineSchema({
       })
     ),
     role: v.union(
-      v.literal("system"),
-      v.literal("user"),
-      v.literal("assistant")
+      v.literal('system'),
+      v.literal('user'),
+      v.literal('assistant')
     ),
     text_part: v.string(), // separate text part for search
     parts: v.array(v.any()), // full parts array object typed as any for simplicity
   })
-    .index("by_chat_id", ["chatId"])
-    .index("by_message_id", ["id"])
-    .searchIndex("by_text_part", {
-      searchField: "text_part",
-      filterFields: ["chatId"],
+    .index('by_chat_id', ['chatId'])
+    .index('by_message_id', ['id'])
+    .searchIndex('by_text_part', {
+      searchField: 'text_part',
+      filterFields: ['chatId'],
     }),
 
   // could add messageId field too to make it easier to delete attachments if message is deleted
   // but we don't know what the messageId is at the time of upload
   attachments: defineTable({
-    userId: v.id("users"),
-    id: v.id("_storage"),
+    userId: v.id('users'),
+    id: v.id('_storage'),
     url: v.string(),
   })
-    .index("by_url", ["url"])
-    .index("by_user_id", ["userId"]),
+    .index('by_url', ['url'])
+    .index('by_user_id', ['userId']),
 });
 
 export default schema;

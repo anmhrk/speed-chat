@@ -1,9 +1,8 @@
-"use client";
+'use client';
 
-import { AlertCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useChatConfig } from "@/providers/chat-config-provider";
-import { Button } from "@/components/ui/button";
+import { AlertCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +10,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useChatConfig } from '@/providers/chat-config-provider';
 
 type ApiKeysDialogProps = {
   open: boolean;
@@ -54,7 +54,7 @@ export function ApiKeysDialog({ open, onOpenChange }: ApiKeysDialogProps) {
               value={localKey}
             />
             <p className="text-muted-foreground text-xs">
-              Get your API key from{" "}
+              Get your API key from{' '}
               <a
                 className="text-blue-500 hover:underline"
                 href="https://vercel.com/docs/ai-gateway#create-an-api-key"

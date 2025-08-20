@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { toast } from "sonner";
-import removeMarkdown from "remove-markdown";
+import { useState } from 'react';
+import removeMarkdown from 'remove-markdown';
+import { toast } from 'sonner';
 
 export function useCopyClipboard() {
   const [isCopied, setIsCopied] = useState(false);
@@ -9,13 +9,12 @@ export function useCopyClipboard() {
     try {
       navigator.clipboard.writeText(removeMarkdown(text));
       setIsCopied(true);
-      toast.success("Copied to clipboard");
+      toast.success('Copied to clipboard');
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to copy to clipboard");
+    } catch {
+      toast.error('Failed to copy to clipboard');
     }
   };
 

@@ -1,10 +1,10 @@
-import { internalMutation, mutation } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import { nanoid } from "nanoid";
-import { Id } from "./_generated/dataModel";
-import { MyUIMessage } from "@/lib/types";
-import { internal } from "./_generated/api";
-import { betterAuthComponent } from "./auth";
+import { ConvexError, v } from 'convex/values';
+import { nanoid } from 'nanoid';
+import type { MyUIMessage } from '@/lib/types';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { internalMutation, mutation } from './_generated/server';
+import { betterAuthComponent } from './auth';
 
 export const branchOffFromMessage = mutation({
   args: {
@@ -15,8 +15,8 @@ export const branchOffFromMessage = mutation({
     const branchChatId = nanoid();
 
     const parentChat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.parentChatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.parentChatId))
       .first();
 
     if (!parentChat) {
@@ -24,8 +24,8 @@ export const branchOffFromMessage = mutation({
     }
 
     const parentMessages = await ctx.db
-      .query("messages")
-      .withIndex("by_chat_id", (q) => q.eq("chatId", parentChat._id))
+      .query('messages')
+      .withIndex('by_chat_id', (q) => q.eq('chatId', parentChat._id))
       .collect();
 
     const messagesUntilMessageToBranch = parentMessages.slice(
@@ -33,7 +33,7 @@ export const branchOffFromMessage = mutation({
       parentMessages.findIndex((m) => m.id === args.messageId) + 1
     );
 
-    const branchChatConvexId = await ctx.db.insert("chats", {
+    const branchChatConvexId = await ctx.db.insert('chats', {
       id: branchChatId,
       title: parentChat.title,
       userId: parentChat.userId,
@@ -45,7 +45,7 @@ export const branchOffFromMessage = mutation({
     });
 
     for (const message of messagesUntilMessageToBranch) {
-      await ctx.db.insert("messages", {
+      await ctx.db.insert('messages', {
         id: `${message.id}-branch-${branchChatId}`,
         chatId: branchChatConvexId,
         text_part: message.text_part,
@@ -66,8 +66,8 @@ export const renameChatTitle = mutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {
@@ -87,8 +87,8 @@ export const pinChat = mutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {
@@ -110,12 +110,12 @@ export const deleteMessages = mutation({
     messageIdsToDelete: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const convexIdsToDelete: Id<"messages">[] = [];
+    const convexIdsToDelete: Id<'messages'>[] = [];
 
     for (const messageId of args.messageIdsToDelete) {
       const message = await ctx.db
-        .query("messages")
-        .withIndex("by_message_id", (q) => q.eq("id", messageId))
+        .query('messages')
+        .withIndex('by_message_id', (q) => q.eq('id', messageId))
         .first();
 
       if (message) {
@@ -143,9 +143,9 @@ export const deleteAttachmentsFromMessage = internalMutation({
     messageParts: v.array(v.any()),
   },
   handler: async (ctx, args) => {
-    const parts = args.messageParts as MyUIMessage["parts"];
+    const parts = args.messageParts as MyUIMessage['parts'];
     const attachmentUrls = parts.flatMap((p) => {
-      if (p.type === "file" && p.url) {
+      if (p.type === 'file' && p.url) {
         return [p.url];
       }
       return [];
@@ -153,8 +153,8 @@ export const deleteAttachmentsFromMessage = internalMutation({
 
     for (const attachmentUrl of attachmentUrls) {
       const attachment = await ctx.db
-        .query("attachments")
-        .withIndex("by_url", (q) => q.eq("url", attachmentUrl))
+        .query('attachments')
+        .withIndex('by_url', (q) => q.eq('url', attachmentUrl))
         .first();
 
       if (attachment) {
@@ -171,8 +171,8 @@ export const deleteChat = mutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {
@@ -182,8 +182,8 @@ export const deleteChat = mutation({
     await ctx.db.delete(chat._id);
 
     const messagesToDelete = await ctx.db
-      .query("messages")
-      .withIndex("by_chat_id", (q) => q.eq("chatId", chat._id))
+      .query('messages')
+      .withIndex('by_chat_id', (q) => q.eq('chatId', chat._id))
       .collect();
 
     for (const message of messagesToDelete) {
@@ -200,20 +200,20 @@ export const deleteUserData = mutation({
     const userId = await betterAuthComponent.getAuthUserId(ctx);
 
     if (!userId) {
-      throw new ConvexError("User not authenticated");
+      throw new ConvexError('User not authenticated');
     }
 
     const chats = await ctx.db
-      .query("chats")
-      .withIndex("by_user_id_and_updated_at", (q) =>
-        q.eq("userId", userId as Id<"users">)
+      .query('chats')
+      .withIndex('by_user_id_and_updated_at', (q) =>
+        q.eq('userId', userId as Id<'users'>)
       )
       .collect();
 
     for (const chat of chats) {
       const messages = await ctx.db
-        .query("messages")
-        .withIndex("by_chat_id", (q) => q.eq("chatId", chat._id))
+        .query('messages')
+        .withIndex('by_chat_id', (q) => q.eq('chatId', chat._id))
         .collect();
 
       for (const message of messages) {
@@ -224,8 +224,8 @@ export const deleteUserData = mutation({
     }
 
     const attachments = await ctx.db
-      .query("attachments")
-      .withIndex("by_user_id", (q) => q.eq("userId", userId as Id<"users">))
+      .query('attachments')
+      .withIndex('by_user_id', (q) => q.eq('userId', userId as Id<'users'>))
       .collect();
 
     for (const attachment of attachments) {

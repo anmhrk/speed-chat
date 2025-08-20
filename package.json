@@ -7,13 +7,12 @@
     "convex:dev": "convex dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "format": "prettier --write .",
+    "lint": "npx ultracite lint",
+    "format": "npx ultracite format",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^1.0.4",
-    "@ai-sdk/openai": "^2.0.10",
     "@ai-sdk/react": "^2.0.10",
     "@convex-dev/better-auth": "^0.7.13",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -63,17 +62,15 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.4",
-    "prettier": "^3.6.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ultracite": "5.2.3"
   }
 }

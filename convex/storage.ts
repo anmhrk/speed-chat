@@ -1,7 +1,7 @@
-import { Id } from "./_generated/dataModel";
-import { mutation } from "./_generated/server";
-import { ConvexError, v } from "convex/values";
-import { betterAuthComponent } from "./auth";
+import { ConvexError, v } from 'convex/values';
+import type { Id } from './_generated/dataModel';
+import { mutation } from './_generated/server';
+import { betterAuthComponent } from './auth';
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
@@ -11,25 +11,25 @@ export const generateUploadUrl = mutation({
 
 export const storeFile = mutation({
   args: {
-    fileId: v.id("_storage"),
+    fileId: v.id('_storage'),
   },
   handler: async (ctx, args) => {
     const userId = await betterAuthComponent.getAuthUserId(ctx);
 
     if (!userId) {
-      throw new ConvexError("User not authenticated");
+      throw new ConvexError('User not authenticated');
     }
 
     const url = await ctx.storage.getUrl(args.fileId);
 
     if (!url) {
-      throw new Error("Failed to get file url");
+      throw new Error('Failed to get file url');
     }
 
-    await ctx.db.insert("attachments", {
+    await ctx.db.insert('attachments', {
       id: args.fileId,
       url,
-      userId: userId as Id<"users">,
+      userId: userId as Id<'users'>,
     });
 
     return url;
@@ -41,12 +41,12 @@ export const deleteFiles = mutation({
     fileUrls: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const storageIds: Id<"_storage">[] = [];
+    const storageIds: Id<'_storage'>[] = [];
 
     for (const url of args.fileUrls) {
       const attachment = await ctx.db
-        .query("attachments")
-        .withIndex("by_url", (q) => q.eq("url", url))
+        .query('attachments')
+        .withIndex('by_url', (q) => q.eq('url', url))
         .first();
 
       if (attachment) {

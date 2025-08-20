@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useTheme } from "next-themes";
-import { ApiKeysDialog } from "@/components/api-keys-dialog";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { Moon, Sun } from "lucide-react";
-import { Button } from "./ui/button";
-import { ChatInput } from "@/components/chat-input";
-import { Separator } from "./ui/separator";
-import { useCustomChat } from "@/hooks/use-custom-chat";
-import { Messages } from "./messages";
-import { SearchDialog } from "./search-dialog";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useRouter } from "next/navigation";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth } from 'convex/react';
+import { Moon, Sun } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { ApiKeysDialog } from '@/components/api-keys-dialog';
+import { AppSidebar } from '@/components/app-sidebar';
+import { ChatInput } from '@/components/chat-input';
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { useCustomChat } from '@/hooks/use-custom-chat';
+import { Messages } from './messages';
+import { SearchDialog } from './search-dialog';
+import { Button } from './ui/button';
+import { Separator } from './ui/separator';
 
 const PROMPT_SUGGESTIONS = [
-  "Explain how AI works in a way a 5 year old can understand",
-  "How do I survive a long flight without losing my mind?",
-  "What are the best sources of protein?",
-  "Help me plan my summer vacation in Europe",
+  'Explain how AI works in a way a 5 year old can understand',
+  'How do I survive a long flight without losing my mind?',
+  'What are the best sources of protein?',
+  'Help me plan my summer vacation in Europe',
 ];
 
 export function ChatPage() {
@@ -50,12 +50,12 @@ export function ChatPage() {
     error,
   } = useCustomChat({ isAuthenticated, setIsApiKeysOpen });
 
-  useHotkeys("meta+k, ctrl+k", () => setIsSearchOpen(true), {
-    enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
+  useHotkeys('meta+k, ctrl+k', () => setIsSearchOpen(true), {
+    enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'],
     enableOnContentEditable: true,
   });
-  useHotkeys("meta+shift+o, ctrl+shift+o", () => router.push("/"), {
-    enableOnFormTags: ["INPUT", "TEXTAREA", "SELECT"],
+  useHotkeys('meta+shift+o, ctrl+shift+o', () => router.push('/'), {
+    enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'],
     enableOnContentEditable: true,
   });
 
@@ -64,9 +64,9 @@ export function ChatPage() {
       <AppSidebar
         authLoading={isLoading}
         currentChatId={chatId}
+        isApiKeysOpen={isApiKeysOpen}
         isStreaming={isStreaming}
         setIsApiKeysOpen={setIsApiKeysOpen}
-        isApiKeysOpen={isApiKeysOpen}
         setIsSearchOpen={setIsSearchOpen}
       />
       <SidebarInset className="flex-1">
@@ -74,7 +74,7 @@ export function ChatPage() {
           <header className="sticky top-0 z-10 flex h-12 items-center justify-between px-2">
             <SidebarTrigger />
             <Button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               size="icon"
               variant="ghost"
             >
@@ -91,14 +91,14 @@ export function ChatPage() {
               </div>
             ) : messages.length > 0 ? (
               <Messages
-                messages={messages}
-                sendMessage={sendMessage}
-                setMessages={setMessages}
-                regenerate={regenerate}
                 buildBodyAndHeaders={buildBodyAndHeaders}
                 currentChatId={chatId}
-                status={status}
                 error={error}
+                messages={messages}
+                regenerate={regenerate}
+                sendMessage={sendMessage}
+                setMessages={setMessages}
+                status={status}
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center space-y-10 text-center">
@@ -131,25 +131,25 @@ export function ChatPage() {
           </div>
           <div className="flex-shrink-0 px-2 pb-2">
             <ChatInput
-              isAuthenticated={isAuthenticated}
+              filesToSend={filesToSend}
               handleInputChange={handleInputChange}
               handleSubmit={handleSubmit}
               input={input}
               inputRef={inputRef}
+              isAuthenticated={isAuthenticated}
               isStreaming={isStreaming}
-              stop={stop}
-              filesToSend={filesToSend}
               setFilesToSend={setFilesToSend}
               status={status}
+              stop={stop}
             />
           </div>
         </div>
       </SidebarInset>
 
       <SearchDialog
-        open={isSearchOpen}
-        onOpenChange={setIsSearchOpen}
         isAuthenticated={isAuthenticated}
+        onOpenChange={setIsSearchOpen}
+        open={isSearchOpen}
       />
       <ApiKeysDialog onOpenChange={setIsApiKeysOpen} open={isApiKeysOpen} />
     </main>

@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
+import { getSessionCookie } from 'better-auth/cookies';
+import { type NextRequest, NextResponse } from 'next/server';
 
-export default async function middleware(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/chat");
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/chat');
 
   if (isProtectedRoute && !sessionCookie) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|api/auth).*)", "/", "/trpc(.*)"],
+  matcher: ['/((?!.*\\..*|_next|api/auth).*)', '/', '/trpc(.*)'],
 };

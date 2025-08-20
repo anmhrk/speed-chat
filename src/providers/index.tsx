@@ -1,12 +1,12 @@
-import { ThemeProvider } from "./theme-provider";
-import { ConvexClientProvider } from "./convex-client-provider";
-import { ChatConfigProvider } from "./chat-config-provider";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { cookies } from "next/headers";
+import { cookies } from 'next/headers';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { ChatConfigProvider } from './chat-config-provider';
+import { ConvexClientProvider } from './convex-client-provider';
+import { ThemeProvider } from './theme-provider';
 
 export async function Providers({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const defaultOpen = cookieStore.get('sidebar_state')?.value !== 'false';
 
   return (
     <ThemeProvider

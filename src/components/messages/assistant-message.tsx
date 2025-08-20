@@ -1,4 +1,5 @@
-import { useMutation } from "convex/react";
+import type { UseChatHelpers } from '@ai-sdk/react';
+import { useMutation } from 'convex/react';
 import {
   Bolt,
   Check,
@@ -8,29 +9,28 @@ import {
   GitBranch,
   Info,
   RefreshCcw,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import type { MyUIMessage, searchWebToolOutput } from "@/lib/types";
-import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "../ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { MessageActionButton } from ".";
-import { Markdown } from "./markdown";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "./reasoning";
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./tool";
-import { api } from "@/convex/_generated/api";
-import { UseChatHelpers } from "@ai-sdk/react";
-import { useCustomChat } from "@/hooks/use-custom-chat";
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { api } from '@/convex/_generated/api';
+import { useCopyClipboard } from '@/hooks/use-copy-clipboard';
+import type { useCustomChat } from '@/hooks/use-custom-chat';
+import { useIsMobile } from '@/hooks/use-mobile';
+import type { MyUIMessage, searchWebToolOutput } from '@/lib/types';
+import { Button } from '../ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { MessageActionButton } from '.';
+import { Markdown } from './markdown';
+import { Reasoning, ReasoningContent, ReasoningTrigger } from './reasoning';
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from './tool';
 
-interface AssistantMessageProps {
+type AssistantMessageProps = {
   isLastMessage: boolean;
   message: MyUIMessage;
-  regenerate: UseChatHelpers<MyUIMessage>["regenerate"];
-  buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
+  regenerate: UseChatHelpers<MyUIMessage>['regenerate'];
+  buildBodyAndHeaders: ReturnType<typeof useCustomChat>['buildBodyAndHeaders'];
   currentChatId: string;
-}
+};
 
 export function AssistantMessage({
   isLastMessage,
@@ -54,18 +54,18 @@ export function AssistantMessage({
         {message.parts?.map((part, i) => {
           const key = `${message.id}-${i}`;
           switch (part.type) {
-            case "text":
+            case 'text':
               return <Markdown key={key}>{part.text}</Markdown>;
-            case "reasoning":
+            case 'reasoning':
               return (
-                <Reasoning isStreaming={part.state === "streaming"} key={key}>
+                <Reasoning isStreaming={part.state === 'streaming'} key={key}>
                   <ReasoningTrigger />
                   <ReasoningContent>{part.text}</ReasoningContent>
                 </Reasoning>
               );
-            case "tool-searchWebTool":
+            case 'tool-searchWebTool':
               return (
-                <Tool defaultOpen={part.state !== "output-available"} key={key}>
+                <Tool defaultOpen={part.state !== 'output-available'} key={key}>
                   <ToolHeader state={part.state} type={part.type} />
                   <ToolContent>
                     <ToolInput input={part.input} />
@@ -130,9 +130,9 @@ export function AssistantMessage({
                 router.push(`/chat/${branchChatId}`);
               }),
               {
-                loading: "Branching off from this message...",
-                success: "Branch created",
-                error: "Failed to branch off from this message",
+                loading: 'Branching off from this message...',
+                success: 'Branch created',
+                error: 'Failed to branch off from this message',
               }
             );
           }}
@@ -160,8 +160,8 @@ export function AssistantMessage({
           onClick={() => {
             copyToClipboard(
               message.parts
-                ?.map((part) => (part.type === "text" ? part.text : ""))
-                .join("") || ""
+                ?.map((part) => (part.type === 'text' ? part.text : ''))
+                .join('') || ''
             );
           }}
         />

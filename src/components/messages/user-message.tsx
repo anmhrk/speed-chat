@@ -1,25 +1,25 @@
-import { useMutation } from "convex/react";
-import { Check, Copy, PenBox, X } from "lucide-react";
-import Image from "next/image";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import type { MyUIMessage } from "@/lib/types";
-import { Textarea } from "@/components/ui/textarea";
-import { useCopyClipboard } from "@/hooks/use-copy-clipboard";
-import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { MessageActionButton } from ".";
-import { api } from "@/convex/_generated/api";
-import { UseChatHelpers } from "@ai-sdk/react";
-import { useCustomChat } from "@/hooks/use-custom-chat";
+import type { UseChatHelpers } from '@ai-sdk/react';
+import { useMutation } from 'convex/react';
+import { Check, Copy, PenBox, X } from 'lucide-react';
+import Image from 'next/image';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/convex/_generated/api';
+import { useCopyClipboard } from '@/hooks/use-copy-clipboard';
+import type { useCustomChat } from '@/hooks/use-custom-chat';
+import type { MyUIMessage } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import { MessageActionButton } from '.';
 
-interface UserMessageProps {
+type UserMessageProps = {
   message: MyUIMessage;
   allMessages: MyUIMessage[];
-  setMessages: UseChatHelpers<MyUIMessage>["setMessages"];
-  sendMessage: UseChatHelpers<MyUIMessage>["sendMessage"];
-  buildBodyAndHeaders: ReturnType<typeof useCustomChat>["buildBodyAndHeaders"];
-}
+  setMessages: UseChatHelpers<MyUIMessage>['setMessages'];
+  sendMessage: UseChatHelpers<MyUIMessage>['sendMessage'];
+  buildBodyAndHeaders: ReturnType<typeof useCustomChat>['buildBodyAndHeaders'];
+};
 
 export function UserMessage({
   message,
@@ -30,9 +30,9 @@ export function UserMessage({
 }: UserMessageProps) {
   const { copyToClipboard, isCopied } = useCopyClipboard();
   const messageContent = message.parts?.find(
-    (part) => part.type === "text"
+    (part) => part.type === 'text'
   )?.text;
-  const files = message.parts?.filter((part) => part.type === "file") ?? [];
+  const files = message.parts?.filter((part) => part.type === 'file') ?? [];
 
   const deleteMessages = useMutation(api.chatActions.deleteMessages);
   const deleteFiles = useMutation(api.storage.deleteFiles);
@@ -60,7 +60,7 @@ export function UserMessage({
   const handleEditMessage = () => {
     if (!editedMessage?.trim()) {
       handleCancelEdit();
-      toast.error("Message cannot be empty");
+      toast.error('Message cannot be empty');
       return;
     }
 
@@ -111,18 +111,18 @@ export function UserMessage({
   };
 
   return (
-    <div className="group flex flex-col items-end gap-2 mt-4">
+    <div className="group mt-4 flex flex-col items-end gap-2">
       <div
         className={cn(
-          isEditing ? "w-full" : "max-w-[80%]",
-          "rounded-lg bg-primary/5 p-3 text-secondary-foreground dark:bg-primary/10"
+          isEditing ? 'w-full' : 'max-w-[80%]',
+          'rounded-lg bg-primary/5 p-3 text-secondary-foreground dark:bg-primary/10'
         )}
       >
         {message.parts?.map((part, i) => {
           const key = `${message.id}-${i}`;
 
           switch (part.type) {
-            case "text":
+            case 'text':
               return isEditing ? (
                 <Textarea
                   className="!bg-transparent w-full resize-none border-0 px-0 shadow-none focus-visible:ring-0"
@@ -130,11 +130,11 @@ export function UserMessage({
                   onBlur={handleCancelEdit}
                   onChange={(e) => setEditedMessage(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Escape") {
+                    if (e.key === 'Escape') {
                       handleCancelEdit();
                     }
 
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleEditMessage();
                     }
@@ -146,20 +146,20 @@ export function UserMessage({
                 messageContent
               );
 
-            case "file":
+            case 'file':
               return (
                 <div
                   className={cn(
-                    "flex items-center py-2",
-                    isEditing ? "justify-between" : "justify-start"
+                    'flex items-center py-2',
+                    isEditing ? 'justify-between' : 'justify-start'
                   )}
                   key={key}
                 >
                   <Image
-                    alt={part.filename ?? ""}
+                    alt={part.filename ?? ''}
                     className="h-auto w-auto cursor-pointer rounded-md"
                     height={100}
-                    onClick={() => window.open(part.url, "_blank")}
+                    onClick={() => window.open(part.url, '_blank')}
                     src={part.url}
                     width={100}
                   />
@@ -174,7 +174,7 @@ export function UserMessage({
                         const messageWithUpdatedParts = {
                           ...message,
                           parts: message.parts.filter(
-                            (p) => p.type !== "file" || p.url !== part.url
+                            (p) => p.type !== 'file' || p.url !== part.url
                           ),
                         };
 

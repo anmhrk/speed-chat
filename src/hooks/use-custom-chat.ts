@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import { createIdGenerator, type FileUIPart } from "ai";
-import { usePathname } from "next/navigation";
-import type { MyUIMessage } from "@/lib/types";
-import { useState, useRef, useCallback, useEffect } from "react";
-import { nanoid } from "nanoid";
-import { toast } from "sonner";
-import { CHAT_MODELS } from "@/lib/models";
-import { useChatConfig } from "@/providers/chat-config-provider";
-import { useQuery } from "convex-helpers/react/cache/hooks";
-import { api } from "@/convex/_generated/api";
+import { useChat } from '@ai-sdk/react';
+import { createIdGenerator, type FileUIPart } from 'ai';
+import { useQuery } from 'convex-helpers/react/cache/hooks';
+import { nanoid } from 'nanoid';
+import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { api } from '@/convex/_generated/api';
+import { CHAT_MODELS } from '@/lib/models';
+import type { MyUIMessage } from '@/lib/types';
+import { useChatConfig } from '@/providers/chat-config-provider';
 
 type CustomChatProps = {
   isAuthenticated: boolean;
@@ -24,7 +24,7 @@ export function useCustomChat({
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKey } =
     useChatConfig();
   const pathname = usePathname();
-  const urlChatId = pathname.split("/chat/")[1] ?? "";
+  const urlChatId = pathname.split('/chat/')[1] ?? '';
   const [chatId, setChatId] = useState<string>(() => urlChatId || nanoid());
   const [isNewChat, setIsNewChat] = useState<boolean>(() => !urlChatId);
   const [newlyCreatedChatId, setNewlyCreatedChatId] = useState<string | null>(
@@ -46,7 +46,7 @@ export function useCustomChat({
     }
   }, [urlChatId]);
 
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -55,7 +55,7 @@ export function useCustomChat({
 
   const initialMessages = useQuery(
     api.chat.getMessages,
-    !!urlChatId && isAuthenticated && !newlyCreatedChatId ? { chatId } : "skip"
+    !!urlChatId && isAuthenticated && !newlyCreatedChatId ? { chatId } : 'skip'
   );
 
   const {
@@ -69,13 +69,12 @@ export function useCustomChat({
   } = useChat<MyUIMessage>({
     id: chatId,
     generateId: createIdGenerator({
-      prefix: "user",
+      prefix: 'user',
       size: 16,
     }),
-    onError: async (error) => {
-      console.error(error);
+    onError: (error) => {
       toast.error(
-        error.message || "An error occurred while generating the response"
+        error.message || 'An error occurred while generating the response'
       );
     },
   });
@@ -99,14 +98,14 @@ export function useCustomChat({
         chatId,
         modelId:
           CHAT_MODELS.find((m) => m.name === model)?.id ??
-          "anthropic/claude-sonnet-4",
+          'anthropic/claude-sonnet-4',
         reasoningEffort,
         shouldUseReasoning,
         shouldSearchWeb: searchWeb,
         isNewChat,
       },
       headers: {
-        "x-ai-gateway-api-key": apiKey,
+        'x-ai-gateway-api-key': apiKey,
       },
     };
   }, [
@@ -125,13 +124,13 @@ export function useCustomChat({
     }
   }, [chatId, newlyCreatedChatId]);
 
-  const isStreaming = status === "streaming" || status === "submitted";
+  const isStreaming = status === 'streaming' || status === 'submitted';
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      toast.error("Please sign in to chat");
+      toast.error('Please sign in to chat');
       return;
     }
 
@@ -140,9 +139,9 @@ export function useCustomChat({
     }
 
     if (!apiKey || apiKey.trim().length === 0) {
-      toast.error("Please set your AI Gateway API key", {
+      toast.error('Please set your AI Gateway API key', {
         action: {
-          label: "Set API key",
+          label: 'Set API key',
           onClick: () => setIsApiKeysOpen(true),
         },
       });
@@ -151,7 +150,7 @@ export function useCustomChat({
 
     if (isNewChat) {
       setNewlyCreatedChatId(chatId);
-      window.history.replaceState({}, "", `/chat/${chatId}`);
+      window.history.replaceState({}, '', `/chat/${chatId}`);
       setIsNewChat(false);
     }
 
@@ -168,7 +167,7 @@ export function useCustomChat({
       }
     );
 
-    setInput("");
+    setInput('');
     setFilesToSend([]);
   };
 

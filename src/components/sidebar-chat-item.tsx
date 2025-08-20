@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useMutation } from 'convex/react';
 import {
   GitBranch,
   Loader2,
@@ -7,34 +7,34 @@ import {
   Pin,
   PinOff,
   Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import { useIsMobile } from "@/hooks/use-mobile";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { api } from '@/convex/_generated/api';
+import type { Doc } from '@/convex/_generated/dataModel';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Input } from "./ui/input";
+} from './ui/dropdown-menu';
+import { Input } from './ui/input';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "./ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { Doc } from "@/convex/_generated/dataModel";
-import { api } from "@/convex/_generated/api";
+} from './ui/sidebar';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-interface SidebarChatItemProps {
-  chat: Doc<"chats">;
+type SidebarChatItemProps = {
+  chat: Doc<'chats'>;
   currentChatId: string;
   isStreaming: boolean;
-}
+};
 
 export function SidebarChatItem({
   chat,
@@ -45,7 +45,7 @@ export function SidebarChatItem({
   const router = useRouter();
   const [isRenamingChat, setIsRenamingChat] = useState(false);
   const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
-  const [newChatTitle, setNewChatTitle] = useState("");
+  const [newChatTitle, setNewChatTitle] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const renameChatTitle = useMutation(api.chatActions.renameChatTitle);
@@ -55,7 +55,7 @@ export function SidebarChatItem({
   const clearInput = () => {
     setIsRenamingChat(false);
     setRenamingChatId(null);
-    setNewChatTitle("");
+    setNewChatTitle('');
   };
 
   return (
@@ -70,13 +70,13 @@ export function SidebarChatItem({
             onBlur={clearInput}
             onChange={(e) => setNewChatTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === 'Enter') {
                 renameChatTitle({
                   chatId: chat.id,
                   newTitle: newChatTitle,
                 });
                 clearInput();
-              } else if (e.key === "Escape") {
+              } else if (e.key === 'Escape') {
                 clearInput();
               }
             }}
@@ -116,14 +116,14 @@ export function SidebarChatItem({
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            align={isMobile ? "end" : "start"}
+            align={isMobile ? 'end' : 'start'}
             className="w-fit rounded-lg"
             onCloseAutoFocus={(e) => {
               if (isRenamingChat) {
                 e.preventDefault();
               }
             }}
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
           >
             <DropdownMenuItem
               onClick={() => {
@@ -134,7 +134,7 @@ export function SidebarChatItem({
               }}
             >
               {chat.isPinned ? <PinOff /> : <Pin />}
-              <span>{chat.isPinned ? "Unpin" : "Pin"}</span>
+              <span>{chat.isPinned ? 'Unpin' : 'Pin'}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -154,12 +154,12 @@ export function SidebarChatItem({
             <DropdownMenuItem
               onClick={() => {
                 if (chat.id === currentChatId) {
-                  router.push("/");
+                  router.push('/');
                 }
                 toast.promise(deleteChat({ chatId: chat.id }), {
-                  loading: "Deleting chat...",
-                  success: "Chat deleted",
-                  error: "Failed to delete chat",
+                  loading: 'Deleting chat...',
+                  success: 'Chat deleted',
+                  error: 'Failed to delete chat',
                 });
               }}
               variant="destructive"

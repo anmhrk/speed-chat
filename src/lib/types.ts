@@ -1,21 +1,21 @@
-import { InferToolOutput, UIMessage } from "ai";
-import { searchWebTool } from "@/app/api/chat/route";
+import type { InferToolOutput, UIMessage } from 'ai';
+import type { searchWebTool } from '@/app/api/chat/route';
 
-export type ReasoningEffort = "low" | "medium" | "high";
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export type ModelId =
-  | "anthropic/claude-sonnet-4"
-  | "anthropic/claude-opus-4.1"
-  | "openai/gpt-5"
-  | "openai/gpt-5-mini"
-  | "google/gemini-2.5-flash"
-  | "google/gemini-2.5-pro";
+  | 'anthropic/claude-sonnet-4'
+  | 'anthropic/claude-opus-4.1'
+  | 'openai/gpt-5'
+  | 'openai/gpt-5-mini'
+  | 'google/gemini-2.5-flash'
+  | 'google/gemini-2.5-pro';
 
 export type ChatModel = {
   default: boolean;
   name: string;
   id: ModelId;
-  reasoning: "none" | "always" | "hybrid";
+  reasoning: 'none' | 'always' | 'hybrid';
 };
 
 export type ChatRequest = {

@@ -1,8 +1,8 @@
-import type { FileUIPart } from "ai";
-import { Loader2, X } from "lucide-react";
-import Image from "next/image";
-import { memo, useMemo } from "react";
-import { Button } from "./ui/button";
+import type { FileUIPart } from 'ai';
+import { Loader2, X } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useMemo } from 'react';
+import { Button } from './ui/button';
 
 function FilePreview({
   filesToSend,
@@ -25,11 +25,11 @@ function FilePreview({
         return (
           <div className="group relative" key={file.name}>
             <Image
-              alt={file.name ?? "Uploaded image"}
+              alt={file.name ?? 'Uploaded image'}
               className="h-20 w-20 cursor-pointer rounded-md object-cover"
               height={80}
               loading="lazy"
-              onClick={() => window.open(URL.createObjectURL(file), "_blank")}
+              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
               src={URL.createObjectURL(file)}
               width={80}
             />

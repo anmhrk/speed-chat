@@ -1,13 +1,13 @@
-import { api } from "@/convex/_generated/api";
-import { FileUIPart } from "ai";
-import { useMutation } from "convex/react";
-import { useState } from "react";
-import { toast } from "sonner";
+import type { FileUIPart } from 'ai';
+import { useMutation } from 'convex/react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { api } from '@/convex/_generated/api';
 
-interface UseAttachmentsProps {
+type UseAttachmentsProps = {
   filesToSend: FileUIPart[];
   setFilesToSend: React.Dispatch<React.SetStateAction<FileUIPart[]>>;
-}
+};
 
 export function useAttachments({
   filesToSend,
@@ -18,10 +18,10 @@ export function useAttachments({
 
   const maxFileSize = 4 * 1024 * 1024;
   const supportedImageFormats = [
-    "image/png",
-    "image/jpeg",
-    "image/jpg",
-    "image/webp",
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
   ];
 
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
@@ -35,8 +35,8 @@ export function useAttachments({
       const postUrl = await generateUploadUrl();
 
       const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
         body: file,
       });
 
@@ -45,7 +45,7 @@ export function useAttachments({
       const url = await storeFile({ fileId: storageId });
 
       return {
-        type: "file",
+        type: 'file',
         filename: file.name,
         mediaType: file.type,
         url,
@@ -56,9 +56,8 @@ export function useAttachments({
       .then((urls) => {
         setFilesToSend((prev) => [...prev, ...urls] as FileUIPart[]);
       })
-      .catch((error) => {
-        console.error(error);
-        toast.error("Failed to upload files");
+      .catch(() => {
+        toast.error('Failed to upload files');
       })
       .finally(() => setIsUploading(false));
   };
@@ -79,9 +78,9 @@ export function useAttachments({
           );
         }),
         {
-          loading: "Removing file...",
-          success: "File removed",
-          error: "Failed to remove file",
+          loading: 'Removing file...',
+          success: 'File removed',
+          error: 'Failed to remove file',
         }
       );
     }
@@ -89,7 +88,7 @@ export function useAttachments({
 
   const processFilesAndUpload = (files: File[]) => {
     if (files.some((file) => !supportedImageFormats.includes(file.type))) {
-      toast.error("Only image files are allowed");
+      toast.error('Only image files are allowed');
       return;
     }
 
@@ -97,7 +96,7 @@ export function useAttachments({
     const exceedMaxFiles = files.filter((file) => file.size > maxFileSize);
     if (exceedMaxFiles.length > 0) {
       toast.error(
-        `File ${exceedMaxFiles.map((f) => f.name).join(", ")} size exceeds 4MB`
+        `File ${exceedMaxFiles.map((f) => f.name).join(', ')} size exceeds 4MB`
       );
       return;
     }
@@ -109,14 +108,14 @@ export function useAttachments({
 
     if (duplicateFiles.length > 0) {
       toast.error(
-        `File ${duplicateFiles.map((f) => f.name).join(", ")} is already uploaded`
+        `File ${duplicateFiles.map((f) => f.name).join(', ')} is already uploaded`
       );
       return;
     }
 
     // Max file count check
     if (files.length + filesToSend.length > 5) {
-      toast.error("You can only upload up to 5 files");
+      toast.error('You can only upload up to 5 files');
       return;
     }
 

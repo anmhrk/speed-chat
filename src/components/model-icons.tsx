@@ -1,5 +1,5 @@
-import type { SVGProps } from "react";
-import type { ModelId } from "@/lib/types";
+import type { SVGProps } from 'react';
+import type { ModelId } from '@/lib/types';
 
 const OpenAI = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -23,7 +23,7 @@ const Anthropic = (props: SVGProps<SVGSVGElement>) => (
     fillRule="evenodd"
     height="1em"
     style={{
-      flex: "none",
+      flex: 'none',
       lineHeight: 1,
     }}
     viewBox="0 0 24 24"
@@ -68,12 +68,12 @@ const Google = (props: SVGProps<SVGSVGElement>) => (
 export { OpenAI, Anthropic, Google };
 
 export function getModelIcon(modelId: ModelId) {
-  switch (modelId.split("/")[0]) {
-    case "anthropic":
+  switch (modelId.split('/')[0]) {
+    case 'anthropic':
       return <Anthropic />;
-    case "openai":
+    case 'openai':
       return <OpenAI />;
-    case "google":
+    case 'google':
       return <Google />;
     default:
       return null;

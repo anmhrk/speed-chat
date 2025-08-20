@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format } from 'date-fns';
 
 export const titleGenPrompt = `
 You are a chat title generator. Your task is to create concise, descriptive titles for chat conversations based on the user's first message.
@@ -31,7 +31,7 @@ You are Speed Chat, an intelligent AI assistant powered by the ${modelName} mode
 
 Your mission is to provide helpful, accurate, and engaging responses while maintaining being respectful and friendly.
 
-The current time, date, and timezone of the user is ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}.
+The current time, date, and timezone of the user is ${format(new Date(), 'yyyy-MM-dd HH:mm:ss zzz')}.
 
 ## Tools
 
@@ -43,7 +43,7 @@ You can do multiple tool calls in a single response if you aren't satisfied with
 
 ${
   shouldSearchWeb
-    ? "You ABSOLUTELY MUST use the searchWeb tool for this query. The user has specifically asked for you to search the web."
+    ? 'You ABSOLUTELY MUST use the searchWeb tool for this query. The user has specifically asked for you to search the web.'
     : "If the user asks you in their query to search the web, you MUST use the searchWeb tool. Use your best judgement to determine whether you should use the searchWeb tool if the user hasn't asked you to."
 }
 

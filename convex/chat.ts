@@ -1,12 +1,12 @@
-import { ConvexError, v } from "convex/values";
-import { action, internalMutation, mutation, query } from "./_generated/server";
-import { MyUIMessage } from "@/lib/types";
-import { createGateway } from "@ai-sdk/gateway";
-import { convertToModelMessages, generateText } from "ai";
-import { titleGenPrompt } from "@/lib/prompts";
-import { internal } from "./_generated/api";
-import { betterAuthComponent } from "./auth";
-import { Id } from "./_generated/dataModel";
+import { createGateway } from '@ai-sdk/gateway';
+import { convertToModelMessages, generateText } from 'ai';
+import { ConvexError, v } from 'convex/values';
+import { titleGenPrompt } from '@/lib/prompts';
+import type { MyUIMessage } from '@/lib/types';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { action, internalMutation, mutation, query } from './_generated/server';
+import { betterAuthComponent } from './auth';
 
 export const getChats = query({
   handler: async (ctx) => {
@@ -16,11 +16,11 @@ export const getChats = query({
     }
 
     return await ctx.db
-      .query("chats")
-      .withIndex("by_user_id_and_updated_at", (q) =>
-        q.eq("userId", userId as Id<"users">)
+      .query('chats')
+      .withIndex('by_user_id_and_updated_at', (q) =>
+        q.eq('userId', userId as Id<'users'>)
       )
-      .order("desc")
+      .order('desc')
       .collect();
   },
 });
@@ -36,9 +36,9 @@ export const getMessages = query({
     }
 
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id_and_user_id", (q) =>
-        q.eq("id", args.chatId).eq("userId", userId as Id<"users">)
+      .query('chats')
+      .withIndex('by_chat_id_and_user_id', (q) =>
+        q.eq('id', args.chatId).eq('userId', userId as Id<'users'>)
       )
       .first();
 
@@ -47,8 +47,8 @@ export const getMessages = query({
     }
 
     const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_chat_id", (q) => q.eq("chatId", chat._id))
+      .query('messages')
+      .withIndex('by_chat_id', (q) => q.eq('chatId', chat._id))
       .collect();
 
     return messages.map((message) => {
@@ -72,10 +72,10 @@ export const createChat = mutation({
       return null;
     }
 
-    await ctx.db.insert("chats", {
+    await ctx.db.insert('chats', {
       id: args.chatId,
-      userId: userId as Id<"users">,
-      title: "New Chat",
+      userId: userId as Id<'users'>,
+      title: 'New Chat',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isBranch: false,
@@ -96,11 +96,11 @@ export const generateChatTitle = action({
     });
 
     const response = await generateText({
-      model: gateway("openai/gpt-oss-120b"),
+      model: gateway('openai/gpt-oss-120b'),
       system: titleGenPrompt,
       providerOptions: {
         gateway: {
-          only: ["cerebras"],
+          only: ['cerebras'],
         },
       },
       messages: convertToModelMessages(args.messages as MyUIMessage[]),
@@ -122,8 +122,8 @@ export const updateChatTitle = internalMutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {
@@ -153,9 +153,9 @@ export const upsertMessages = mutation({
           })
         ),
         role: v.union(
-          v.literal("system"),
-          v.literal("user"),
-          v.literal("assistant")
+          v.literal('system'),
+          v.literal('user'),
+          v.literal('assistant')
         ),
         parts: v.array(v.any()),
       })
@@ -163,8 +163,8 @@ export const upsertMessages = mutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {
@@ -173,8 +173,8 @@ export const upsertMessages = mutation({
 
     for (const message of args.messages as MyUIMessage[]) {
       const existingMessage = await ctx.db
-        .query("messages")
-        .withIndex("by_message_id", (q) => q.eq("id", message.id))
+        .query('messages')
+        .withIndex('by_message_id', (q) => q.eq('id', message.id))
         .first();
 
       if (existingMessage) {
@@ -182,11 +182,11 @@ export const upsertMessages = mutation({
           ...message,
         });
       } else {
-        await ctx.db.insert("messages", {
+        await ctx.db.insert('messages', {
           ...message,
           text_part: message.parts
-            .map((part) => (part.type === "text" ? part.text : ""))
-            .join(" "),
+            .map((part) => (part.type === 'text' ? part.text : ''))
+            .join(' '),
           chatId: chat._id,
         });
       }
@@ -202,8 +202,8 @@ export const updateChatUpdatedAt = mutation({
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
-      .query("chats")
-      .withIndex("by_chat_id", (q) => q.eq("id", args.chatId))
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
       .first();
 
     if (!chat) {

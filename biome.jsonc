@@ -1,0 +1,30 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+  "extends": ["ultracite"],
+  "files": {
+    "includes": [
+      "**",
+      "!convex/_generated",
+      "!src/app/globals.css",
+      "!src/components/ui"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "useFilenamingConvention": "off",
+        "noMagicNumbers": "off",
+        "useBlockStatements": "off",
+        "noNonNullAssertion": "off",
+        "noNestedTernary": "off"
+      },
+      "nursery": {
+        "noShadow": "off"
+      },
+      "suspicious": {
+        "noConsole": "off",
+        "noArrayIndexKey": "off"
+      }
+    }
+  }
+}
