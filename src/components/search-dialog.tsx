@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { LogIn, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -21,15 +21,11 @@ import type { SearchResult } from '@/convex/search';
 type SearchDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isAuthenticated: boolean;
 };
 
-export function SearchDialog({
-  open,
-  onOpenChange,
-  isAuthenticated,
-}: SearchDialogProps) {
+export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 

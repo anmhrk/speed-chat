@@ -1,5 +1,10 @@
-import { ChatPage } from '@/components/chat-page';
+import { ChatWrapper } from '@/components/chat-wrapper';
+import { MessagesContainer } from '@/components/messages-container';
 
 export default function Home() {
-  return <ChatPage initialMessagesPromise={Promise.resolve([])} />;
+  return (
+    <ChatWrapper>
+      <MessagesContainer initialMessagesPromise={Promise.resolve([])} />
+    </ChatWrapper>
+  );
 }

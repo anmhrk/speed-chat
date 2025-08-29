@@ -7,9 +7,9 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/convex/_generated/api';
 import { useCopyClipboard } from '@/hooks/use-copy-clipboard';
-import type { useCustomChat } from '@/hooks/use-custom-chat';
 import type { MyUIMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { useCustomChat } from '@/providers/chat-provider';
 import { Button } from '../ui/button';
 import { MessageActionButton } from '.';
 

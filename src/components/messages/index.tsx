@@ -1,7 +1,7 @@
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { LucideIcon } from 'lucide-react';
-import type { useCustomChat } from '@/hooks/use-custom-chat';
 import type { MyUIMessage } from '@/lib/types';
+import type { useCustomChat } from '@/providers/chat-provider';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { AssistantMessage } from './assistant-message';

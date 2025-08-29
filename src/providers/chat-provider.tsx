@@ -1,35 +1,63 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
+import { type UseChatHelpers, useChat } from '@ai-sdk/react';
 import { createIdGenerator, type FileUIPart } from 'ai';
+import { useConvexAuth } from 'convex/react';
 import { nanoid } from 'nanoid';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import { CHAT_MODELS } from '@/lib/models';
 import type { MyUIMessage } from '@/lib/types';
-import { useChatConfig } from '@/providers/chat-config-provider';
+import { useChatConfig } from './chat-config-provider';
+import { useDialogs } from './dialogs-provider';
 
-type CustomChatProps = {
-  isAuthenticated: boolean;
-  setIsApiKeysOpen: (open: boolean) => void;
-  initialMessages: MyUIMessage[];
+type ChatProviderProps = {
+  children: React.ReactNode;
 };
 
-export function useCustomChat({
-  isAuthenticated,
-  setIsApiKeysOpen,
-  initialMessages,
-}: CustomChatProps) {
+type ChatContextType = {
+  messages: MyUIMessage[];
+  sendMessage: UseChatHelpers<MyUIMessage>['sendMessage'];
+  setMessages: UseChatHelpers<MyUIMessage>['setMessages'];
+  stop: UseChatHelpers<MyUIMessage>['stop'];
+  status: UseChatHelpers<MyUIMessage>['status'];
+  regenerate: UseChatHelpers<MyUIMessage>['regenerate'];
+  chatId: string;
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  isStreaming: boolean;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  filesToSend: FileUIPart[];
+  setFilesToSend: React.Dispatch<React.SetStateAction<FileUIPart[]>>;
+  error: UseChatHelpers<MyUIMessage>['error'];
+  buildBodyAndHeaders: () => {
+    body: Record<string, unknown>;
+    headers: Record<string, string>;
+  };
+  setInitialMessages: (messages: MyUIMessage[]) => void;
+};
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export function ChatProvider({ children }: ChatProviderProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKey } =
     useChatConfig();
+  const { isAuthenticated } = useConvexAuth();
+  const { setIsApiKeysOpen } = useDialogs();
   const pathname = usePathname();
   const urlChatId = pathname.split('/chat/')[1] ?? '';
   const [chatId, setChatId] = useState<string>(() => urlChatId || nanoid());
   const [isNewChat, setIsNewChat] = useState<boolean>(() => !urlChatId);
-  const [newlyCreatedChatId, setNewlyCreatedChatId] = useState<string | null>(
-    null
-  );
 
   // Update chatId when URL changes
   useEffect(() => {
@@ -42,7 +70,6 @@ export function useCustomChat({
       const newId = nanoid();
       setChatId(newId);
       setIsNewChat(true);
-      setNewlyCreatedChatId(null);
     }
   }, [urlChatId]);
 
@@ -64,7 +91,6 @@ export function useCustomChat({
   } = useChat<MyUIMessage>({
     id: chatId,
     resume: !!urlChatId,
-    messages: initialMessages,
     generateId: createIdGenerator({
       prefix: 'user',
       size: 16,
@@ -75,6 +101,13 @@ export function useCustomChat({
       );
     },
   });
+
+  const setInitialMessages = useCallback(
+    (messages: MyUIMessage[]) => {
+      setMessages(messages);
+    },
+    [setMessages]
+  );
 
   const buildBodyAndHeaders = useCallback(() => {
     return {
@@ -102,12 +135,6 @@ export function useCustomChat({
     isNewChat,
   ]);
 
-  useEffect(() => {
-    if (chatId !== newlyCreatedChatId) {
-      setNewlyCreatedChatId(null);
-    }
-  }, [chatId, newlyCreatedChatId]);
-
   const isStreaming = status === 'streaming' || status === 'submitted';
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -133,7 +160,6 @@ export function useCustomChat({
     }
 
     if (isNewChat) {
-      setNewlyCreatedChatId(chatId);
       window.history.replaceState({}, '', `/chat/${chatId}`);
       setIsNewChat(false);
     }
@@ -155,23 +181,34 @@ export function useCustomChat({
     setFilesToSend([]);
   };
 
-  return {
+  const contextValue: ChatContextType = {
     messages,
     sendMessage,
     setMessages,
     stop,
+    status,
     regenerate,
     chatId,
     input,
     setInput,
+    error,
+    handleSubmit,
     inputRef,
     handleInputChange,
     isStreaming,
-    handleSubmit,
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-    status,
-    error,
+    setInitialMessages,
   };
+
+  return <ChatContext value={contextValue}>{children}</ChatContext>;
+}
+
+export function useCustomChat() {
+  const context = useContext(ChatContext);
+  if (!context) {
+    throw new Error('useChatProvider must be used within a ChatProvider');
+  }
+  return context;
 }

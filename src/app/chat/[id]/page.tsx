@@ -1,6 +1,7 @@
 import { fetchQuery } from 'convex/nextjs';
 import { Suspense } from 'react';
-import { ChatPage } from '@/components/chat-page';
+import { ChatWrapper } from '@/components/chat-wrapper';
+import { MessagesContainer } from '@/components/messages-container';
 import { api } from '@/convex/_generated/api';
 import { getAuthToken } from '@/lib/auth/token';
 
@@ -22,8 +23,16 @@ export default async function Page({
     }
   );
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ChatPage initialMessagesPromise={initialMessagesPromise} />
-    </Suspense>
+    <ChatWrapper>
+      <Suspense
+        fallback={
+          <div className="mx-auto my-auto flex text-muted-foreground text-sm">
+            Loading...
+          </div>
+        }
+      >
+        <MessagesContainer initialMessagesPromise={initialMessagesPromise} />
+      </Suspense>
+    </ChatWrapper>
   );
 }
