@@ -68,6 +68,7 @@ export function useCustomChat({
     error,
   } = useChat<MyUIMessage>({
     id: chatId,
+    resume: !!urlChatId,
     generateId: createIdGenerator({
       prefix: 'user',
       size: 16,

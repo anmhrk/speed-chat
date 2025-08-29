@@ -24,6 +24,9 @@
       "suspicious": {
         "noConsole": "off",
         "noArrayIndexKey": "off"
+      },
+      "performance": {
+        "noNamespaceImport": "off"
       }
     }
   }

@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 import { getToken } from '@convex-dev/better-auth/nextjs';
 import { createAuth } from './index';

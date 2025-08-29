@@ -9,7 +9,9 @@ import {
 } from 'ai';
 import { fetchAction, fetchMutation, fetchQuery } from 'convex/nextjs';
 import Exa from 'exa-js';
-import type { NextRequest } from 'next/server';
+import { nanoid } from 'nanoid';
+import { after, type NextRequest } from 'next/server';
+import { createResumableStreamContext } from 'resumable-stream';
 import { z } from 'zod';
 import { api } from '@/convex/_generated/api';
 import { getAuthToken } from '@/lib/auth/token';
@@ -268,6 +270,27 @@ export async function POST(request: NextRequest) {
               parts: message.parts,
               metadata: message.metadata as MessageMetadata,
             })),
+          },
+          {
+            token,
+          }
+        );
+      },
+      async consumeSseStream({ stream }) {
+        const streamId = nanoid();
+
+        // Create a resumable stream from the SSE stream
+        const streamContext = createResumableStreamContext({
+          waitUntil: after,
+        });
+        await streamContext.createNewResumableStream(streamId, () => stream);
+
+        // Update the chat with the active stream ID
+        await fetchMutation(
+          api.chat.updateChatActiveStreamId,
+          {
+            chatId,
+            activeStreamId: streamId,
           },
           {
             token,

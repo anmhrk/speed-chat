@@ -15,10 +15,12 @@ const schema = defineSchema({
     isBranch: v.boolean(),
     isPinned: v.boolean(),
     parentChatId: v.optional(v.string()),
+    activeStreamId: v.optional(v.string()),
   })
     .index('by_chat_id', ['id'])
     .index('by_chat_id_and_user_id', ['id', 'userId'])
     .index('by_user_id_and_updated_at', ['userId', 'updatedAt'])
+    .index('by_active_stream_id', ['activeStreamId'])
     .searchIndex('by_title', {
       searchField: 'title',
       filterFields: ['userId'],

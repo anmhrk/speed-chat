@@ -25,6 +25,46 @@ export const getChats = query({
   },
 });
 
+export const getChatById = query({
+  args: {
+    chatId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+
+    return await ctx.db
+      .query('chats')
+      .withIndex('by_chat_id_and_user_id', (q) =>
+        q.eq('id', args.chatId).eq('userId', userId as Id<'users'>)
+      )
+      .first();
+  },
+});
+
+export const updateChatActiveStreamId = mutation({
+  args: {
+    chatId: v.string(),
+    activeStreamId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const chat = await ctx.db
+      .query('chats')
+      .withIndex('by_chat_id', (q) => q.eq('id', args.chatId))
+      .first();
+
+    if (!chat) {
+      throw new ConvexError(`Chat ${args.chatId} not found`);
+    }
+
+    await ctx.db.patch(chat._id, {
+      activeStreamId: args.activeStreamId,
+    });
+  },
+});
+
 export const getMessages = query({
   args: {
     chatId: v.string(),
@@ -191,6 +231,11 @@ export const upsertMessages = mutation({
         });
       }
     }
+
+    // Reset the active stream ID just in case, it already gets reset in updateChatUpdatedAt at the start of the stream
+    await ctx.db.patch(chat._id, {
+      activeStreamId: undefined,
+    });
   },
 });
 
@@ -212,6 +257,8 @@ export const updateChatUpdatedAt = mutation({
 
     await ctx.db.patch(chat._id, {
       updatedAt: Date.now(),
+      // Reset the active stream ID when the chat is updated
+      activeStreamId: undefined,
     });
   },
 });
