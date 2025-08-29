@@ -12,7 +12,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { Markdown } from './markdown';
+import { Response } from './response';
 
 type ReasoningContextValue = {
   isStreaming: boolean;
@@ -159,7 +159,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Markdown>{children}</Markdown>
+      <Response>{children}</Response>
     </CollapsibleContent>
   )
 );

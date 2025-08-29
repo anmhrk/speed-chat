@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   devIndicators: false,
+  transpilePackages: ['shiki'],
 };
 
 export default nextConfig;

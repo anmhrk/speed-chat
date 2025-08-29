@@ -20,8 +20,8 @@ import type { MyUIMessage, searchWebToolOutput } from '@/lib/types';
 import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { MessageActionButton } from '.';
-import { Markdown } from './markdown';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from './reasoning';
+import { Response } from './response';
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from './tool';
 
 type AssistantMessageProps = {
@@ -55,7 +55,7 @@ export function AssistantMessage({
           const key = `${message.id}-${i}`;
           switch (part.type) {
             case 'text':
-              return <Markdown key={key}>{part.text}</Markdown>;
+              return <Response key={key}>{part.text}</Response>;
             case 'reasoning':
               return (
                 <Reasoning isStreaming={part.state === 'streaming'} key={key}>
