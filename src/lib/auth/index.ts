@@ -9,6 +9,7 @@ export const createAuth = (ctx: GenericCtx) =>
   betterAuth({
     // All auth requests will be proxied through your next.js server
     baseURL: process.env.SITE_URL,
+    secret: process.env.BETTER_AUTH_SECRET,
     database: convexAdapter(ctx, betterAuthComponent),
     socialProviders: {
       google: {

@@ -2,12 +2,10 @@
 
 import { useChat } from '@ai-sdk/react';
 import { createIdGenerator, type FileUIPart } from 'ai';
-import { useQuery } from 'convex-helpers/react/cache/hooks';
 import { nanoid } from 'nanoid';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '@/convex/_generated/api';
 import { CHAT_MODELS } from '@/lib/models';
 import type { MyUIMessage } from '@/lib/types';
 import { useChatConfig } from '@/providers/chat-config-provider';
@@ -15,11 +13,13 @@ import { useChatConfig } from '@/providers/chat-config-provider';
 type CustomChatProps = {
   isAuthenticated: boolean;
   setIsApiKeysOpen: (open: boolean) => void;
+  initialMessages: MyUIMessage[];
 };
 
 export function useCustomChat({
   isAuthenticated,
   setIsApiKeysOpen,
+  initialMessages,
 }: CustomChatProps) {
   const { model, reasoningEffort, shouldUseReasoning, searchWeb, apiKey } =
     useChatConfig();
@@ -53,11 +53,6 @@ export function useCustomChat({
   };
   const [filesToSend, setFilesToSend] = useState<FileUIPart[]>([]);
 
-  const initialMessages = useQuery(
-    api.chat.getMessages,
-    !!urlChatId && isAuthenticated && !newlyCreatedChatId ? { chatId } : 'skip'
-  );
-
   const {
     messages,
     sendMessage,
@@ -69,6 +64,7 @@ export function useCustomChat({
   } = useChat<MyUIMessage>({
     id: chatId,
     resume: !!urlChatId,
+    messages: initialMessages,
     generateId: createIdGenerator({
       prefix: 'user',
       size: 16,
@@ -79,19 +75,6 @@ export function useCustomChat({
       );
     },
   });
-
-  // initialMessages is undefined on first render, ai sdk doesn't update messages once initialMessages is populated
-  useEffect(() => {
-    if (initialMessages && initialMessages.length > 0) {
-      setMessages(initialMessages);
-    }
-  }, [initialMessages, setMessages]);
-
-  const loadingMessages =
-    !!urlChatId &&
-    !newlyCreatedChatId &&
-    (initialMessages === undefined ||
-      (initialMessages && initialMessages.length > 0 && messages.length === 0));
 
   const buildBodyAndHeaders = useCallback(() => {
     return {
@@ -174,7 +157,6 @@ export function useCustomChat({
 
   return {
     messages,
-    loadingMessages,
     sendMessage,
     setMessages,
     stop,

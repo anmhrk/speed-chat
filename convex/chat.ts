@@ -72,7 +72,7 @@ export const getMessages = query({
   handler: async (ctx, args) => {
     const userId = await betterAuthComponent.getAuthUserId(ctx);
     if (!userId) {
-      return null;
+      return [];
     }
 
     const chat = await ctx.db

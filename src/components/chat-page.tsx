@@ -4,13 +4,14 @@ import { useConvexAuth } from 'convex/react';
 import { Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ApiKeysDialog } from '@/components/api-keys-dialog';
 import { AppSidebar } from '@/components/app-sidebar';
 import { ChatInput } from '@/components/chat-input';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { useCustomChat } from '@/hooks/use-custom-chat';
+import type { MyUIMessage } from '@/lib/types';
 import { Messages } from './messages';
 import { SearchDialog } from './search-dialog';
 import { Button } from './ui/button';
@@ -23,8 +24,13 @@ const PROMPT_SUGGESTIONS = [
   'Help me plan my summer vacation in Europe',
 ];
 
-export function ChatPage() {
+export function ChatPage({
+  initialMessagesPromise,
+}: {
+  initialMessagesPromise: Promise<MyUIMessage[]>;
+}) {
   const router = useRouter();
+  const initialMessages = use(initialMessagesPromise);
   const { isAuthenticated, isLoading } = useConvexAuth();
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -45,10 +51,13 @@ export function ChatPage() {
     filesToSend,
     setFilesToSend,
     buildBodyAndHeaders,
-    loadingMessages,
     status,
     error,
-  } = useCustomChat({ isAuthenticated, setIsApiKeysOpen });
+  } = useCustomChat({
+    isAuthenticated,
+    setIsApiKeysOpen,
+    initialMessages,
+  });
 
   useHotkeys('meta+k, ctrl+k', () => setIsSearchOpen(true), {
     enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'],
@@ -85,11 +94,7 @@ export function ChatPage() {
           </header>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            {loadingMessages ? (
-              <div className="mx-auto my-auto flex text-muted-foreground text-sm">
-                Loading...
-              </div>
-            ) : messages.length > 0 ? (
+            {messages.length > 0 ? (
               <Messages
                 buildBodyAndHeaders={buildBodyAndHeaders}
                 currentChatId={chatId}
