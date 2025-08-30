@@ -129,25 +129,29 @@ export async function POST(request: NextRequest) {
   let ttftCalculated = false;
   let ttft = 0;
 
-  // Create chat immediately and generate title if it's a new chat
+  const userMessage = messages.at(-1);
+
+  // Create chat and upsert user message immediately if it's a new chat
   if (isNewChat) {
     await fetchMutation(
       api.chat.createChat,
       {
         chatId,
+        userMessage,
       },
       {
         token,
       }
     );
 
+    // Also generate title if new chat
     try {
       fetchAction(
         api.chat.generateChatTitle,
         {
           chatId,
           apiKey,
-          messages,
+          userMessage,
         },
         {
           token,
@@ -159,9 +163,10 @@ export async function POST(request: NextRequest) {
     }
   } else {
     fetchMutation(
-      api.chat.updateChatUpdatedAt,
+      api.chat.updateChat,
       {
         chatId,
+        userMessage,
       },
       {
         token,
@@ -223,7 +228,6 @@ export async function POST(request: NextRequest) {
     });
 
     return result.toUIMessageStreamResponse({
-      originalMessages: messages,
       generateMessageId: () =>
         createIdGenerator({
           prefix: 'assistant',
@@ -249,10 +253,7 @@ export async function POST(request: NextRequest) {
           return metadata;
         }
       },
-      onFinish: async ({ messages: allMessages, responseMessage }) => {
-        // allMessages is the full list of messages, including the latest response message
-        const latestMessages = allMessages.slice(-2); // last 2 messages are the user message and the assistant response
-
+      onFinish: async ({ responseMessage }) => {
         if (responseMessage.parts?.length === 0) {
           // If the response message has no parts, it means the model returned an error
           // This should actually not be happening, why is onFinish being called if there's an error?
@@ -261,15 +262,10 @@ export async function POST(request: NextRequest) {
         }
 
         await fetchMutation(
-          api.chat.upsertMessages,
+          api.chat.upsertMessageWrapper,
           {
             chatId,
-            messages: latestMessages.map((message) => ({
-              id: message.id,
-              role: message.role,
-              parts: message.parts,
-              metadata: message.metadata as MessageMetadata,
-            })),
+            message: responseMessage,
           },
           {
             token,

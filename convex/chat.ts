@@ -105,6 +105,7 @@ export const getMessages = query({
 export const createChat = mutation({
   args: {
     chatId: v.string(),
+    userMessage: v.any(),
   },
   handler: async (ctx, args) => {
     const userId = await betterAuthComponent.getAuthUserId(ctx);
@@ -112,7 +113,9 @@ export const createChat = mutation({
       return null;
     }
 
-    await ctx.db.insert('chats', {
+    const userMessage = args.userMessage as MyUIMessage;
+
+    const chatId = await ctx.db.insert('chats', {
       id: args.chatId,
       userId: userId as Id<'users'>,
       title: 'New Chat',
@@ -121,6 +124,11 @@ export const createChat = mutation({
       isBranch: false,
       isPinned: false,
     });
+
+    await ctx.runMutation(internal.chat.upsertMessage, {
+      chatId,
+      message: userMessage,
+    });
   },
 });
 
@@ -128,7 +136,7 @@ export const generateChatTitle = action({
   args: {
     chatId: v.string(),
     apiKey: v.string(),
-    messages: v.array(v.any()),
+    userMessage: v.any(),
   },
   handler: async (ctx, args) => {
     const gateway = createGateway({
@@ -143,7 +151,7 @@ export const generateChatTitle = action({
           only: ['cerebras'],
         },
       },
-      messages: convertToModelMessages(args.messages as MyUIMessage[]),
+      messages: convertToModelMessages([args.userMessage as MyUIMessage]),
     });
 
     if (response.text) {
@@ -176,30 +184,10 @@ export const updateChatTitle = internalMutation({
   },
 });
 
-export const upsertMessages = mutation({
+export const upsertMessageWrapper = mutation({
   args: {
     chatId: v.string(),
-    messages: v.array(
-      v.object({
-        id: v.string(),
-        metadata: v.optional(
-          v.object({
-            modelName: v.string(),
-            tps: v.number(),
-            ttft: v.number(),
-            elapsedTime: v.number(),
-            completionTokens: v.number(),
-            reasoningDuration: v.optional(v.number()),
-          })
-        ),
-        role: v.union(
-          v.literal('system'),
-          v.literal('user'),
-          v.literal('assistant')
-        ),
-        parts: v.array(v.any()),
-      })
-    ),
+    message: v.any(),
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
@@ -211,26 +199,10 @@ export const upsertMessages = mutation({
       throw new ConvexError(`Chat ${args.chatId} not found`);
     }
 
-    for (const message of args.messages as MyUIMessage[]) {
-      const existingMessage = await ctx.db
-        .query('messages')
-        .withIndex('by_message_id', (q) => q.eq('id', message.id))
-        .first();
-
-      if (existingMessage) {
-        await ctx.db.patch(existingMessage._id, {
-          ...message,
-        });
-      } else {
-        await ctx.db.insert('messages', {
-          ...message,
-          text_part: message.parts
-            .map((part) => (part.type === 'text' ? part.text : ''))
-            .join(' '),
-          chatId: chat._id,
-        });
-      }
-    }
+    await ctx.runMutation(internal.chat.upsertMessage, {
+      chatId: chat._id,
+      message: args.message,
+    });
 
     // Reset the active stream ID just in case, it already gets reset in updateChatUpdatedAt at the start of the stream
     await ctx.db.patch(chat._id, {
@@ -239,11 +211,39 @@ export const upsertMessages = mutation({
   },
 });
 
-// Could put this in upsertMessages but it would be too late for the UI update if it was in onFinish
-// So now we can call this right at the start for sub instant update
-export const updateChatUpdatedAt = mutation({
+export const upsertMessage = internalMutation({
+  args: {
+    chatId: v.id('chats'),
+    message: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const message = args.message as MyUIMessage;
+
+    const existingMessage = await ctx.db
+      .query('messages')
+      .withIndex('by_message_id', (q) => q.eq('id', message.id))
+      .first();
+
+    if (existingMessage) {
+      await ctx.db.patch(existingMessage._id, {
+        ...message,
+      });
+    } else {
+      await ctx.db.insert('messages', {
+        ...message,
+        text_part: message.parts
+          .map((part) => (part.type === 'text' ? part.text : ''))
+          .join(' '),
+        chatId: args.chatId,
+      });
+    }
+  },
+});
+
+export const updateChat = mutation({
   args: {
     chatId: v.string(),
+    userMessage: v.any(),
   },
   handler: async (ctx, args) => {
     const chat = await ctx.db
@@ -254,6 +254,13 @@ export const updateChatUpdatedAt = mutation({
     if (!chat) {
       throw new ConvexError(`Chat ${args.chatId} not found`);
     }
+
+    const userMessage = args.userMessage as MyUIMessage;
+
+    await ctx.runMutation(internal.chat.upsertMessage, {
+      chatId: chat._id,
+      message: userMessage,
+    });
 
     await ctx.db.patch(chat._id, {
       updatedAt: Date.now(),
