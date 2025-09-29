@@ -4,7 +4,7 @@ import type { searchWebTool } from '@/app/api/chat/route';
 export type ReasoningEffort = 'low' | 'medium' | 'high';
 
 export type ModelId =
-  | 'anthropic/claude-sonnet-4'
+  | 'anthropic/claude-sonnet-4.5'
   | 'anthropic/claude-opus-4.1'
   | 'openai/gpt-5'
   | 'openai/gpt-5-mini'

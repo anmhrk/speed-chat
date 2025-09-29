@@ -11,7 +11,7 @@ An AI chat application built with Next.js 15, Convex, and AI SDK v5, featuring m
 ## 🤖 AI Models Supported
 
 - **OpenAI** - GPT 5, GPT 5 mini
-- **Anthropic** - Claude Sonnet 4, Claude Opus 4.1
+- **Anthropic** - Claude Sonnet 4.5, Claude Opus 4.1
 - **Google** - Gemini 2.5 Flash, Gemini 2.5 Pro
 
 ## 🚀 Features

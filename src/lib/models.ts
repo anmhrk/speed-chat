@@ -3,8 +3,8 @@ import type { ChatModel } from './types';
 export const CHAT_MODELS: ChatModel[] = [
   {
     default: true,
-    name: 'Claude Sonnet 4',
-    id: 'anthropic/claude-sonnet-4',
+    name: 'Claude Sonnet 4.5',
+    id: 'anthropic/claude-sonnet-4.5',
     reasoning: 'hybrid',
   },
   {
